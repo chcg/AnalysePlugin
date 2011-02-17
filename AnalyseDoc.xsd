@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<! -------------------------------------
+This file is part of AnalysePlugin for NotePad++ 
+Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either
+version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+------------------------------------->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+   <xs:element name="AnalyseDoc">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="Headline" type="xs:string" />
+            <xs:sequence maxOccurs="unbounded">
+               <xs:element name="SearchText" nillable="false">
+                  <xs:complexType>
+                     <xs:simpleContent>
+                        <xs:extension base="xs:string">
+                           <xs:attribute name="searchType" type="tSearchType" default="normal" />
+                           <xs:attribute name="matchCase" type="xs:boolean" default="false" />
+                           <xs:attribute name="wholeWord" type="xs:boolean" default="false" />
+                           <xs:attribute name="select" type="tSelect" default="line" />
+                           <xs:attribute name="hide" type="xs:boolean" default="false" />
+                           <xs:attribute name="bold" type="xs:boolean" default="false" />
+                           <xs:attribute name="italic" type="xs:boolean" default="false" />
+                           <xs:attribute name="underlined" type="xs:boolean" default="false" />
+                           <xs:attribute name="color" type="tColor" default="black" />
+                           <xs:attribute name="bGcolor" type="tColor" />
+                           <xs:attribute name="comment" type="xs:string" />
+                        </xs:extension>
+                     </xs:simpleContent>
+                  </xs:complexType>
+               </xs:element>
+            </xs:sequence>
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:simpleType name="tSearchType">
+      <xs:restriction base="xs:string">
+         <xs:enumeration value="normal" />
+         <xs:enumeration value="escaped" />
+         <xs:enumeration value="regex" />
+      </xs:restriction>
+   </xs:simpleType>
+   <xs:simpleType name="tSelect">
+      <xs:restriction base="xs:string">
+         <xs:enumeration value="text" />
+         <xs:enumeration value="line" />
+      </xs:restriction>
+   </xs:simpleType>
+   <xs:simpleType name="tColor">
+      <xs:restriction base="xs:string">
+         <xs:enumeration value="darkRed" />
+         <xs:enumeration value="red" />
+         <xs:enumeration value="liteRed" />
+         <xs:enumeration value="darkGreen" />
+         <xs:enumeration value="blueGreen" />
+         <xs:enumeration value="green" />
+         <xs:enumeration value="liteGreen" />
+         <xs:enumeration value="darkBlue" />
+         <xs:enumeration value="blue" />
+         <xs:enumeration value="liteBlue" />
+         <xs:enumeration value="veryLiteBlue" />
+         <xs:enumeration value="extremeLiteBlue" />
+         <xs:enumeration value="black" />
+         <xs:enumeration value="darkGrey" />
+         <xs:enumeration value="grey" />
+         <xs:enumeration value="liteGrey" />
+         <xs:enumeration value="veryLiteGrey" />
+         <xs:enumeration value="offWhite" />
+         <xs:enumeration value="white" />
+         <xs:enumeration value="brown" />
+         <xs:enumeration value="beige" />
+         <xs:enumeration value="liteBeige" />
+         <xs:enumeration value="greenBlue" />
+         <xs:enumeration value="darkYellow" />
+         <xs:enumeration value="yellow" />
+         <xs:enumeration value="cyan" />
+         <xs:enumeration value="orange" />
+         <xs:enumeration value="purple" />
+         <xs:enumeration value="deepPurple" />
+         <xs:enumeration value="veryLitePurple" />
+      </xs:restriction>
+   </xs:simpleType>
+</xs:schema>

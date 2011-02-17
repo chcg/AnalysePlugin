@@ -1,0 +1,314 @@
+/* -------------------------------------
+This file is part of AnalysePlugin for NotePad++ 
+Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+partly copied from the NotePad++ project from 
+Don HO donho(at)altern.org 
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either
+version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+------------------------------------- */
+
+#ifndef TCLFINDRESULTSEARCHDLG_H
+#define TCLFINDRESULTSEARCHDLG_H
+
+#include "StaticDialog.h"
+#include "resource.h"
+#include "tclComboBoxCtrl.h"
+#include "ScintillaSearchView.h"
+#include "tclPattern.h"
+#include <string>
+
+class tclFindResultSearchDlg : public StaticDialog
+{
+public :
+   tclFindResultSearchDlg() 
+      : StaticDialog()
+      ,_pSearchResultView(0)
+      ,_bSearchDown(true)
+      ,_bDoWrap(true)
+   {}
+
+   void init(HINSTANCE hInst, HWND hPere, ScintillaSearchView* pSearchResultView) 
+   {
+      Window::init(hInst, hPere);
+      if (!pSearchResultView){
+		   MessageBox( NULL, TEXT("System Error no scintilla pointer"), TEXT("tclFindResultSearchDlg ERROR : "), MB_OK | MB_ICONSTOP);
+         throw int(9900);
+      }
+      _pSearchResultView = pSearchResultView;
+   }
+
+   virtual void create(int dialogID, bool isRTL = false) 
+   {
+      StaticDialog::create(dialogID, isRTL);
+   };
+
+   /** called to show the dialog */
+   void doDialog(bool isRTL = false) 
+   {
+      if (!isCreated()) {
+         create(IDD_FIND_RES_DLG_SEARCH, isRTL);
+      }
+      display();
+   }
+
+   virtual void display(bool toShow = true) 
+   {
+      if (toShow){
+         ::SetFocus(::GetDlgItem(_hSelf, IDC_CMB_SEARCH_TEXT));
+
+         _CmbSearchText.init(::GetDlgItem(_hSelf, IDC_CMB_SEARCH_TEXT));
+         _CmbSearchType.init(::GetDlgItem(_hSelf, IDC_CMB_SEARCH_TYPE));
+         _CmbSearchDir.init(::GetDlgItem(_hSelf, IDC_CMB_SEARCH_DIR));
+         tclPattern p; // for default values
+         // fill combos
+         _CmbSearchType.addInitialText2Combo(p.getDefSearchTypeListSize(), p.getDefSearchTypeList(), false);
+         // set to default values
+         _CmbSearchType.addText2Combo(p.getSearchTypeStr().c_str(), false);
+         _CmbSearchText.addText2Combo(p.getSearchText().c_str(), false);
+         ::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_SETCHECK, p.getIsWholeWord()?BST_CHECKED:BST_UNCHECKED, 0);
+         ::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_SETCHECK, p.getIsMatchCase()?BST_CHECKED:BST_UNCHECKED, 0);
+         ::SendDlgItemMessage(_hSelf, IDC_RADIO_DIRDOWN , BM_SETCHECK, _bSearchDown?BST_CHECKED:BST_UNCHECKED, 0);
+         ::SendDlgItemMessage(_hSelf, IDC_CHK_WRAP , BM_SETCHECK, _bDoWrap?BST_CHECKED:BST_UNCHECKED, 0);
+      }
+      Window::display(toShow);
+
+   }
+
+   int doFindText(int start, int end/*, bool bDownWards*/) {
+      if(_pSearchResultView==0) {
+         DBG0("doFindText() ERROR no searchresult window");
+         return -1;
+      }
+      tclPattern p;
+      p.setWholeWord(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_GETCHECK, 0, 0));
+      p.setMatchCase(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_GETCHECK, 0, 0));
+      p.setSearchText(_CmbSearchText.getTextFromCombo(false));
+      p.setSearchTypeStr(_CmbSearchType.getTextFromCombo(false));
+      if(p.getSearchText().length()==0) {
+         // empty string is found "every where" so we return directly with 0 
+         DBG0("doFindText() don't search: empty search string.");
+			::MessageBox(_hSelf, TEXT("Search string empty!"), TEXT("Find in Result"), MB_OK);
+         return -1;
+      }
+      // add text to history
+      _CmbSearchText.addText2Combo(_CmbSearchText.getTextFromCombo(false).c_str(), false);
+      // flags for the search 
+      int flags =0;
+      if(p.getSearchType()== tclPattern::regex) {
+         flags |= (SCFIND_REGEXP|SCFIND_POSIX);
+      }
+      flags |= p.getIsMatchCase()?SCFIND_MATCHCASE:0;
+      flags |= p.getIsWholeWord()?SCFIND_WHOLEWORD:0;
+      _pSearchResultView->execute(SCI_SETSEARCHFLAGS, flags);
+      // set search area
+      _pSearchResultView->execute(SCI_SETTARGETSTART, start);
+      _pSearchResultView->execute(SCI_SETTARGETEND, end);
+      int targetStart = (int)_pSearchResultView->execute(SCI_SEARCHINTARGET, 
+         (WPARAM)p.getSearchText().size(), 
+         (LPARAM)p.getSearchText().c_str());
+      return targetStart;
+   }
+
+   void doFindFirst() {
+      DBG0("doFindFirst()");
+      if(_pSearchResultView==0) {
+         DBG0("doFindFirst() ERROR no searchresult window");
+         return;
+      }
+      int startRange = 0; // from very begin
+      int endRange = (int)_pSearchResultView->execute(SCI_GETLENGTH);
+      if (endRange < 1) {
+         DBG0("doFindFirst() don't search: document is empty.");
+			::MessageBox(_hSelf, TEXT("Result window empty!"), TEXT("Find in Result"), MB_OK);
+         // nothing to do because that means the document is empty
+         return; 
+      } 
+      //Initial range for searching
+      DBG2("doFindFirst() initial tstart %d, tend %d.", startRange, endRange);
+
+      // search the pattern
+      startRange = doFindText(startRange, endRange);
+      if(startRange != -1) {
+         int targetEnd = (int)_pSearchResultView->execute(SCI_GETTARGETEND);
+         markFoundText(startRange, targetEnd);
+         int lineNumber = (int)_pSearchResultView->execute(SCI_LINEFROMPOSITION, startRange);
+         int foundTextLen = targetEnd - startRange;
+         DBG2("doFindFirst() text found in line %d with %d chars length", lineNumber, foundTextLen);
+      } else {
+         ::MessageBox(_hSelf, TEXT("Can' find the text!"), TEXT("Find in Result"), MB_OK);
+      }
+   }
+
+   void markFoundText(int targetStart, int targetEnd) {
+      DBG0("markFoundText()");
+      if (targetEnd < targetStart) {
+         int tmp = targetStart;
+         targetStart = targetEnd;
+         targetEnd = tmp;
+      }
+      _pSearchResultView->execute(SCI_SETSEL, targetEnd, targetStart);
+   	int currentlineNumberDoc = (int)_pSearchResultView->execute(SCI_LINEFROMPOSITION, targetStart);
+      int currentVisibleCenter =	(int)_pSearchResultView->execute(SCI_GETFIRSTVISIBLELINE);
+	   int linesVisible =			(int)_pSearchResultView->execute(SCI_LINESONSCREEN) - 1;	//-1 for the scrollbar
+	   currentVisibleCenter += linesVisible/2;
+      int linesToScroll = currentlineNumberDoc - currentVisibleCenter;
+      if (linesToScroll > 2 || linesToScroll < -2) {
+         _pSearchResultView->execute(SCI_LINESCROLL, 0, linesToScroll);
+      }
+      SCNotification scn;
+      memset(&scn, 0, sizeof(scn));
+      scn.nmhdr.code = SCN_DOUBLECLICK;
+      ::SendMessage(_pSearchResultView->getHParent(), WM_NOTIFY, 0, (LPARAM)&scn);
+      ::SetFocus(_hSelf);
+   }
+
+   void doFindNext(bool bSearchDown, bool bDoWrap) {
+      DBG0("doFindNext()");
+      if(_pSearchResultView==0) {
+         DBG0("doFindNext() ERROR no searchresult window");
+         return;
+      }
+      int anchor = (int)_pSearchResultView->execute(SCI_GETANCHOR);
+      int length = (int)_pSearchResultView->execute(SCI_GETLENGTH);
+      if (length < 1) {
+         DBG0("doFindNext() don't search: document is empty.");
+			::MessageBox(_hSelf, TEXT("Result window empty!"), TEXT("Find in Result"), MB_OK);
+         // nothing to do because that means the document is empty
+         return; 
+      } 
+      int startRange = bSearchDown ? anchor : anchor-1; // up has to search backw. so start before last char
+      int endRange = bSearchDown ? length:0;
+      //Initial range for searching
+      DBG2("doFindNext() with tstart %d, tend %d.", startRange, endRange);
+      // search the pattern
+      startRange = doFindText(startRange, endRange);
+      if((startRange == -1) && bDoWrap) {
+         if(bSearchDown) {
+            startRange = 0;
+         } else {
+            startRange = length-1;
+         }
+         startRange = doFindText(startRange, endRange);
+      }
+      if(startRange != -1) {
+         int targetEnd = (int)_pSearchResultView->execute(SCI_GETTARGETEND);
+         markFoundText(startRange, targetEnd);
+         int lineNumber = (int)_pSearchResultView->execute(SCI_LINEFROMPOSITION, startRange);
+         int foundTextLen = targetEnd - startRange;
+         DBG2("doFindNext() text found in line %d with %d chars length", lineNumber, foundTextLen);
+      } else {
+         ::MessageBox(_hSelf, TEXT("Can' find the text!"), TEXT("Find in Result"), MB_OK);
+      } 
+   }
+
+   void doCount() {
+      DBG0("doCount()");
+      int iCount=0;
+      if(_pSearchResultView==0) {
+         DBG0("doCount() ERROR no searchresult window");
+         return;
+      }
+      int startRange = 0; // from very begin
+      int endRange = (int)_pSearchResultView->execute(SCI_GETLENGTH);
+      if (endRange < 1) {
+         DBG0("doCount() don't search: document is empty.");
+         // nothing to do because that means the document is empty
+      } else {
+         while (startRange >= 0) {
+            startRange = doFindText(startRange, endRange);
+            if (startRange >= 0){
+               startRange = (int)_pSearchResultView->execute(SCI_GETTARGETEND);
+               iCount++;
+            }
+         } // while
+      }
+      TCHAR* text = TEXT(" instances found.");
+      TCHAR msg[100];
+      _itow(iCount, msg, 10);
+      wcsncpy(msg+wcslen(msg), text, 100-wcslen(text));
+      ::MessageBox(_hSelf, msg, TEXT("Count Instances"), MB_OK);
+   }
+
+protected :
+//	/* Subclassing combo boxes */
+//	static LRESULT CALLBACK wndDefaultProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) {
+//#pragma warning (disable:4312)
+//		return (((tclFindResultSearchDlg *)(::GetWindowLong(hwnd, GWL_USERDATA)))->runProc(hwnd, Message, wParam, lParam));
+//#pragma warning (default:4312)
+//	}
+//
+//   INT_PTR CALLBACK runProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
+//   {
+//      INT_PTR b;
+//       if (b = run_dlgProc(Message, wParam, lParam)) {
+//          return b;
+//       } else {
+//          return StaticDialog::dlgProc(hwnd, Message, wParam, lParam);
+//       }
+//   }
+
+   //virtual BOOL CALLBACK run_dlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
+   //{
+   //   DBG1("run_dlgProc(HWND hwnd) message 0x%04x", Message);
+   //   return run_dlgProc(Message, wParam, lParam);
+   //}
+
+   virtual BOOL CALLBACK run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
+   {
+      //DBG1("run_dlgProc() message 0x%04x", Message);
+	   switch (Message) 
+	   {
+     //      case WM_INITDIALOG :
+		   //{
+			  // return TRUE;
+		   //}
+		   case WM_COMMAND : 
+		   {
+			   switch (wParam)
+			   {
+				   case IDCANCEL :
+					   display(FALSE);
+					   return TRUE;
+
+               case IDC_FINDFIRST:
+                  doFindFirst();
+					   return TRUE;
+				   case IDOK :
+               case IDC_FINDNEXT:
+                  _bSearchDown = 0!=::SendDlgItemMessage(_hSelf, IDC_RADIO_DIRDOWN , BM_GETCHECK, 0, 0);
+                  _bDoWrap = 0!=::SendDlgItemMessage(_hSelf, IDC_CHK_WRAP , BM_GETCHECK, 0, 0);
+                  doFindNext(_bSearchDown, _bDoWrap);
+					   return TRUE;
+               case IDC_COUNT:
+                  doCount();
+                  return TRUE;
+				   default :
+					   break;
+			   }
+			   break;
+		   }
+	   }
+	   return FALSE;
+   }
+
+   tclComboBoxCtrl _CmbSearchText;
+   tclComboBoxCtrl _CmbSearchType;
+   tclComboBoxCtrl _CmbSearchDir;
+   ScintillaSearchView* _pSearchResultView;
+   bool _bSearchDown;
+   bool _bDoWrap;
+};
+
+#endif //TCLFINDRESULTSEARCHDLG_H

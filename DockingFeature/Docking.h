@@ -1,0 +1,1 @@
+#include "..\..\PowerEditor\src\WinControls\DockingWnd\Docking.h"

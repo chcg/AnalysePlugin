@@ -1,0 +1,1 @@
+#include "..\..\PowerEditor\src\WinControls\StaticDialog\StaticDialog.h"
