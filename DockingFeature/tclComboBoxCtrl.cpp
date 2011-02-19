@@ -55,7 +55,7 @@ void tclComboBoxCtrl::addText2Combo(const char * txt2add, bool isUTF8)
 	if (!mhMyCtrl) return;
 	if ((txt2add==0)) return; //  || (*txt2add==0)
 
-   char text[MAX_CHAR_CELL];
+	char text[MAX_CHAR_CELL];
 	WCHAR textW[MAX_CHAR_CELL];
 
    int count = (int)::SendMessage(mhMyCtrl, CB_GETCOUNT, 0, 0);

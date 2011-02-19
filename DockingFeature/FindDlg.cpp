@@ -32,7 +32,6 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "SciLexer.h"
 #include "chardefines.h"
 #include <commctrl.h>// For ListView control APIs
-#include <tchar.h>// For TCHAR and string functions.
 #include <commdlg.h>// For fileopen dialog.
 
 void FindDlg::setFileName(const TCHAR* str) {

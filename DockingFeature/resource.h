@@ -25,12 +25,13 @@
 #define IDC_CHK_WHOLE_WORD              1019
 #define IDC_CMB_SEARCH_TEXT             1020
 #define IDC_DIALOG_DESCRIPTION          1021
-#define IDC_CMB_COMMENT                 1021
+#define IDC_CMB_COMMENT                 1029
 #define IDC_BUT_CLEAR                   1022
 #define IDC_CMB_ONENTERACT              1024
 #define IDC_FINDPREV                    1025
 #define IDC_BTN_FINDPREV                1025
 #define IDC_CMB_SEARCH_DIR              1026
+#define IDC_STATIC                      1027
 #define IDC_CMB_FONTNAME                1028
 #define IDC_COMBO2                      1030
 #define IDC_CMB_FONTSIZE                1030

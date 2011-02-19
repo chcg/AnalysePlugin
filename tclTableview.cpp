@@ -27,7 +27,6 @@ in the find config dock window
 #include "tclPatternList.h"
 #include "chardefines.h"
 #include <commctrl.h>// For ListView control APIs
-#include <tchar.h>// For TCHAR and string functions.
 
 #define MAX_CHAR_CELL 1000 // max chars in a cell including \0
 
