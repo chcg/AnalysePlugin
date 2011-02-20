@@ -1,6 +1,6 @@
 Shorten your time of reading mega bytes of log files!                      DE 2011-02
 
-Supporting Don HO's Notepad++ see http://notepad-plus-plus.org/
+Supporting Don HO's NotePad++ see http://notepad-plus-plus.org/
 
 This sources are a dockable pattern search plugin for Notepad++ version 5.1 or later.
 With this plugin you can search for multiple patterns in any of the opened documents 
@@ -12,8 +12,8 @@ of NPP using WinAPI pure only. It is designed to treat log-files of typical size
 
 More features can be found in the help dialogue of the plugin.
 
-For generating the dll file I use a  msdev compiler. The public project file is not yet 
-finished.
+For generating the dll file I use a  msdev compiler. If you like to port it to other OSs
+just let me know your changes and I'll incorporate it.
 
 The project site is:
 http://analyseplugin.sourceforge.net/
