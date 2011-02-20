@@ -44,7 +44,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".\DockingFeature;.\;.\TinyXmlA;..\scintilla\include;..\PowerEditor\src;..\PowerEditor\src\MISC\Common;..\PowerEditor\src\MISC\PluginsManager;..\PowerEditor\src\MISC\SysMsg;..\PowerEditor\src\ScitillaComponent;..\PowerEditor\src\TinyXml;..\PowerEditor\src\WinControls;..\PowerEditor\src\WinControls\ColourPicker;..\PowerEditor\src\WinControls\ContextMenu;..\PowerEditor\src\WinControls\DockingWnd;..\PowerEditor\src\WinControls\ImageListSet;..\PowerEditor\src\WinControls\shortcut;..\PowerEditor\src\WinControls\StaticDialog;..\PowerEditor\src\WinControls\TabBar;..\PowerEditor\src\WinControls\ToolBar;..\PowerEditor\src\WinControls\AboutDlg"
+				AdditionalIncludeDirectories=".\DockingFeature;.\;.\TinyXmlA;.\scintilla\include;.\PowerEditor\src;.\PowerEditor\src\MISC\Common;.\PowerEditor\src\MISC\PluginsManager;.\PowerEditor\src\MISC\SysMsg;.\PowerEditor\src\ScitillaComponent;.\PowerEditor\src\TinyXml;.\PowerEditor\src\WinControls;.\PowerEditor\src\WinControls\ColourPicker;.\PowerEditor\src\WinControls\ContextMenu;.\PowerEditor\src\WinControls\DockingWnd;.\PowerEditor\src\WinControls\ImageListSet;.\PowerEditor\src\WinControls\shortcut;.\PowerEditor\src\WinControls\StaticDialog;.\PowerEditor\src\WinControls\TabBar;.\PowerEditor\src\WinControls\ToolBar;.\PowerEditor\src\WinControls\AboutDlg"
 				PreprocessorDefinitions="__STDC_WANT_SECURE_LIB__=1;_UNICODE;UNICODE;CONFIG_DIALOG;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -156,6 +156,7 @@
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
+				LinkTimeCodeGeneration="1"
 				RandomizedBaseAddress="1"
 				DataExecutionPrevention="0"
 				ImportLibrary="$(OutDir)/AnalysePlugin.lib"
@@ -182,7 +183,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				Description="copy to program folders..."
-				CommandLine="postbuild-copy.bat &quot;$(TargetPath)&quot; &quot;C:\Program Files\NotePad++\plugins&quot;"
+				CommandLine="postbuild-copy.bat &quot;$(TargetPath)&quot; &quot;C:\Program Files\NotePad++\plugins&quot; &quot;C:\Programme\NotePad++\plugins&quot; &quot;D:\Programme\NotePad++\plugins&quot;"
 			/>
 		</Configuration>
 	</Configurations>

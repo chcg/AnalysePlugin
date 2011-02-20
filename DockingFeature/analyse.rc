@@ -1,7 +1,5 @@
 // Microsoft Visual C++ generated resource script.
 //
-#include "resource.h"
-
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -54,11 +52,11 @@ BEGIN
     DEFPUSHBUTTON   "Search",IDC_DO_SEARCH,67,137,30,10,BS_NOTIFY
     CONTROL         "",IDC_LIST_CONF,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOLABELWRAP | LVS_NOSORTHEADER | WS_BORDER | WS_GROUP | WS_TABSTOP,0,150,98,117,WS_EX_CLIENTEDGE
     LTEXT           "Selection &On",IDC_STATIC,55,86,40,8
-    GROUPBOX        "Visualization",IDC_STATIC,1,62,97,49
+    GROUPBOX        "Visualization",IDC_STATIC1,1,62,97,49
     LTEXT           "Colour FG ",IDC_STATIC_COL_FG,4,88,34,8
-    LTEXT           "Search type",IDC_STATIC,2,16,40,8
+    LTEXT           "Search type",IDC_STATIC2,2,16,40,8
     LTEXT           "Colour BG ",IDC_STATIC_COL_BG,4,100,34,8
-    LTEXT           "Comment",IDC_STATIC,2,39,31,8
+    LTEXT           "Comment",IDC_STATIC3,2,39,31,8
 END
 
 IDD_FIND_DLG_RESULT DIALOGEX 26, 41, 223, 67
@@ -75,13 +73,13 @@ EXSTYLE WS_EX_TOOLWINDOW
 CAPTION "Analyse Plugin Help Dialog"
 FONT 8, "MS Shell Dlg", 0, 0, 0x1
 BEGIN
-    LTEXT           "Author:",IDC_STATIC,12,36,31,9
-    LTEXT           "eMail:",IDC_STATIC,12,46,21,9
+    LTEXT           "Author:",IDC_STATIC4,12,36,31,9
+    LTEXT           "eMail:",IDC_STATIC5,12,46,21,9
     LTEXT           "http://sourceforge.net/projects/npp-plugins",IDC_NPP_PLUGINS_URL,43,57,222,9
-    LTEXT           "URL:",IDC_STATIC,12,57,21,9
+    LTEXT           "URL:",IDC_STATIC6,12,57,21,9
     LTEXT           "e-mail",IDC_EMAIL_LINK,43,46,222,9
     LTEXT           "name",IDC_AUTHOR_NAME,43,36,222,9
-    LTEXT           "Version:",IDC_STATIC,12,25,31,9
+    LTEXT           "Version:",IDC_STATIC7,12,25,31,9
     LTEXT           "version",IDC_VERSION_STRING,43,25,222,9
     EDITTEXT        IDC_DIALOG_DESCRIPTION,7,73,258,164,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL | NOT WS_TABSTOP
     DEFPUSHBUTTON   "Analyse Plugin for Notepad++",IDOK,7,7,258,13
@@ -100,7 +98,7 @@ BEGIN
     PUSHBUTTON      "Find First",IDC_BTN_FINDFIRST,58,69,47,14
     DEFPUSHBUTTON   "Find",IDOK,7,69,46,14
     PUSHBUTTON      "Close",IDCANCEL,185,69,48,14
-    LTEXT           "Search type",IDC_STATIC,7,49,40,8
+    LTEXT           "Search type",IDC_STATIC8,7,49,40,8
     CONTROL         "&Up",IDC_RADIO_DIRUP,"Button",BS_AUTORADIOBUTTON | WS_GROUP,111,31,45,12
     CONTROL         "&Down",IDC_RADIO_DIRDOWN,"Button",BS_AUTORADIOBUTTON,111,42,45,12
     GROUPBOX        "Search Direction",IDC_STATIC_DIRECTION,105,22,66,34,WS_GROUP
@@ -120,16 +118,16 @@ BEGIN
     CONTROL         "Do Search",IDC_CHK_DO_SEARCH,"Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | WS_TABSTOP,11,60,90,10
     CONTROL         "Hide text",IDC_CHK_HIDE,"Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | WS_TABSTOP,11,74,90,10
     COMBOBOX        IDC_CMB_SELECTION,74,102,55,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Selection on",IDC_STATIC,11,104,40,8
-    LTEXT           "Search type",IDC_STATIC,13,19,40,8
-    GROUPBOX        "Default Values",IDC_STATIC,7,3,126,117
-    GROUPBOX        "Behaviour",IDC_STATIC,7,120,126,28
+    LTEXT           "Selection on",IDC_STATIC9,11,104,40,8
+    LTEXT           "Search type",IDC_STATIC10,13,19,40,8
+    GROUPBOX        "Default Values",IDC_STATIC11,7,3,126,117
+    GROUPBOX        "Behaviour",IDC_STATIC12,7,120,126,28
     COMBOBOX        IDC_CMB_ONENTERACT,74,128,55,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Action on Enter",IDC_STATIC,11,131,50,8
-    GROUPBOX        "Result Window Font",IDC_STATIC,7,149,126,49
+    LTEXT           "Action on Enter",IDC_STATIC13,11,131,50,8
+    GROUPBOX        "Result Window Font",IDC_STATIC14,7,149,126,49
     COMBOBOX        IDC_CMB_FONTNAME,34,165,95,30,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Name",IDC_STATIC,11,166,19,8
-    LTEXT           "Size",IDC_STATIC,11,182,14,8
+    LTEXT           "Name",IDC_STATIC15,11,166,19,8
+    LTEXT           "Size",IDC_STATIC16,11,182,14,8
     COMBOBOX        IDC_CMB_FONTSIZE,34,180,48,30,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Color FG ",IDC_STATIC_COL_FG2,12,88,30,8
     LTEXT           "Color BG ",IDC_STATIC_COL_BG2,67,88,30,8

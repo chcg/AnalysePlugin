@@ -39,6 +39,22 @@
 #define IDC_STATIC_COL_BG               1032
 #define IDC_STATIC_COL_BG2              1033
 #define IDC_STATIC_COL_FG2              1034
+#define IDC_STATIC1                     1035
+#define IDC_STATIC2                     1036 
+#define IDC_STATIC3                     1037
+#define IDC_STATIC4                     1038
+#define IDC_STATIC5                     1039
+#define IDC_STATIC6                     1040
+#define IDC_STATIC7                     1041
+#define IDC_STATIC8                     1042
+#define IDC_STATIC9                     1043
+#define IDC_STATIC10                    1044
+#define IDC_STATIC11                    1045
+#define IDC_STATIC12                    1046
+#define IDC_STATIC13                    1047
+#define IDC_STATIC14                    1048
+#define IDC_STATIC15                    1049
+#define IDC_STATIC16                    1050
 #define IDI_ANALYSE                     1204
 #define IDB_TB_ANALYSE                  1206
 #define IDC_WRAP                        1606
@@ -69,7 +85,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        3010
 #define _APS_NEXT_COMMAND_VALUE         5003
-#define _APS_NEXT_CONTROL_VALUE         1035
+#define _APS_NEXT_CONTROL_VALUE         1051
 #define _APS_NEXT_SYMED_VALUE           6003
 #endif
 #endif
