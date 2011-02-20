@@ -108,8 +108,8 @@ changing other options will be treated like update line, as normally it does \
 not make sense to search for the same text twice.\r\n")
 
 
-#define EMAIL_LINK TEXT("mailto:matthias.hessling@de.bosch.com")
-#define NPP_PLUGINS_URL TEXT("http://notepad-plus.sourceforge.net/")
+#define EMAIL_LINK TEXT("mailto:mattesh@gmx.net")
+#define NPP_PLUGINS_URL TEXT("http://analyseplugin.sourceforge.net/")
 #define AUTHOR_NAME TEXT("Matthias Hessling")
 
 class HelpDlg : public StaticDialog
