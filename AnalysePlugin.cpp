@@ -23,7 +23,6 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "AnalysePlugin.h"
 #include "SciLexer.h"
-// TODO decide if required #include "npp_defines.h"
 #include "tclFindResultDoc.h"
 #include "chardefines.h"
 

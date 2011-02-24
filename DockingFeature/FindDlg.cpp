@@ -432,7 +432,12 @@ bool FindDlg::doStoreConfigFile(){
             ((ofn.lpstrFile[l-4]     )=='.')))
          {
             // extension is missing
-            generic_strncpy(&ofn.lpstrFile[l], TEXT(".xml"), MAX_PATH);
+            if (generic_strlen(ofn.lpstrFile) < MAX_PATH - 4){
+               // doit only if place enough
+               generic_strncpy(&ofn.lpstrFile[l], TEXT(".xml"),5); // bcause of \0
+            } else {
+               DBG1("doStoreConfigFile() path was too long couldn't add ext! %s", ofn.lpstrFile);
+            }
          }
       }
       generic_strncpy(szFile, ofn.lpstrFile, MAX_PATH);

@@ -667,7 +667,7 @@ bool tclFindResultDlg::notify(SCNotification *notification)
 
    case SCN_DOUBLECLICK :
       {
-         try {
+         NPP_TRY {
             int currentPos = (int)_scintView.execute(SCI_GETCURRENTPOS);
             if (currentPos>1)
             {
@@ -716,7 +716,7 @@ bool tclFindResultDlg::notify(SCNotification *notification)
    
             ret = true;
 
-         } catch(...){
+         } NPP_CATCH_ALL{
             DBG0("notify(SCNotification) ERROR SCN_DOUBLECLICK problem.");
             //printStr(TEXT("SCN_DOUBLECLICK problem"));
          }

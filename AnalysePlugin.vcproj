@@ -208,7 +208,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DockingFeature\Common.cpp"
+				RelativePath=".\PowerEditor\src\MISC\Common\Common.cpp"
 				>
 			</File>
 			<File
@@ -232,7 +232,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DockingFeature\StaticDialog.cpp"
+				RelativePath=".\PowerEditor\src\WinControls\StaticDialog\StaticDialog.cpp"
 				>
 			</File>
 			<File
@@ -284,7 +284,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DockingFeature\URLCtrl.cpp"
+				RelativePath=".\PowerEditor\src\WinControls\AboutDlg\URLCtrl.cpp"
 				>
 			</File>
 		</Filter>
@@ -306,15 +306,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DockingFeature\Docking.h"
+				RelativePath=".\PowerEditor\src\WinControls\DockingWnd\Docking.h"
 				>
 			</File>
 			<File
-				RelativePath=".\DockingFeature\DockingDlgInterface.h"
+				RelativePath=".\PowerEditor\src\WinControls\DockingWnd\DockingDlgInterface.h"
 				>
 			</File>
 			<File
-				RelativePath=".\DockingFeature\dockingResource.h"
+				RelativePath=".\PowerEditor\src\WinControls\DockingWnd\dockingResource.h"
 				>
 			</File>
 			<File
@@ -362,7 +362,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DockingFeature\StaticDialog.h"
+				RelativePath=".\PowerEditor\src\WinControls\StaticDialog\StaticDialog.h"
 				>
 			</File>
 			<File
@@ -418,7 +418,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DockingFeature\Window.h"
+				RelativePath=".\PowerEditor\src\WinControls\Window.h"
 				>
 			</File>
 		</Filter>
