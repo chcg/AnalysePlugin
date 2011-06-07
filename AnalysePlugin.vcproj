@@ -268,19 +268,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\tinyXmlA\tinystrA.cpp"
+				RelativePath=".\PowerEditor\src\TinyXml\tinystr.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\tinyXmlA\tinyxmlA.cpp"
+				RelativePath=".\PowerEditor\src\TinyXml\tinyxml.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\tinyXmlA\tinyxmlerrorA.cpp"
+				RelativePath=".\PowerEditor\src\TinyXml\tinyxmlerror.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\tinyXmlA\tinyxmlparserA.cpp"
+				RelativePath=".\PowerEditor\src\TinyXml\tinyxmlparser.cpp"
 				>
 			</File>
 			<File
@@ -406,11 +406,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\tinyXmlA\tinystrA.h"
+				RelativePath=".\PowerEditor\src\TinyXml\tinystr.h"
 				>
 			</File>
 			<File
-				RelativePath=".\tinyXmlA\tinyxmlA.h"
+				RelativePath=".\PowerEditor\src\TinyXml\tinyxml.h"
 				>
 			</File>
 			<File

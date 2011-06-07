@@ -8,7 +8,8 @@
 #define APSTUDIO_HIDDEN_SYMBOLS
 #include "windows.h"
 #undef APSTUDIO_HIDDEN_SYMBOLS
-#include "resource.h"
+#include "resource.h"
+
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -81,7 +82,7 @@ BEGIN
     LTEXT           "name",IDC_AUTHOR_NAME,43,36,222,9
     LTEXT           "Version:",IDC_STATIC7,12,25,31,9
     LTEXT           "version",IDC_VERSION_STRING,43,25,222,9
-    EDITTEXT        IDC_DIALOG_DESCRIPTION,7,73,258,164,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL | NOT WS_TABSTOP
+    EDITTEXT        IDC_DIALOG_DESCRIPTION,7,73,258,204,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL | NOT WS_TABSTOP
     DEFPUSHBUTTON   "Analyse Plugin for Notepad++",IDOK,7,7,258,13
 END
 
@@ -344,7 +345,8 @@ END
 //
 // Generated from the TEXTINCLUDE 3 resource.
 //
-
+
+
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
 

@@ -27,50 +27,50 @@ tclPattern implements information stored to execute one search on
 // defined in windows
 //#define RGB(r,g,b) ((unsigned long)(((BYTE)(r)|((WORD)((BYTE)(g))<<8))|(((DWORD)(BYTE)(b))<<16)))
 
-const char*  tclPattern::transSearchType[max_searchType] = {
-   "normal",
-   "escaped",
-   "regex"
+const TCHAR*  tclPattern::transSearchType[max_searchType] = {
+   L"normal",
+   L"escaped",
+   L"regex"
 };
-const char*  tclPattern::transSelectionType[max_selectionType] = {
-   "text",
-   "line"
+const TCHAR*  tclPattern::transSelectionType[max_selectionType] = {
+   L"text",
+   L"line"
 };
-const char*  tclPattern::transColorName[max_color] = {
-   "black",             //RGB(0,       0,    0)},
-   "red",               //RGB(0xFF,    0,    0)},
-   "darkRed",           //RGB(0x80,    0,    0)},
-   "deepPurple",        //RGB(0x87, 0x13, 0x97)},
-   "darkBlue",          //RGB(0,       0, 0x80)},
-   "darkGreen",         //RGB(0,    0x80,    0)},
+const TCHAR*  tclPattern::transColorName[max_color] = {
+   L"black",             //RGB(0,       0,    0)},
+   L"red",               //RGB(0xFF,    0,    0)},
+   L"darkRed",           //RGB(0x80,    0,    0)},
+   L"deepPurple",        //RGB(0x87, 0x13, 0x97)},
+   L"darkBlue",          //RGB(0,       0, 0x80)},
+   L"darkGreen",         //RGB(0,    0x80,    0)},
 
-   "darkGrey",          //RGB(64,     64,   64)},
-   "liteRed",           //RGB(0xFF, 0x40, 0x40)},
-   "brown",             //RGB(128,    64,    0)},
-   "purple",            //RGB(0x80, 0x00, 0xFF)},
-   "blue",              //RGB(0,       0, 0xFF)},
-   "blueGreen",         //RGB(0,    0x80, 0x80)},
+   L"darkGrey",          //RGB(64,     64,   64)},
+   L"liteRed",           //RGB(0xFF, 0x40, 0x40)},
+   L"brown",             //RGB(128,    64,    0)},
+   L"purple",            //RGB(0x80, 0x00, 0xFF)},
+   L"blue",              //RGB(0,       0, 0xFF)},
+   L"blueGreen",         //RGB(0,    0x80, 0x80)},
 
-   "grey",              //RGB(128,   128,  128)},
-   "orange",            //RGB(0xFF, 0x80, 0x00)},
-   "beige",             //RGB(192,   128,   64)   RGB(0xFD, 0xF8, 0xE3)},
-   "pink",              //RGB(0xFF, 0x00, 0xFF)}  RGB(0xE7, 0xD8, 0xE9)},
-   "liteBlue",          //6CA8E0 RGB(0xA6, 0xCA, 0xF0)}, 
-   "green",             //RGB(0,    0xBE,    0)},
+   L"grey",              //RGB(128,   128,  128)},
+   L"orange",            //RGB(0xFF, 0x80, 0x00)},
+   L"beige",             //RGB(192,   128,   64)   RGB(0xFD, 0xF8, 0xE3)},
+   L"pink",              //RGB(0xFF, 0x00, 0xFF)}  RGB(0xE7, 0xD8, 0xE9)},
+   L"liteBlue",          //6CA8E0 RGB(0xA6, 0xCA, 0xF0)}, 
+   L"green",             //RGB(0,    0xBE,    0)},
 
-   "liteGrey",          //RGB(192,   192,  192)},
-   "darkYellow",        //RGB(0xFF, 0xC0,    0)},
-   "liteBeige",         //RGB(0xDB, 0xB7, 0x93)   RGB(0xFE, 0xFC, 0xF5)},
-   "litePink",          //RGB(FF, 99, CC)   extLiteBlueRGB(0xF9, 0xF4, 0xFF)   RGB(0xF2, 0xF4, 0xFF)},
-   "cyan",              //RGB(0,    0xFF, 0xFF)},
-   "liteGreen",         //RGB(0,    0xFF,    0)},
+   L"liteGrey",          //RGB(192,   192,  192)},
+   L"darkYellow",        //RGB(0xFF, 0xC0,    0)},
+   L"liteBeige",         //RGB(0xDB, 0xB7, 0x93)   RGB(0xFE, 0xFC, 0xF5)},
+   L"litePink",          //RGB(FF, 99, CC)   extLiteBlueRGB(0xF9, 0xF4, 0xFF)   RGB(0xF2, 0xF4, 0xFF)},
+   L"cyan",              //RGB(0,    0xFF, 0xFF)},
+   L"liteGreen",         //RGB(0,    0xFF,    0)},
 
-   "white",             //RGB(0xFF, 0xFF, 0xFF)},
-   "yellow",            //RGB(0xFF, 0xFF,    0)},
-   "offWhite",          //RGB(0xFF, 0xFB, 0xF0)},
-   "veryLitePurple",     //RGB(0xE7, 0xD8, 0xE9)   RGB(192,   128,   64)},
-   "veryLiteBlue",      //RGB(0xC4, 0xF9, 0xFD)},
-   "veryLiteGrey"       //RGB(224,   224,  224)},
+   L"white",             //RGB(0xFF, 0xFF, 0xFF)},
+   L"yellow",            //RGB(0xFF, 0xFF,    0)},
+   L"offWhite",          //RGB(0xFF, 0xFB, 0xF0)},
+   L"veryLitePurple",     //RGB(0xE7, 0xD8, 0xE9)   RGB(192,   128,   64)},
+   L"veryLiteBlue",      //RGB(0xC4, 0xF9, 0xFD)},
+   L"veryLiteGrey"       //RGB(224,   224,  224)},
 };
 const unsigned long tclPattern::transColorNum[max_color] = {
    RGB(0,       0,    0),//"black",             
@@ -128,9 +128,9 @@ const unsigned long tclPattern::transColorNum[max_color] = {
 //    RGB(0,    0xFF,    0)//"liteGreen",         
 //}; 
 
-const char*  tclPattern::transBool[2] = {
-   "false",
-   "true" // == 1
+const TCHAR*  tclPattern::transBool[2] = {
+   L"false",
+   L"true" // == 1
 };
 
 // ########################################################
@@ -152,28 +152,28 @@ tclPattern::tclPattern()
 
 tclPattern::~tclPattern(){}
 
-std::string tclPattern::getSearchText() const{
+generic_string tclPattern::getSearchText() const{
    return mSearchText;
 }
-std::string tclPattern::getComment() const{
+generic_string tclPattern::getComment() const{
    return mComment;
 }
-std::string tclPattern::getReplaceText() const{
+generic_string tclPattern::getReplaceText() const{
    return mReplaceText;
 }
-void tclPattern::setSearchText(const std::string& thisSearchText){
+void tclPattern::setSearchText(const generic_string& thisSearchText){
    mSearchText = thisSearchText;
 }
-void tclPattern::setComment(const std::string& thisComment){
+void tclPattern::setComment(const generic_string& thisComment){
    mComment = thisComment;
 }
-void tclPattern::setReplaceText(const std::string& thisReplaceText){
+void tclPattern::setReplaceText(const generic_string& thisReplaceText){
    mReplaceText = thisReplaceText;
 }
-std::string tclPattern::getSearchTypeStr() const {
-   return std::string(transSearchType[mSearchType]);
+generic_string tclPattern::getSearchTypeStr() const {
+   return generic_string(transSearchType[mSearchType]);
 }
-void tclPattern::setSearchTypeStr(const std::string& type) {
+void tclPattern::setSearchTypeStr(const generic_string& type) {
    for(int i=0; i<max_searchType;i++) {
       if(type == transSearchType[i]) {
          mSearchType =(teSearchType)i;
@@ -184,37 +184,37 @@ void tclPattern::setSearchTypeStr(const std::string& type) {
 void tclPattern::setSearchType(int type) {
    mSearchType =(teSearchType)type;
 }
-std::string tclPattern::getBoldStr() const {
+generic_string tclPattern::getBoldStr() const {
    return transBool[mBold];
 }
 void tclPattern::setBold(bool isBold) {
    mBold =isBold;
 }
-std::string tclPattern::getItalicStr() const {
+generic_string tclPattern::getItalicStr() const {
    return transBool[mItalic];
 }
 void tclPattern::setItalic(bool isItalic) {
    mItalic =isItalic;
 }
-std::string tclPattern::getUnderlinedStr() const {
+generic_string tclPattern::getUnderlinedStr() const {
    return transBool[mUnderlined];
 }
 void tclPattern::setUnderlined(bool isUnderlined) {
    mUnderlined =isUnderlined;
 }
-std::string tclPattern::getColorStr()const{
-   return  std::string(transColorName[mColor]);
+generic_string tclPattern::getColorStr()const{
+   return  generic_string(transColorName[mColor]);
 }
 
-std::string tclPattern::getBgColorStr()const{
-   return  std::string(transColorName[mBgColor]);
+generic_string tclPattern::getBgColorStr()const{
+   return  generic_string(transColorName[mBgColor]);
 }
 
-std::string tclPattern::convColor2Str(teColor col) {
-   return  std::string(transColorName[col]);
+generic_string tclPattern::convColor2Str(teColor col) {
+   return  generic_string(transColorName[col]);
 }
 
-unsigned long tclPattern::convColorStr2Num(const std::string& color) {
+unsigned long tclPattern::convColorStr2Num(const generic_string& color) {
    for(int i=0; i<max_color;i++) {
       if(color == transColorName[i]) {
          return transColorNum[i];
@@ -232,7 +232,7 @@ tclPattern::teColor tclPattern::convColorNum2Enum(unsigned long color) {
    return max_color;
 }
 
-void tclPattern::setColorStr(const std::string& color) {
+void tclPattern::setColorStr(const generic_string& color) {
    for(int i=0; i<max_color;i++) {
       if(color ==transColorName[i]) {
          mColor =(teColor)i;
@@ -241,7 +241,7 @@ void tclPattern::setColorStr(const std::string& color) {
    }
 }
 
-void tclPattern::setBgColorStr(const std::string& color) {
+void tclPattern::setBgColorStr(const generic_string& color) {
    for(int i=0; i<max_color;i++) {
       if(color ==transColorName[i]) {
          mBgColor =(teColor)i;
@@ -255,11 +255,11 @@ void tclPattern::setColor(teColor color) {
 void tclPattern::setBgColor(teColor color) {
    mBgColor = color;
 }
-std::string tclPattern::getHideTextStr()const{
-   return  std::string(transBool[mHideText]);
+generic_string tclPattern::getHideTextStr()const{
+   return  generic_string(transBool[mHideText]);
 }
-std::string tclPattern::getIsReplaceTextStr()const{
-   return  std::string(transBool[mDoReplace]);
+generic_string tclPattern::getIsReplaceTextStr()const{
+   return  generic_string(transBool[mDoReplace]);
 }
 void tclPattern::setHideText(bool isHideText) {
    mHideText = isHideText;
@@ -267,11 +267,11 @@ void tclPattern::setHideText(bool isHideText) {
 void tclPattern::setIsReplaceText(bool isReplaceText) {
    mDoReplace = isReplaceText;
 }
-std::string tclPattern::getSelectionTypeStr()const{
-   return  std::string(transSelectionType[mSelectionType]);
+generic_string tclPattern::getSelectionTypeStr()const{
+   return  generic_string(transSelectionType[mSelectionType]);
 }
 
-bool tclPattern::convBool(const std::string& val) const {
+bool tclPattern::convBool(const generic_string& val) const {
    int i=0;
    for(; i < 2 ;i++) { // 0 false 1 true
       if(val ==transBool[i]) {
@@ -283,7 +283,7 @@ bool tclPattern::convBool(const std::string& val) const {
 void tclPattern::setSelectionType(int selectionType) {
    mSelectionType =(teSelectionType)selectionType;
 }
-void tclPattern::setSelectionTypeStr(const std::string& type){
+void tclPattern::setSelectionTypeStr(const generic_string& type){
    for(int i=0; i<max_selectionType;i++) {
       if(type ==transSelectionType[i]) {
          mSelectionType =(teSelectionType)i;
@@ -292,17 +292,17 @@ void tclPattern::setSelectionTypeStr(const std::string& type){
    }
 }
 
-std::string tclPattern::convertExtendedToString() const
+generic_string tclPattern::convertExtendedToString() const
 {	// IN query OUT result IN length
    //query may equal to result, since it always gets smaller
-   const char* query = mSearchText.c_str();
+   const TCHAR* query = mSearchText.c_str();
    int length = (int)mSearchText.size();
-   std::string result;
+   generic_string result;
    result.reserve(length);
    int i = 0, j = 0;
    int charLeft = length;
    bool isGood = true;
-   char current;
+   TCHAR current;
    while(i < length) {	//because the backslash escape quences always reduce the size of the string, no overflow checks have to be made for target, assuming parameters are correct
       current = query[i];
       charLeft--;
@@ -318,7 +318,7 @@ std::string tclPattern::convertExtendedToString() const
                result += '\n';
                break;
             case '0':
-               result += '\0';
+               result += (TCHAR)'\0';
                break;
             case 't':
                result += '\t';
@@ -364,15 +364,15 @@ std::string tclPattern::convertExtendedToString() const
       i++;
       j++;
    }
-   result += '\0';
+   result += (TCHAR)'\0';
    return result;
 }
 
-bool tclPattern::readBase(const char * string, int * value, int base, int size) const {
+bool tclPattern::readBase(const TCHAR* string, int* value, int base, int size) const {
    int i = 0, temp = 0;
    *value = 0;
-   char max = '0' + base - 1;
-   char current;
+   TCHAR max = '0' + base - 1;
+   TCHAR current;
    while(i < size) {
       current = string[i];
       if (current >= '0' && current <= max) {
@@ -386,10 +386,10 @@ bool tclPattern::readBase(const char * string, int * value, int base, int size) 
    *value = temp;
    return true;
 }
-const char** tclPattern::getDefSelTypeList() const {
+const TCHAR** tclPattern::getDefSelTypeList() const {
    return transSelectionType;
 }
-const char** tclPattern::getDefColorList() {
+const TCHAR** tclPattern::getDefColorList() {
    return transColorName;
 }
 const unsigned long* tclPattern::getDefColorNumList() {
@@ -398,7 +398,7 @@ const unsigned long* tclPattern::getDefColorNumList() {
 unsigned long tclPattern::getDefColorNum(int e) {
    return transColorNum[e];
 }
-const char** tclPattern::getDefSearchTypeList() const {
+const TCHAR** tclPattern::getDefSearchTypeList() const {
    return transSearchType;
 }
 unsigned long tclPattern::getColorNum() const {

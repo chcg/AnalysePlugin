@@ -707,13 +707,6 @@ void ScintillaSearchView::setSpecialStyle(Style & styleToSet)
 //}
 
 
-//void ScintillaSearchView::setKeywords(LangType langType, const char *keywords, int index)
-//{
-//	std::string wordList;
-//	wordList = (keywords)?keywords:"";
-//	execute(SCI_SETKEYWORDS, index, (LPARAM)getCompleteKeywordList(wordList, langType, index));
-//}
-
 void ScintillaSearchView::setLexer(int lexerID, LangType langType, int whichList)
 {
 	execute(SCI_SETLEXER, lexerID);

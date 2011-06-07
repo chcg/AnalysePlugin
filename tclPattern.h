@@ -86,10 +86,10 @@ public:
 
 protected:
    // following tables are used to translate enum into text and back
-   static const char*  transSearchType[max_searchType];
-   static const char*  transSelectionType[max_selectionType];
-   static const char*  transColorName[max_color];
-   static const char*  transBool[2];
+   static const TCHAR*  transSearchType[max_searchType];
+   static const TCHAR*  transSelectionType[max_selectionType];
+   static const TCHAR*  transColorName[max_color];
+   static const TCHAR*  transBool[2];
    //static unsigned long transColorNum16[16];
    static const unsigned long transColorNum[max_color];
 
@@ -178,24 +178,24 @@ public:
    bool getDoSearch() const{
       return mDoSearch;
    }
-   std::string tclPattern::getDoSearchStr() const {
+   generic_string tclPattern::getDoSearchStr() const {
       return transBool[mDoSearch];
    }
 
    void setDoSearch(bool bActive) {
       mDoSearch = bActive;
    }
-   void setDoSearchStr(const std::string& val){
+   void setDoSearchStr(const generic_string& val){
       mDoSearch = convBool(val);
    }
 
-   std::string getSearchText() const;
-   std::string getComment() const;
+   generic_string getSearchText() const;
+   generic_string getComment() const;
 
-   std::string getReplaceText() const;
+   generic_string getReplaceText() const;
 
    /** used for the search algorithm */
-   std::string getSearchTextConverted() const {
+   generic_string getSearchTextConverted() const {
       if(mSearchType==escaped) {
          return convertExtendedToString();
       } else {
@@ -203,12 +203,12 @@ public:
       }
    }
 
-   void setSearchText(const std::string& thisSearchText);
-   void setComment(const std::string& thisComment);
+   void setSearchText(const generic_string& thisSearchText);
+   void setComment(const generic_string& thisComment);
 
-   void setReplaceText(const std::string& thisReplaceText);
+   void setReplaceText(const generic_string& thisReplaceText);
 
-   std::string getSearchTypeStr() const ;
+   generic_string getSearchTypeStr() const ;
 
    teSearchType getSearchType() const{
       return mSearchType;
@@ -218,12 +218,12 @@ public:
       return max_searchType;
    }
 
-   const char** getDefSearchTypeList() const ;
+   const TCHAR** getDefSearchTypeList() const ;
 
-   void setSearchTypeStr(const std::string& type) ;
+   void setSearchTypeStr(const generic_string& type) ;
 
    void setSearchType(int type) ;
-   std::string getBoldStr() const;
+   generic_string getBoldStr() const;
 
    bool getIsBold() const{
       return mBold;
@@ -231,11 +231,11 @@ public:
 
    void setBold(bool isBold) ;
 
-   void setBoldStr(const std::string& val){
+   void setBoldStr(const generic_string& val){
       mBold = convBool(val);
    }
 
-   std::string getWholeWordStr() const {
+   generic_string getWholeWordStr() const {
       return transBool[mWholeWord];
    }
 
@@ -247,11 +247,11 @@ public:
       mWholeWord =isWholeWord;
    }
 
-   void setWholeWordStr(const std::string& val){
+   void setWholeWordStr(const generic_string& val){
       mWholeWord = convBool(val);
    }
 
-   std::string getMatchCaseStr() const {
+   generic_string getMatchCaseStr() const {
       return transBool[mMatchCase];
    }
 
@@ -275,27 +275,27 @@ public:
       mMatchCase =isMatchCase;
    }
 
-   void setMatchCaseStr(const std::string& val){
+   void setMatchCaseStr(const generic_string& val){
       mMatchCase = convBool(val);
    }
 
-   std::string getItalicStr() const;
+   generic_string getItalicStr() const;
    void setItalic(bool isItalic) ;
 
-   void setItalicStr(const std::string& val){
+   void setItalicStr(const generic_string& val){
       mItalic = convBool(val);
    }
 
-   std::string getUnderlinedStr() const;
+   generic_string getUnderlinedStr() const;
 
    void setUnderlined(bool isUnderlined) ;
 
-   void setUnderlinedStr(const std::string& val){
+   void setUnderlinedStr(const generic_string& val){
       mUnderlined = convBool(val);
    }
 
-   std::string getColorStr()const;
-   std::string getBgColorStr()const;
+   generic_string getColorStr()const;
+   generic_string getBgColorStr()const;
    
    teColor getColor() const {
       return mColor;
@@ -307,8 +307,8 @@ public:
    unsigned long getColorNum() const ;
    unsigned long getBgColorNum() const ;
 
-   void setColorStr(const std::string& color) ;
-   void setBgColorStr(const std::string& color) ;
+   void setColorStr(const generic_string& color) ;
+   void setBgColorStr(const generic_string& color) ;
 
    void setColor(teColor color) ;
    void setBgColor(teColor color) ;
@@ -317,29 +317,29 @@ public:
       return max_color;
    }
 
-   static unsigned long convColorStr2Num(const std::string& color);
+   static unsigned long convColorStr2Num(const generic_string& color);
    static teColor convColorNum2Enum(unsigned long color);
-   static std::string convColor2Str(teColor col);
+   static generic_string convColor2Str(teColor col);
 
-   static const char** getDefColorList() ;
+   static const TCHAR** getDefColorList() ;
    static const unsigned long* getDefColorNumList() ;
    static unsigned long getDefColorNum(int e) ;
 
-   std::string getHideTextStr()const;
-   std::string getIsReplaceTextStr()const;
+   generic_string getHideTextStr()const;
+   generic_string getIsReplaceTextStr()const;
 
    void setHideText(bool isHideText) ;
    void setIsReplaceText(bool isReplaceText);
 
-   void setIsReplaceTextStr(const std::string& val) {
+   void setIsReplaceTextStr(const generic_string& val) {
       mDoReplace = convBool(val);
    }
 
-   void setHideTextStr(const std::string& val) {
+   void setHideTextStr(const generic_string& val) {
       mHideText = convBool(val);
    }
 
-   std::string getSelectionTypeStr()const;
+   generic_string getSelectionTypeStr()const;
 
    teSelectionType getSelectionType()const{
       return mSelectionType;
@@ -349,27 +349,27 @@ public:
       return max_selectionType;
    }
 
-   const char** getDefSelTypeList() const ;
+   const TCHAR** getDefSelTypeList() const ;
 
    void setSelectionType(int selectionType) ;
 
-   void setSelectionTypeStr(const std::string& type);
+   void setSelectionTypeStr(const generic_string& type);
 
 protected:
    /** function is original copy from NPP project to be in syncwith their options */
-   std::string convertExtendedToString() const;
+   generic_string convertExtendedToString() const;
    /** function is original copy from NPP project to be in syncwith their options */
-   bool readBase(const char * string, int * value, int base, int size) const;
+   bool readBase(const TCHAR* string, int* value, int base, int size) const;
    /** used to translate 0 = false and 1 = true */
-   bool convBool(const std::string& val) const;
+   bool convBool(const generic_string& val) const;
 
 protected:
    /** set to true in case that the pattern shall be regarded in the search **/
    bool mDoSearch;
    /** the search pattern as entered by the user */
-   std::string mSearchText;
+   generic_string mSearchText;
    /** the replacement text as entered by the user */
-   std::string mReplaceText;
+   generic_string mReplaceText;
    /** kind of treatment for the search pattern same as in find dialog of NPP */
    teSearchType mSearchType;
    /** true if the found text shall be fitting to a whole word */
@@ -392,6 +392,6 @@ protected:
    highlighted with aforesaid atributes */
    teSelectionType mSelectionType;
    /** the comment as entered by the user */
-   std::string mComment;
+   generic_string mComment;
 };
 #endif //TCLPATTERN_H

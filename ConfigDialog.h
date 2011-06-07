@@ -32,7 +32,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "tclPattern.h"
 #include "ColourPicker2.h"
 
-typedef std::set<std::string> tlsString;
+typedef std::set<generic_string> tlsString;
 
 enum teOnEnterAction {
    enOnEntNoAction,
@@ -69,15 +69,15 @@ public:
       return mOnEnterAction ;
    }
 
-   std::string getOnEnterActionStr() const ;
-   void setOnEnterActionStr(const std::string& action) ;
+   generic_string getOnEnterActionStr() const ;
+   void setOnEnterActionStr(const generic_string& action) ;
 
-   void setFontText(const std::string& str);
-   std::string getFontText() const;
+   void setFontText(const generic_string& str);
+   generic_string getFontText() const;
    void setFontSize(unsigned s);
-   void setFontSizeStr(const std::string& s);
+   void setFontSizeStr(const generic_string& s);
    unsigned getFontSize() const;
-   std::string getFontSizeStr() const;
+   generic_string getFontSizeStr() const;
    
 
    void setDialogData(const tclPattern& p);
@@ -118,7 +118,7 @@ protected :
 #endif
    tclComboBoxCtrl mCmbOnEnterAction;
    tclPattern mDefPat;
-   static const char*  transOnEnterAction[max_onEnterAction];
+   static const TCHAR*  transOnEnterAction[max_onEnterAction];
    teOnEnterAction mOnEnterAction;
    bool mbOkPressed;
    tlsString mlsFontList;
@@ -126,7 +126,7 @@ protected :
    tclComboBoxCtrl mCmbFontName;
    /** defines the text size in the result window **/
    tclComboBoxCtrl mCmbFontSize;
-   std::string mResultFontName;
+   generic_string mResultFontName;
    unsigned mResultFontSize;
    ColourPicker2* _pFgColour;
    ColourPicker2* _pBgColour;

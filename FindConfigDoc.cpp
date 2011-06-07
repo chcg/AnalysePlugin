@@ -22,60 +22,31 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "FindConfigDoc.h"
 
 
-#ifdef UNICODE
-#include "tinyxmlA.h"
-#define TiXmlDocument TiXmlDocumentA
-#define TiXmlElement TiXmlElementA
-#define TiXmlNode TiXmlNodeA
-#define TiXmlComment TiXmlCommentA
-#define TiXmlUnknown TiXmlUnknownA
-#define TiXmlAttribute TiXmlAttributeA
-#define TiXmlText TiXmlTextA
-#define TiXmlDeclaration TiXmlDeclarationA
-#define TiXmlParsingData TiXmlParsingDataA
-#else
 #include "tinyxml.h"
-#endif
 
 #include "tclPattern.h"
 
-#define FNDDOC_XMLNS "xmlns:xsi"
-#define FNDDOC_XMLNS_VALUE "http://www.w3.org/2001/XMLSchema-instance" 
-#define FNDDOC_XSD_LOCATION "xsi:noNamespaceSchemaLocation"
-#define FNDDOC_XSD_LOCATION_VALUE "./AnalyseDoc.xsd"
-#define FNDDOC_ANALYSE_DOC "AnalyseDoc"
-#define FNDDOC_HEADLINE "Headline"  // on even w/o FEATURE_HEADLINE to be able to read the doc
-#define FNDDOC_SEARCH_TEXT "SearchText"
-#define FNDDOC_SEARCH_TYPE "searchType"
-#define FNDDOC_DO_SEARCH "doSearch"
-#define FNDDOC_MATCHCASE "matchCase" 
-#define FNDDOC_WHOLEWORD "wholeWord" 
-#define FNDDOC_SELECT "select"
-#define FNDDOC_HIDE "hide"
-#define FNDDOC_BOLD "bold"
-#define FNDDOC_ITALIC "italic"
-#define FNDDOC_UNDERLINED "underlined"
-#define FNDDOC_COLOR "color"
-#define FNDDOC_BGCOLOR "bgColor"
-#define FNDDOC_COMMENT "comment"
+#define FNDDOC_XMLNS L"xmlns:xsi"
+#define FNDDOC_XMLNS_VALUE L"http://www.w3.org/2001/XMLSchema-instance" 
+#define FNDDOC_XSD_LOCATION L"xsi:noNamespaceSchemaLocation"
+#define FNDDOC_XSD_LOCATION_VALUE L"./AnalyseDoc.xsd"
+#define FNDDOC_ANALYSE_DOC L"AnalyseDoc"
+#define FNDDOC_HEADLINE L"Headline"  // on even w/o FEATURE_HEADLINE to be able to read the doc
+#define FNDDOC_SEARCH_TEXT L"SearchText"
+#define FNDDOC_SEARCH_TYPE L"searchType"
+#define FNDDOC_DO_SEARCH L"doSearch"
+#define FNDDOC_MATCHCASE L"matchCase" 
+#define FNDDOC_WHOLEWORD L"wholeWord" 
+#define FNDDOC_SELECT L"select"
+#define FNDDOC_HIDE L"hide"
+#define FNDDOC_BOLD L"bold"
+#define FNDDOC_ITALIC L"italic"
+#define FNDDOC_UNDERLINED L"underlined"
+#define FNDDOC_COLOR L"color"
+#define FNDDOC_BGCOLOR L"bgColor"
+#define FNDDOC_COMMENT L"comment"
 
-FindConfigDoc::FindConfigDoc(const wchar_t * filename)
-   : mDoc(0)
-{
-   std::string f;
-   int len = (int)wcslen(filename);
-   f.resize(len, 0);
-   for(int i = len; i>=0; --i) {
-      f[i] = (char)filename[i];
-   }
-   mDoc = new TiXmlDocument(f.c_str());
-   if(mDoc) {
-      // avoid removal of multiple tabs and spaces in searchstring, as they may be intentional
-      mDoc->SetCondenseWhiteSpace(false);
-      mDoc->LoadFile();
-   }
-}
-FindConfigDoc::FindConfigDoc(const char * filename)
+FindConfigDoc::FindConfigDoc(const TCHAR * filename)
    : mDoc(0)
 {
    mDoc = new TiXmlDocument(filename);
@@ -116,10 +87,10 @@ bool FindConfigDoc::readPatternList(tclPatternList& pl){
       bRes = true;
       while(node) {
          TiXmlElement* elem = node->ToElement();
-         const char* pc=0;
+         const TCHAR* pc=0;
          if(elem && elem->FirstChild()) {
             tclPattern p;
-            std::string text(elem->FirstChild()->Value());
+            generic_string text(elem->FirstChild()->Value());
             p.setSearchText(text);
             
             pc = elem->Attribute(FNDDOC_DO_SEARCH);
@@ -184,7 +155,7 @@ bool FindConfigDoc::writePatternList(tclPatternList& pl){
       return bRes;
    }
    mDoc->Clear();
-   TiXmlNode* n = mDoc->InsertEndChild(TiXmlDeclaration("1.0", "UTF-8", "")); // <?xml version="1.0" encoding="UTF-8"?>
+   TiXmlNode* n = mDoc->InsertEndChild(TiXmlDeclaration(L"1.0", L"UTF-8", L"")); // <?xml version="1.0" encoding="UTF-8"?>
    n = mDoc->InsertEndChild(TiXmlElement(FNDDOC_ANALYSE_DOC));
    if(n) {
       TiXmlElement* e = n->ToElement(); // must work because we added e just before

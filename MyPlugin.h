@@ -73,6 +73,8 @@ public:
    */
    virtual void updateStyles() =0;
 
+   virtual void updateSearchPatterns() =0;
+
    /**
    * displaySectionCentered positions the text marking to the given position and 
    * moves this position into the visible area.
@@ -111,12 +113,12 @@ public:
    /**
    * returns the name of the file being used for analysis
    */
-   virtual /*std::*/ generic_string getSearchFileName() const =0;
+   virtual generic_string getSearchFileName() const =0;
 
    /**
    * set the search file being analysed
    */
-   virtual void setSearchFileName(const /*std::*/ generic_string& file) =0;
+   virtual void setSearchFileName(const generic_string& file) =0;
 
    /**
    * function is called as notification that the plugin has been switched off by
@@ -133,7 +135,9 @@ public:
    /**
    * function reports which font result dialog shall use
    */
-   virtual std::string getResultFontName() const =0;
+   virtual generic_string getResultFontName() const =0;
+
    virtual unsigned getResultFontSize() const =0;
 };
 #endif //MYPLUGIN_H
+

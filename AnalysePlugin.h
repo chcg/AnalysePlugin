@@ -81,7 +81,7 @@ public:
       _findDlg.setParent(this);
       _findResult.setParent(this);
 
-      mVersionString = TEXT("Analyse Plugin V1.6 ");
+      mVersionString = TEXT("Analyse Plugin V1.7 ");
       mVersionString += TEXT("Rev. ");
       mVersionString += SVNRevInfo;
       mVersionString += TEXT(" ");
@@ -137,15 +137,14 @@ public:
    /**
    * returns the name of the file being used for analysis
    */
-   virtual /*std::*/ generic_string getSearchFileName() const {
-     // return /*std::*/ generic_string(_findDlg.getFileName());
-      return /*std::*/ mLastSearchedFileName;
+   virtual generic_string getSearchFileName() const {
+      return mLastSearchedFileName;
    }
 
    /**
    * set the search file being analysed
    */
-   virtual void setSearchFileName(const /*std::*/ generic_string& file); 
+   virtual void setSearchFileName(const generic_string& file); 
 
    virtual void removeUnusedResultLines(tPatId pattId, const tclResult& oldResult, const tclResult& newResult);
    
@@ -156,7 +155,7 @@ public:
 
    virtual void visibleChanged(bool isVisible);
    virtual teOnEnterAction getOnEnterAction() const;
-   virtual std::string getResultFontName() const;
+   virtual generic_string getResultFontName() const;
    virtual unsigned getResultFontSize() const;
 
    LRESULT messageProc(UINT Message, WPARAM wParam, LPARAM lParam);
@@ -181,6 +180,12 @@ public:
    {
       _findResult.setPatternStyles(_findDlg.getPatternList());
    }
+   
+   // whenever the search patterns have been changed we want to update the find dialog
+   void updateSearchPatterns()
+   {
+      _findResult.setSearchPatterns(_findDlg.getPatternList());
+   }
 
    /**
    * my replacement for direct access is to use scintillas second window
@@ -200,8 +205,8 @@ public:
 
 protected:
 
-   std::string convertExtendedToString(const std::string& query);	
-   bool readBase(const std::string& str, int curPos, int * value, int base, int size) ;
+   generic_string convertExtendedToString(const generic_string& query);	
+   bool readBase(const generic_string& str, int curPos, int * value, int base, int size) ;
    int doFindPattern(const tclPattern& pattern, tclResult& result);
 
    /**
@@ -278,11 +283,11 @@ protected:
    /** algorithmic part and cache of found line information */
    //CFinder _finder;
    //tclFindResultDoc mResultDoc;
-   /*std::*/ generic_string mSearchPatternFileName;
-   /*std::*/ generic_string mSearchHistory;
-   /*std::*/ generic_string mCommentHistory;
-   /*std::*/ generic_string mVersionString;
-   /*std::*/ generic_string mDefaultOptions;
+   generic_string mSearchPatternFileName;
+   generic_string mSearchHistory;
+   generic_string mCommentHistory;
+   generic_string mVersionString;
+   generic_string mDefaultOptions;
    generic_string mLastSearchedFileName; // used to find out if window has changed
    /** is true if the closing tag shall be triggered with adding end tag */
 

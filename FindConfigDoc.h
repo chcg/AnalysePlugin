@@ -41,8 +41,7 @@ public:
    /**
     * constructor gets the name of the xml_file to be read. 
     */
-   FindConfigDoc(const wchar_t * filename);
-   FindConfigDoc(const char * filename);
+   FindConfigDoc(const TCHAR * filename);
    virtual ~FindConfigDoc(void);
 
    /**
@@ -53,22 +52,18 @@ public:
 
 #ifdef FEATURE_HEADLINE
    // TODO headline function
-   std::string getHeadline()const{
+   generic_string getHeadline()const{
       return mHeadline; // read it first from document
    }
-   void setHeadline(const std::string& headline) {
+   void setHeadline(const generic_string& headline) {
       mHeadline = headline; 
    }
 #endif
 
 protected:
-#ifdef UNICODE
-   TiXmlDocumentA* mDoc;
-#else
    TiXmlDocument* mDoc;
-#endif
 #ifdef FEATURE_HEADLINE
-   /*std::*/ generic_string mHeadline;
+   generic_string mHeadline;
 #endif
 private:
 

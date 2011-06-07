@@ -47,7 +47,7 @@ bool tclResultList::setPattern(tPatId i, const tclPattern& pattern){
    {
       tclPattern& myP = it->second;
       if(pattern==myP) {
-         DBG2("setPattern() pattern %s same in row %d don't change.", 
+         DBGW2("setPattern() pattern %s same in row %d don't change.", 
             pattern.getSearchText().c_str(), i);
          return true;
       } else {

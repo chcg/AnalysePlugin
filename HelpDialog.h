@@ -68,6 +68,8 @@ Search Type: \tSame as in find dialog; chose the type how to search.\r\n\
 \t           \tHere an interesting feature is that \\r\\n can be used\r\n\
 \t           \tto search for more than one line! Test it with normal\r\n\
 \t           \tfind dialog in the editor and use the option \"escaped\".\r\n\
+\t           \tAll types are the same as in normal NotePad++ find\r\n\
+\t           \tsee also the help manual in menu \"?\" of NotePad++.\r\n\
 Case:        \tSame as in find dialog; case sensitive or not.\r\n\
 Whole Word:  \tSame as in find dialog; search for whole word or parts\r\n\
 Do Search:   \tAllows to temporarily switching off this pattern \r\n\
@@ -87,9 +89,13 @@ Selection on:\tDecides if found text or the whole line shall be \r\n\
 Left mouse click   \tCopies the actual data of the clicked line into the \r\n\
                    \tconfiguration dialog for editing. click [update] to \r\n\
                    \tput the changes back to the marked line.\r\n\
+Double click       \tToggles the current line to be searched or not.\r\n\
  - Result window -\r\n\
 Double click       \tMoves the main window to the corresponding line\r\n\
 Right mouse click  \tOpens the context menu.\r\n\
+The find dialog in this window is optimized for the search patterns.\r\n\
+click on one of the currently defined patterns to search for this \r\n\
+individually in the result window.\r\n\
 \r\n\
 ---- Analyse Plugin Configuration ---- \r\n\
 The Analyse Plugin has an additional dialog for setting the config. \
@@ -116,7 +122,7 @@ class HelpDlg : public StaticDialog
 {
 
 public:
-   HelpDlg(const /*std::*/ generic_string& version=/*std::*/ generic_string(TEXT("no version"))) 
+   HelpDlg(const generic_string& version=generic_string(TEXT("no version"))) 
       : StaticDialog(), mVersionString(version), _cmdId(0) {};
 
    void init(HINSTANCE hInst, NppData nppData)
@@ -132,7 +138,7 @@ public:
       _urlNppPlugins.destroy();
    }
 
-   void setVersion(const /*std::*/ generic_string& ver){
+   void setVersion(const generic_string& ver){
       mVersionString = ver;
    }
 
@@ -140,7 +146,7 @@ protected :
    virtual BOOL CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
    virtual BOOL CALLBACK run_dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-   /*std::*/ generic_string mVersionString;
+   generic_string mVersionString;
 
    /* Handles */
    NppData			_nppData;

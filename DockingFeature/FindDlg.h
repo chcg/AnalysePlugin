@@ -180,7 +180,7 @@ public :
    * add the filename to the find results window
    */
    void addFileNameTitle(const TCHAR *fileName) {
-      /*std::*/ generic_string str = TEXT("[");
+      generic_string str = TEXT("[");
       str += fileName;
       str += TEXT("]\n");
 
@@ -201,27 +201,27 @@ public :
     */
    bool doLoadConfigFile();
 
-   void setSearchHistory(const wchar_t* hist);
-   void setSearchHistory(const char* hist, int charSize=1);
+   void setSearchHistory(const TCHAR* hist);
+   //void setSearchHistory(const char* hist, int charSize=1);
 
-   std::string getSearchHistory() const;
-   void getSearchHistory(std::string& str) const ;
-   void getSearchHistory(std::wstring& str) const ;
+   generic_string getSearchHistory() const;
+   void getSearchHistory(generic_string& str) const ;
+   //void getSearchHistory(std::wstring& str) const ;
 
-   void setCommentHistory(const wchar_t* hist);
-   void setCommentHistory(const char* hist, int charSize=1);
-   std::string getCommentHistory() const;
-   void getCommentHistory(std::string& str) const ;
-   void getCommentHistory(std::wstring& str) const ;
+   void setCommentHistory(const TCHAR* hist);
+   //void setCommentHistory(const char* hist, int charSize=1);
+   generic_string getCommentHistory() const;
+   void getCommentHistory(generic_string& str) const ;
+   //void getCommentHistory(std::wstring& str) const ;
 
-   void setCmbHistory(tclComboBoxCtrl& thisCmb, const char* hist, int charSize);
+   void setCmbHistory(tclComboBoxCtrl& thisCmb, const TCHAR* hist, int charSize);
 
-   void setDefaultOptions(const wchar_t* options);
-   void setDefaultOptions(const char* options, int charSize=1);
-   std::string getDefaultOptions() const;
-   void getDefaultOptions(std::string& str) ;
-   void getDefaultOptions(std::wstring& str) ;
-   
+   //void setDefaultOptions(const wchar_t* options);
+   void setDefaultOptions(const TCHAR* options, int charSize=2);
+   generic_string getDefaultOptions() const;
+   void getDefaultOptions(generic_string& str) ;
+   //void getDefaultOptions(std::wstring& str) ;
+   void doToggleToSearch();
    /** called when the user double clicks a tabel row */
    void doCopyLineToDialog();
    /** and back */

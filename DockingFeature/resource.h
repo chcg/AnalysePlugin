@@ -78,6 +78,7 @@
 #define IDC_RADIO_DIRDOWN               20406
 #define IDC_COUNT                       20408
 #define IDC_STATIC_DIRECTION            20420
+#define IDC_LST_PATTERNS                1051
 
 // Next default values for new objects
 // 
@@ -85,7 +86,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        3010
 #define _APS_NEXT_COMMAND_VALUE         5003
-#define _APS_NEXT_CONTROL_VALUE         1051
+#define _APS_NEXT_CONTROL_VALUE         1052
 #define _APS_NEXT_SYMED_VALUE           6003
 #endif
 #endif

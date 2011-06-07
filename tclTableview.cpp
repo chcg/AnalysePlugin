@@ -51,14 +51,16 @@ const tstPatternConfTab tclTableview::gPatternConfTab[tclTableview::TBLVIEW_COL_
    ,{TEXT("Comment"),100 }
 };
 
-std::string tclTableview::getCell(int item, int column) const {
+generic_string tclTableview::getCell(int item, int column) const {
    static TCHAR cs[MAX_CHAR_CELL];
    ListView_GetItemText(mhList, item, column, cs, MAX_CHAR_CELL);
-   char* cc = (char*)cs;
+   TCHAR* cc = (TCHAR*)cs;
    int j = (int)generic_strlen(cs)+1; 
    j = (j>MAX_CHAR_CELL)?MAX_CHAR_CELL:j;
-   for(int i=0; i<j; ++i) {cc[i] = (char)cs[i];}
-   return std::string(cc);
+   for(int i=0; i<j; ++i) {
+      cc[i] = (TCHAR)cs[i];
+   }
+   return generic_string(cc);
 }
 
 void tclTableview::refillTable(tclPatternList& pl) {
@@ -111,18 +113,18 @@ int tclTableview::instertAfterRow(){
 
 void tclTableview::updateRow(int item, const tclPattern& rp) {
    updateRowColor(item, rp);
-   updateCell(item, TBLVIEW_COL_DO_SEARCH, rp.getDoSearch()?"X":"");
+   updateCell(item, TBLVIEW_COL_DO_SEARCH, rp.getDoSearch()?L"X":L"");
    updateCell(item, TBLVIEW_COL_SEARCH_TEXT, rp.getSearchText());
    updateCell(item, TBLVIEW_COL_SEARCH_TYPE, rp.getSearchTypeStr());
-   updateCell(item, TBLVIEW_COL_MATCHCASE, rp.getIsMatchCase()?"X":"");
-   updateCell(item, TBLVIEW_COL_WHOLEWORD, rp.getIsWholeWord()?"X":"");
+   updateCell(item, TBLVIEW_COL_MATCHCASE, rp.getIsMatchCase()?L"X":L"");
+   updateCell(item, TBLVIEW_COL_WHOLEWORD, rp.getIsWholeWord()?L"X":L"");
    updateCell(item, TBLVIEW_COL_SELECT, rp.getSelectionTypeStr());
-   updateCell(item, TBLVIEW_COL_HIDE, rp.getIsHideText()?"X":"");
+   updateCell(item, TBLVIEW_COL_HIDE, rp.getIsHideText()?L"X":L"");
    updateCell(item, TBLVIEW_COL_COMMENT, rp.getComment());
 #ifdef RESULT_STYLING
-   updateCell(item, TBLVIEW_COL_BOLD, rp.getIsBold()?"X":"");
-   updateCell(item, TBLVIEW_COL_ITALIC, rp.getIsItalic()?"X":"");
-   updateCell(item, TBLVIEW_COL_UNDERLINED, rp.getIsUnderlined()?"X":"");
+   updateCell(item, TBLVIEW_COL_BOLD, rp.getIsBold()?L"X":L"");
+   updateCell(item, TBLVIEW_COL_ITALIC, rp.getIsItalic()?L"X":L"");
+   updateCell(item, TBLVIEW_COL_UNDERLINED, rp.getIsUnderlined()?L"X":L"");
 #endif
 #ifdef RESULT_COLORING
    updateCell(item, TBLVIEW_COL_COLOR, rp.getColorStr());
@@ -147,12 +149,12 @@ void tclTableview::updateRowColor(int item, const tclPattern& rp){
    //}
 }
 
-void tclTableview::updateCell(int item, int column, const std::string& s){
-   static TCHAR cs[MAX_CHAR_CELL];
-   int j = (int)s.length()+1; 
-   j = (j>MAX_CHAR_CELL)?MAX_CHAR_CELL:j;
-   for(int i=0; i<j; ++i) {cs[i] = (TCHAR)(s[i]&0xff);}
-   ListView_SetItemText(mhList, item, column, cs);
+void tclTableview::updateCell(int item, int column, const generic_string& s){
+   //static TCHAR cs[MAX_CHAR_CELL];
+   //int j = (int)s.length()+1; 
+   //j = (j>MAX_CHAR_CELL)?MAX_CHAR_CELL:j;
+   //for(int i=0; i<j; ++i) {cs[i] = (TCHAR)(s[i]&0xff);}
+   ListView_SetItemText(mhList, item, column, (TCHAR*)s.c_str());
 }
 
 void tclTableview::create(){
@@ -172,22 +174,22 @@ void tclTableview::create(){
    }
 }
 
-std::string tclTableview::getDoSearchStr() const { return getItem(TBLVIEW_COL_DO_SEARCH);}
-std::string tclTableview::getSearchTextStr() const { return getItem(TBLVIEW_COL_SEARCH_TEXT);}
-std::string tclTableview::getSearchTypeStr() const {return getItem(TBLVIEW_COL_SEARCH_TYPE);}
-std::string tclTableview::getMatchCaseStr() const {return getItem(TBLVIEW_COL_MATCHCASE );}
-std::string tclTableview::getWholeWordStr() const {return getItem(TBLVIEW_COL_WHOLEWORD);}
-std::string tclTableview::getSelectStr() const {return getItem(TBLVIEW_COL_SELECT );}
-std::string tclTableview::getHideStr() const {return getItem(TBLVIEW_COL_HIDE);}
-std::string tclTableview::getCommentStr() const { return getItem(TBLVIEW_COL_COMMENT);}
+generic_string tclTableview::getDoSearchStr() const { return getItem(TBLVIEW_COL_DO_SEARCH);}
+generic_string tclTableview::getSearchTextStr() const { return getItem(TBLVIEW_COL_SEARCH_TEXT);}
+generic_string tclTableview::getSearchTypeStr() const {return getItem(TBLVIEW_COL_SEARCH_TYPE);}
+generic_string tclTableview::getMatchCaseStr() const {return getItem(TBLVIEW_COL_MATCHCASE );}
+generic_string tclTableview::getWholeWordStr() const {return getItem(TBLVIEW_COL_WHOLEWORD);}
+generic_string tclTableview::getSelectStr() const {return getItem(TBLVIEW_COL_SELECT );}
+generic_string tclTableview::getHideStr() const {return getItem(TBLVIEW_COL_HIDE);}
+generic_string tclTableview::getCommentStr() const { return getItem(TBLVIEW_COL_COMMENT);}
 #ifdef RESULT_STYLING
-std::string tclTableview::getBoldStr() const {return getItem(TBLVIEW_COL_BOLD);}
-std::string tclTableview::getItalicStr() const {return getItem(TBLVIEW_COL_ITALIC );}
-std::string tclTableview::getUnderlinedStr() const {return getItem(TBLVIEW_COL_UNDERLINED );}
+generic_string tclTableview::getBoldStr() const {return getItem(TBLVIEW_COL_BOLD);}
+generic_string tclTableview::getItalicStr() const {return getItem(TBLVIEW_COL_ITALIC );}
+generic_string tclTableview::getUnderlinedStr() const {return getItem(TBLVIEW_COL_UNDERLINED );}
 #endif
 #ifdef RESULT_COLORING
-std::string tclTableview::getColorStr() const {return getItem(TBLVIEW_COL_COLOR );}
-std::string tclTableview::getBgColorStr() const {return getItem(TBLVIEW_COL_BGCOLOR );}
+generic_string tclTableview::getColorStr() const {return getItem(TBLVIEW_COL_COLOR );}
+generic_string tclTableview::getBgColorStr() const {return getItem(TBLVIEW_COL_BGCOLOR );}
 #endif
 
 int tclTableview::getSelectedRow() const {

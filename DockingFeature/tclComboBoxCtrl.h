@@ -48,29 +48,29 @@ public:
     * @param argc is the number of strings following
     * @param argv is the array of char * with argc size 
     */
-   void addInitialText2Combo(int argc, const char** argv, bool isUTF8);
+   void addInitialText2Combo(int argc, const TCHAR** argv, bool isUTF8);
 
    /**
     *same as before but use a vectore to tansfer the initila text
     */
-   void addInitialText2Combo(const std::set<std::string>& argv, bool isUTF8);
+   void addInitialText2Combo(const std::set<generic_string>& argv, bool isUTF8);
 
    /**
     * adds one text to the combobox and set it into the selection
     * if this text is already in the list it will be selected only
     */
-   void addText2Combo(const char * txt2add, bool isUTF8);
+   void addText2Combo(const TCHAR* txt2add, bool isUTF8);
 
    /**
     * retrieves the string actually stored in the editor field of the combobox 
     */
-   std::string getTextFromCombo(bool isUnicode) const ;
+   generic_string getTextFromCombo(bool isUnicode) const ;
 
    /**
    * returns the number argc of the array of strings stored in 
    * argv 
    */
-   std::string getComboTextList(bool isUTF8) const ;
+   generic_string getComboTextList(bool isUTF8) const ;
 
 protected:
 

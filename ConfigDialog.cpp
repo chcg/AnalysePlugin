@@ -28,7 +28,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "tclPattern.h"
 
 #define FONTSIZELIST_COUNT 11
-const char * FONTSIZELIST[] = {"6", "7", "8", "9", "10", "11", "12", "14", "16", "18", "20" };
+const TCHAR * FONTSIZELIST[] = {L"6", L"7", L"8", L"9", L"10", L"11", L"12", L"14", L"16", L"18", L"20" };
 
 using namespace std;
 
@@ -64,11 +64,8 @@ int ConfigDialog::EnumFontFamExProc(ENUMLOGFONTEX *lpelfe, NEWTEXTMETRICEX *, in
 	//We can add the font
 	//Add the face name and not the full name, we do not care about any styles
    TCHAR* pName = (TCHAR*)lpelfe->elfLogFont.lfFaceName;
-#ifdef UNICODE
-   string str(WcharMbcsConvertor::getInstance()->wchar2char(pName, CP_ACP));
-#else
-   string str(pName);
-#endif
+   
+   generic_string str(pName);
    pStringSet->insert(str);
 
 	return 1; // I want to get all fonts
@@ -112,8 +109,8 @@ void ConfigDialog::doDialog(int FuncCmdId)
 //      mCmbColor.addText2Combo(mDefPat.getColorStr().c_str(), false);
 #endif
       mCmbFontName.addText2Combo(_pParent->getResultFontName().c_str(), false);
-      char tmp[10];
-      itoa(_pParent->getResultFontSize(),tmp, 10);
+      TCHAR tmp[10];
+      generic_itoa(_pParent->getResultFontSize(),tmp, 10);
       mCmbFontSize.addText2Combo(tmp, false);
       _pFgColour = new ColourPicker2;
       _pBgColour = new ColourPicker2;
@@ -143,17 +140,17 @@ void ConfigDialog::doDialog(int FuncCmdId)
    goToCenter();
 }
 
-const char*  ConfigDialog::transOnEnterAction[max_onEnterAction] = {
-   "just search",
-   "update line",
-   "add line"
+const TCHAR*  ConfigDialog::transOnEnterAction[max_onEnterAction] = {
+   TEXT("just search"),
+   TEXT("update line"),
+   TEXT("add line")
 };
 
-std::string ConfigDialog::getOnEnterActionStr() const {
-   return std::string(transOnEnterAction[mOnEnterAction]);
+generic_string ConfigDialog::getOnEnterActionStr() const {
+   return generic_string(transOnEnterAction[mOnEnterAction]);
 }
 
-void ConfigDialog::setOnEnterActionStr(const std::string& action) {
+void ConfigDialog::setOnEnterActionStr(const generic_string& action) {
    for(int i=0; i<max_onEnterAction;i++) {
       if(action == transOnEnterAction[i]) {
          mOnEnterAction =(teOnEnterAction)i;
@@ -172,11 +169,11 @@ bool ConfigDialog::getDialogData(tclPattern& p) const{
    }
 }
 
-void ConfigDialog::setFontText(const std::string& str) {
+void ConfigDialog::setFontText(const generic_string& str) {
    mResultFontName = str;
 }
 
-std::string ConfigDialog::getFontText() const {
+generic_string ConfigDialog::getFontText() const {
    return mResultFontName;
 }
 
@@ -189,18 +186,18 @@ void ConfigDialog::setFontSize(unsigned s) {
    }
 }
 
-void ConfigDialog::setFontSizeStr(const std::string& s) {
-   setFontSize(atoi(s.c_str()));
+void ConfigDialog::setFontSizeStr(const generic_string& s) {
+   setFontSize(generic_atoi(s.c_str()));
 }
 
 unsigned ConfigDialog::getFontSize() const {
   return mResultFontSize;
 }
 
-std::string ConfigDialog::getFontSizeStr() const {
-   char cp[10];
-   itoa(mResultFontSize, cp, 10);
-   return string(cp);
+generic_string ConfigDialog::getFontSizeStr() const {
+   TCHAR cp[10];
+   generic_itoa(mResultFontSize, cp, 10);
+   return generic_string(cp);
 }
 
 void ConfigDialog::setDialogData(const tclPattern& p) {

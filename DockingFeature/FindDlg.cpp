@@ -41,7 +41,8 @@ void FindDlg::setFileName(const TCHAR* str) {
 
 BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
 {
-   if(message != 0x0138) {
+   static bool bDoTrace = false; // make break point and set to true to activate trace
+   if(bDoTrace) {
       DBG3("FindDlg::run_dlgProc(0x%08x, 0x%08x, 0x%08x)", message, wParam, lParam);
    }
    switch (message) 
@@ -168,6 +169,7 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
                   }
                }
                doCopyDialogToLine();
+
                if(!mResultList.getIsDirty())
                {  // if only color was changed this is possible
                   // as soon as the search list has changed the index may not fit anymore...
@@ -436,7 +438,7 @@ bool FindDlg::doStoreConfigFile(){
                // doit only if place enough
                generic_strncpy(&ofn.lpstrFile[l], TEXT(".xml"),5); // bcause of \0
             } else {
-               DBG1("doStoreConfigFile() path was too long couldn't add ext! %s", ofn.lpstrFile);
+               DBGW1("doStoreConfigFile() path was too long couldn't add ext! %s", ofn.lpstrFile);
             }
          }
       }
@@ -479,6 +481,12 @@ BOOL FindDlg::notify(SCNotification *notification)
             doCopyLineToDialog(); 
             ret = true;
          }
+         break;
+      }
+   case NM_DBLCLK:
+      {
+         doToggleToSearch();
+         ret = true;
          break;
       }
       //case LVN_ITEMACTIVATE:
@@ -543,7 +551,7 @@ BOOL FindDlg::notify(SCNotification *notification)
             };
             DBG3("NM_CUSTOMDRAW for item %d : %s | %s", (int)pItem->nmcd.dwItemSpec, cp1, cp);
          } else { // if handle correct
-            DBG0("NM_CUSTOMDRAW for different element");
+            //DBG0("NM_CUSTOMDRAW for different element");
          }
          //CDRF_NOTIFYITEMDRAW; // CDRF_DODEFAULT;
          break;
@@ -611,40 +619,42 @@ BOOL FindDlg::notify(SCNotification *notification)
    return ret;
 }
 
-void FindDlg::setSearchHistory(const wchar_t* hist) {
-   setCmbHistory(mCmbSearchText, (const char*)hist, 2);
+void FindDlg::setSearchHistory(const TCHAR* hist) {
+   setCmbHistory(mCmbSearchText, hist, 2);
+   mCmbSearchText.addText2Combo(L"", false); 
 }
-void FindDlg::setSearchHistory(const char* hist, int charSize) {
-   setCmbHistory(mCmbSearchText, hist, charSize);
+//void FindDlg::setSearchHistory(const char* hist, int charSize) {
+//   setCmbHistory(mCmbSearchText, hist, charSize);
+//}
+void FindDlg::setCommentHistory(const TCHAR* hist) {
+   setCmbHistory(mCmbComment, hist, 2);
+   mCmbComment.addText2Combo(L"", false); // add empty line to put first comment to empty as default
 }
-void FindDlg::setCommentHistory(const wchar_t* hist) {
-   setCmbHistory(mCmbComment, (const char*)hist, 2);
-   mCmbComment.addText2Combo("", false); // add empty line to put first comment to empty as default
-}
-void FindDlg::setCommentHistory(const char* hist, int charSize) {
-   setCmbHistory(mCmbComment, hist, charSize);
-   mCmbComment.addText2Combo("", false); // add empty line to put first comment to empty as default
-}
-void FindDlg::setCmbHistory(tclComboBoxCtrl& thisCmb, const char* hist, int charSize) 
+//void FindDlg::setCommentHistory(const char* hist, int charSize) {
+//   setCmbHistory(mCmbComment, hist, charSize);
+//   mCmbComment.addText2Combo(L"", false); // add empty line to put first comment to empty as default
+//}
+void FindDlg::setCmbHistory(tclComboBoxCtrl& thisCmb, const TCHAR* hist, int charSize) 
 {
    if(hist==0) return;
-   char szPart[MAX_CHAR_HISTORY];
+   TCHAR szPart[MAX_CHAR_HISTORY];
    if(charSize == 1) {
-      (void)strncpy(szPart, hist, sizeof(szPart)-1);
+      assert(0); // not supported any more
+      //(void)strncpy(szPart, hist, sizeof(szPart)-1);
    } else if(charSize == 2) {
       // hist is in fact TCHAR
       TCHAR* wHist = (TCHAR*)hist;
       int j = (int)generic_strlen(wHist)+1; 
       j = (j>MAX_CHAR_HISTORY)?MAX_CHAR_HISTORY:j;
-      for(int i=0; i<j; ++i) {szPart[i] = (char)wHist[i];}
+      for(int i=0; i<j; ++i) {szPart[i] = (TCHAR)wHist[i];}
    } else return;
    szPart[sizeof(szPart)-1] =0;
-   char* pcEnd=szPart+strlen(szPart);
-   char* pc=szPart;
+   TCHAR* pcEnd=szPart+generic_strlen(szPart);
+   TCHAR* pc=szPart;
    while(pc<pcEnd) {
       if(*pc=='|'){
          if(*(pc+1)=='|') {
-            char*pcEsc = pc;
+            TCHAR* pcEsc = pc;
             do {
                *pcEsc = *(pcEsc+1);
                ++pcEsc;
@@ -656,64 +666,67 @@ void FindDlg::setCmbHistory(tclComboBoxCtrl& thisCmb, const char* hist, int char
       }
       ++pc;
    }
-   char* szToken = strtok(szPart, "\x01");
+   TCHAR* szToken = generic_strtok(szPart, L"\x01");
    while(szToken) {
       thisCmb.addText2Combo(szToken, false);
-      szToken = strtok(NULL, "\x01"); // next token
+      szToken = generic_strtok(NULL, L"\x01"); // next token
    }
 }
-void FindDlg::getSearchHistory(std::string& str) const {
+void FindDlg::getSearchHistory(generic_string& str) const {
    str = mCmbSearchText.getComboTextList(false);
 }
 
-void FindDlg::getCommentHistory(std::string& str) const {
+void FindDlg::getCommentHistory(generic_string& str) const {
    str = mCmbComment.getComboTextList(false);
 }
 
-std::string FindDlg::getSearchHistory() const {
+generic_string FindDlg::getSearchHistory() const {
    return mCmbSearchText.getComboTextList(false);
 }
-std::string FindDlg::getCommentHistory() const {
+generic_string FindDlg::getCommentHistory() const {
    return mCmbComment.getComboTextList(false);
 }
 
-void FindDlg::getCommentHistory(std::wstring& str) const {
-   std::string s = mCmbComment.getComboTextList(false);
-   int i = (int)s.length();
-   str.resize(i, 0);
-   for(; i>=0; --i) {
-      str[i] = (TCHAR)(s[i]&0xff);
-   }
-}
+//void FindDlg::getCommentHistory(std::wstring& str) const {
+//   generic_string s = mCmbComment.getComboTextList(false);
+//   int i = (int)s.length();
+//   str.resize(i, 0);
+//   for(; i>=0; --i) {
+//      str[i] = (TCHAR)(s[i]&0xff);
+//   }
+//}
 
-void FindDlg::getSearchHistory(std::wstring& str) const {
-   std::string s = mCmbSearchText.getComboTextList(false);
-   int i = (int)s.length();
-   str.resize(i, 0);
-   for(; i>=0; --i) {
-      str[i] = (TCHAR)(s[i]&0xff);
-   }
-}
+//void FindDlg::getSearchHistory(std::wstring& str) const {
+//   generic_string s = mCmbSearchText.getComboTextList(false);
+//   int i = (int)s.length();
+//   str.resize(i, 0);
+//   for(; i>=0; --i) {
+//      str[i] = (TCHAR)(s[i]&0xff);
+//   }
+//}
 
-void FindDlg::setDefaultOptions(const wchar_t* options) {
-   // deferr into the other func to implement decoder only once
-   setDefaultOptions((const char*)options, 2);
-}
+//void FindDlg::setDefaultOptions(const wchar_t* options) {
+//   // deferr into the other func to implement decoder only once
+//   setDefaultOptions((const char*)options, 2);
+//}
 
-void FindDlg::setDefaultOptions(const char* options, int charSize) {
+void FindDlg::setDefaultOptions(const TCHAR* options, int charSize) {
    if(options==0) return;
-   char szPart[MAX_CHAR_HISTORY];
+   TCHAR szPart[MAX_CHAR_HISTORY];
    if(charSize == 1) {
-      (void)strncpy(szPart, options, sizeof(szPart)-1);
+      assert(0); // not supported anymore
+      //(void)strncpy(szPart, options, sizeof(szPart)-1);
    } else if(charSize == 2) {
       // this is in fact TCHAR
-      TCHAR* wOptions = (TCHAR*)options;
+      const TCHAR* wOptions = options;
       int j = (int)generic_strlen(wOptions)+1; 
       j = (j>MAX_CHAR_HISTORY)?MAX_CHAR_HISTORY:j;
-      for(int i=0; i<j; ++i) {szPart[i] = (char)wOptions[i];}
+      for(int i=0; i<j; ++i) {
+         szPart[i] = wOptions[i];
+      }
    } else return;
    szPart[sizeof(szPart)-1] =0;
-   char* szToken = strtok(szPart, ",");
+   TCHAR* szToken = generic_strtok(szPart, L",");
    int num = 0;
    while(szToken) {
       switch(num) {
@@ -735,7 +748,7 @@ void FindDlg::setDefaultOptions(const char* options, int charSize) {
             mDefPat.setBgColorStr(szToken); break;
          default:;
       };
-      szToken = strtok(NULL, ","); // next token
+      szToken = generic_strtok(NULL, L","); // next token
       ++num;
    } // while
    setDialogData(mDefPat);
@@ -745,20 +758,20 @@ void FindDlg::setDefaultOptions(const char* options, int charSize) {
    _pBgColour->redraw();
 }
 
-void FindDlg::getDefaultOptions(std::string& str) {
+void FindDlg::getDefaultOptions(generic_string& str) {
    str = getDefaultOptions();
 }
 
-void FindDlg::getDefaultOptions(std::wstring& str) {
-   std::string s = getDefaultOptions();
-   str.resize(s.length(), 0);
-   for(int i = (int)s.length(); i>=0; --i) {
-      str[i] = (TCHAR)(unsigned)(s[i]&0xff);
-   }
-}
+//void FindDlg::getDefaultOptions(std::wstring& str) {
+//   generic_string s = getDefaultOptions();
+//   str.resize(s.length(), 0);
+//   for(int i = (int)s.length(); i>=0; --i) {
+//      str[i] = (TCHAR)(unsigned)(s[i]&0xff);
+//   }
+//}
 
-std::string FindDlg::getDefaultOptions() const {
-   std::string s(mDefPat.getSearchTypeStr());
+generic_string FindDlg::getDefaultOptions() const {
+   generic_string s(mDefPat.getSearchTypeStr());
    s += ',';
    s += mDefPat.getMatchCaseStr();
    s += ',';
@@ -776,12 +789,20 @@ std::string FindDlg::getDefaultOptions() const {
    return s;
 }
 
+void FindDlg::doToggleToSearch() {
+   if(mTableView.getSelectedRow()>=0) {
+      bool bDoSearch = !(mTableView.getDoSearchStr() == L"X");
+      ::SendDlgItemMessage(_hSelf, IDC_CHK_DO_SEARCH, BM_SETCHECK, bDoSearch?BST_CHECKED:BST_UNCHECKED, 0);
+      doCopyDialogToLine();
+   }
+}
+
 void FindDlg::doCopyLineToDialog() {
    if(mTableView.getSelectedRow()>=0) {
-      bool bDoSearch = (mTableView.getDoSearchStr() == "X");
-      bool bHide = (mTableView.getHideStr() == "X");
-      bool bWord = (mTableView.getWholeWordStr() == "X");
-      bool bCase = (mTableView.getMatchCaseStr() == "X");
+      bool bDoSearch = (mTableView.getDoSearchStr() == L"X");
+      bool bHide = (mTableView.getHideStr() == L"X");
+      bool bWord = (mTableView.getWholeWordStr() == L"X");
+      bool bCase = (mTableView.getMatchCaseStr() == L"X");
       ::SendDlgItemMessage(_hSelf, IDC_CHK_DO_SEARCH, BM_SETCHECK, bDoSearch?BST_CHECKED:BST_UNCHECKED, 0);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_SETCHECK, bWord?BST_CHECKED:BST_UNCHECKED, 0);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_SETCHECK, bCase?BST_CHECKED:BST_UNCHECKED, 0);
@@ -791,9 +812,9 @@ void FindDlg::doCopyLineToDialog() {
       mCmbSearchType.addText2Combo(mTableView.getSearchTypeStr().c_str(), false);
       mCmbSelType.addText2Combo(mTableView.getSelectStr().c_str(), false);
 #ifdef RESULT_STYLING
-      bool bBold = (mTableView.getBoldStr() == "X");
-      bool bUnder = (mTableView.getUnderlinedStr() == "X");
-      bool bItalic = (mTableView.getItalicStr() == "X");
+      bool bBold = (mTableView.getBoldStr() == L"X");
+      bool bUnder = (mTableView.getUnderlinedStr() == L"X");
+      bool bItalic = (mTableView.getItalicStr() == L"X");
       ::SendDlgItemMessage(_hSelf, IDC_CHK_BOLD, BM_SETCHECK, bBold?BST_CHECKED:BST_UNCHECKED, 0);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_UNDERLINED, BM_SETCHECK, bUnder?BST_CHECKED:BST_UNCHECKED, 0);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_ITALIC, BM_SETCHECK, bItalic?BST_CHECKED:BST_UNCHECKED, 0);
@@ -832,6 +853,8 @@ void FindDlg::doCopyDialogToLine() {
 #endif
       mTableView.setRowItems(p);
       mResultList.setPattern(mResultList.getPatternId(mTableView.getSelectedRow()), p);
+      // inform parent to let other know the status
+      _pParent->updateSearchPatterns();
       // insert text to text history
       mCmbSearchText.addText2Combo(mCmbSearchText.getTextFromCombo(false).c_str(), false);
       mCmbComment.addText2Combo(mCmbComment.getTextFromCombo(false).c_str(), false);
@@ -866,10 +889,10 @@ bool FindDlg::isPatternEqual() {
 #endif
 
       bool b = true;
-      b &= (p.getDoSearch() == (mTableView.getDoSearchStr() == "X"));
-      b &= (p.getIsHideText() == (mTableView.getHideStr() == "X"));
-      b &= (p.getIsWholeWord() == (mTableView.getWholeWordStr() == "X"));
-      b &= (p.getIsMatchCase() == (mTableView.getMatchCaseStr() == "X"));
+      b &= (p.getDoSearch() == (mTableView.getDoSearchStr() == L"X"));
+      b &= (p.getIsHideText() == (mTableView.getHideStr() == L"X"));
+      b &= (p.getIsWholeWord() == (mTableView.getWholeWordStr() == L"X"));
+      b &= (p.getIsMatchCase() == (mTableView.getMatchCaseStr() == L"X"));
       b &= (p.getSearchText() == mTableView.getSearchTextStr());
       b &= (p.getComment() == mTableView.getCommentStr());
       b &= (p.getSearchTypeStr() == mTableView.getSearchTypeStr());

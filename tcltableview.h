@@ -87,28 +87,28 @@ public:
 
    int getRowCount() const ;
 
-   std::string getSearchTextStr() const ;
-   std::string getSearchTypeStr() const ;
-   std::string getMatchCaseStr() const ;
-   std::string getWholeWordStr() const ;
-   std::string getSelectStr() const ;
-   std::string getHideStr() const ;
-   std::string getCommentStr() const ;
-   std::string getDoSearchStr() const ;
+   generic_string getSearchTextStr() const ;
+   generic_string getSearchTypeStr() const ;
+   generic_string getMatchCaseStr() const ;
+   generic_string getWholeWordStr() const ;
+   generic_string getSelectStr() const ;
+   generic_string getHideStr() const ;
+   generic_string getCommentStr() const ;
+   generic_string getDoSearchStr() const ;
 
 #ifdef RESULT_STYLING
-   std::string getBoldStr() const ;
-   std::string getItalicStr() const ;
-   std::string getUnderlinedStr() const ;
+   generic_string getBoldStr() const ;
+   generic_string getItalicStr() const ;
+   generic_string getUnderlinedStr() const ;
 #endif
 #ifdef RESULT_COLORING
-   std::string getColorStr() const ;
-   std::string getBgColorStr() const ;
+   generic_string getColorStr() const ;
+   generic_string getBgColorStr() const ;
 #endif
 
-   std::string getItem(int column) const { 
-            if(mhList==0) {
-         return std::string(); // not initialized
+   generic_string getItem(int column) const { 
+      if(mhList==0) {
+         return generic_string(); // not initialized
       }
       return getCell(getSelectedRow(), column);
    }
@@ -122,9 +122,9 @@ public:
 protected:
    static const tstPatternConfTab gPatternConfTab[TBLVIEW_COL_MAX];
 
-   std::string getCell(int item, int column) const;
+   generic_string getCell(int item, int column) const;
    void updateRow(int item, const tclPattern& rp);
-   void updateCell(int item, int column, const std::string& s);
+   void updateCell(int item, int column, const generic_string& s);
    void updateRowColor(int item, const tclPattern& rp);
 
    HWND mhList;

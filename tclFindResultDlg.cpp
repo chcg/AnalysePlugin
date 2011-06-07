@@ -64,6 +64,10 @@ void tclFindResultDlg::setParent(MyPlugin* parent) {
    _pParent = parent;
 }
 
+void tclFindResultDlg::setCodePage(int cp) {
+   _scintView.execute(SCI_SETCODEPAGE, cp);
+}
+
 void tclFindResultDlg::setLineNumColSize(int size) {
    miLineNumColSize = size;
    miLineHeadSize = miLineNumColSize+ (int)(strlen(FNDRESDLG_LINE_COLON)+strlen(FNDRESDLG_LINE_HEAD));
@@ -80,7 +84,7 @@ void tclFindResultDlg::initEdit() {
    RECT rect;
    getClientRect(rect);
    _scintView.reSizeToWH(rect);
-	_scintView.execute(SCI_SETCODEPAGE, SC_CP_UTF8);
+	//_scintView.execute(SCI_SETCODEPAGE, SC_CP_UTF8);
    // let window parent (this class) do the styling
    _scintView.execute(SCI_SETLEXER,SCLEX_CONTAINER);
    mFindResultSearchDlg.init(_hInst, _hParent, &_scintView);
@@ -132,17 +136,17 @@ void tclFindResultDlg::removeUnusedResultLines(tPatId pattId, const tclResult& o
          } else {
             DBG2("removeUnusedResultLines() found line %d result not empty size %d", thisLine, l.posInfos().size());
 #ifdef _DEBUG
-            char num[20];
-            std::string s;
+            TCHAR num[20];
+            generic_string s;
             tlmIdxPosInfo::const_iterator i = l.posInfos().begin();
-            sprintf(num,"%3.10f",i->first);
+            wsprintf(num,L"%3.10f",i->first);
             s.append(num);
             for(; i != l.posInfos().end(); ++i) {
-               s.append(", ");
-               sprintf(num,"%3.10f",i->first);
+               s.append(L", ");
+               wsprintf(num,L"%3.10f",i->first);
                s.append(num);
             }
-            DBG1("removeUnusedResultLines() patterns are: %s.",s.c_str()); 
+            DBGW1("removeUnusedResultLines() patterns are: %s.",s.c_str()); 
 #endif
             int line = mFindResults.getLineNoAtRes(thisLine);
             int startL = (int)_scintView.execute(SCI_POSITIONFROMLINE, line);
@@ -276,7 +280,7 @@ void tclFindResultDlg::setPatternFonts() {
    } // for 
 }
 
-void tclFindResultDlg::updateWindowData(const std::string& fontName, unsigned fontSize) {
+void tclFindResultDlg::updateWindowData(const generic_string& fontName, unsigned fontSize) {
    mFontName = fontName;
    mFontSize = fontSize;
    setPatternFonts();
@@ -305,7 +309,14 @@ int tclFindResultDlg::getCurrentMarkedLine() const
 void tclFindResultDlg::setCurrentMarkedLine(int line) 
 {  // we set the current mark here
    _markedLine = line;
-   _pParent->execute(scnMainHandle, SCI_GOTOLINE, _markedLine);
+   if(line != -1) {
+      _pParent->execute(scnMainHandle, SCI_GOTOLINE, _markedLine);
+   }
+}
+
+void tclFindResultDlg::setSearchPatterns(const tclPatternList& list){
+   // inform find window about new searches
+   mFindResultSearchDlg.setSearchPatterns(list);
 }
 
 /**
@@ -334,6 +345,7 @@ void tclFindResultDlg::setPatternStyles(const tclPatternList& list)
       }
       mPatStyleList.setPattern(it.getPatId(), it.getPattern());
    }
+
    /*
    Propably we need some more features here ?
 
@@ -476,7 +488,7 @@ BOOL CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM 
          RECT rc;
          getClientRect(rc);
          _scintView.reSizeTo(rc);
-         break;
+         return TRUE;
       }
 
    case WM_NOTIFY:
@@ -486,7 +498,7 @@ BOOL CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM 
             // notify didn't know about the notification send to parent
             return DockingDlgInterface::run_dlgProc(message, wParam, lParam);
          }
-         break;
+         return TRUE;
       }
 	//case WM_RBUTTONDOWN:
  //     {
@@ -631,9 +643,10 @@ bool tclFindResultDlg::notify(SCNotification *notification)
 {
    bool ret = false; // true if message processed
    if(notification == 0) return ret;
-   
-   DBG2("notify() code %x line %x.", notification->nmhdr.code, notification->line);
-
+   static bool bDoTrace = false; // set to true via debugger to trace this line
+   if (bDoTrace) {
+      DBG2("notify() code %x line %x.", notification->nmhdr.code, notification->line);
+   }
    switch (notification->nmhdr.code) 
    {
    case SCN_STYLENEEDED:
@@ -679,7 +692,7 @@ bool tclFindResultDlg::notify(SCNotification *notification)
             }
 
             // if getInfo() method the previous line is renew as current for next call
-            /*std::*/ generic_string fullPath = _pParent->getSearchFileName();
+            generic_string fullPath = _pParent->getSearchFileName();
 
             // get currently marked line in result doc
             int resLineNo = (int)_scintView.execute(SCI_LINEFROMPOSITION, currentPos);
@@ -710,7 +723,11 @@ bool tclFindResultDlg::notify(SCNotification *notification)
             }
 
             char line[1000]="";
+#ifdef UNICODE
             wcstombs(line, fullPath.c_str(),1000);
+#else
+            strcpy(line, fullPath.c_str());
+#endif
             DBG3("notify(SCNotification) SCN_DOUBLECLICK to line  %d in %s line in result", 
                lineMain, line, resLineNo);
    

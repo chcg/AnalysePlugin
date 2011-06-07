@@ -37,6 +37,7 @@ public :
       ,_pSearchResultView(0)
       ,_bSearchDown(true)
       ,_bDoWrap(true)
+      ,mhlvPatterns(0)
    {}
 
    void init(HINSTANCE hInst, HWND hPere, ScintillaSearchView* pSearchResultView) 
@@ -52,6 +53,14 @@ public :
    virtual void create(int dialogID, bool isRTL = false) 
    {
       StaticDialog::create(dialogID, isRTL);
+      mhlvPatterns = ::GetDlgItem(_hSelf, IDC_LST_PATTERNS);
+      ListView_SetExtendedListViewStyle(mhlvPatterns,
+         LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES );
+      LVCOLUMN lvc = {0};
+      lvc.mask = LVCF_TEXT | LVCF_WIDTH;
+      lvc.pszText = L"Patterns";
+      lvc.cx = 175;
+      ListView_InsertColumn(mhlvPatterns, 0, &lvc);
    };
 
    /** called to show the dialog */
@@ -61,6 +70,11 @@ public :
          create(IDD_FIND_RES_DLG_SEARCH, isRTL);
       }
       display();
+   }
+   
+   void setSearchPatterns(const tclPatternList& patterns) {
+      mPatterns = patterns;
+      updatePatternList();
    }
 
    virtual void display(bool toShow = true) 
@@ -75,17 +89,33 @@ public :
          // fill combos
          _CmbSearchType.addInitialText2Combo(p.getDefSearchTypeListSize(), p.getDefSearchTypeList(), false);
          // set to default values
-         _CmbSearchType.addText2Combo(p.getSearchTypeStr().c_str(), false);
-         _CmbSearchText.addText2Combo(p.getSearchText().c_str(), false);
+         _CmbSearchType.addText2Combo(p.getSearchTypeStr().c_str(), false); 
+         _CmbSearchText.addText2Combo(p.getSearchText().c_str(), false); 
          ::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_SETCHECK, p.getIsWholeWord()?BST_CHECKED:BST_UNCHECKED, 0);
          ::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_SETCHECK, p.getIsMatchCase()?BST_CHECKED:BST_UNCHECKED, 0);
          ::SendDlgItemMessage(_hSelf, IDC_RADIO_DIRDOWN , BM_SETCHECK, _bSearchDown?BST_CHECKED:BST_UNCHECKED, 0);
          ::SendDlgItemMessage(_hSelf, IDC_CHK_WRAP , BM_SETCHECK, _bDoWrap?BST_CHECKED:BST_UNCHECKED, 0);
+         updatePatternList();
       }
       Window::display(toShow);
-
    }
 
+   void updatePatternList() {
+       // add one first line
+      ListView_DeleteAllItems(mhlvPatterns);
+      LVITEM lvi;
+      ZeroMemory(&lvi, sizeof(lvi));
+      lvi.mask = LVIF_TEXT;
+      lvi.iItem = 0;
+      tclPatternList::const_iterator i = mPatterns.begin();
+      for (;i != mPatterns.end(); ++i) {
+         generic_string s = i.getPattern().getSearchText().c_str();
+         lvi.pszText = (TCHAR*)s.c_str();
+         lvi.iItem = ListView_GetItemCount(mhlvPatterns);
+         ListView_InsertItem(mhlvPatterns, &lvi);
+      }
+   }
+   
    int doFindText(int start, int end/*, bool bDownWards*/) {
       if(_pSearchResultView==0) {
          DBG0("doFindText() ERROR no searchresult window");
@@ -115,9 +145,21 @@ public :
       // set search area
       _pSearchResultView->execute(SCI_SETTARGETSTART, start);
       _pSearchResultView->execute(SCI_SETTARGETEND, end);
-      int targetStart = (int)_pSearchResultView->execute(SCI_SEARCHINTARGET, 
+      
+      int targetStart=-1;
+#ifdef UNICODE
+	   WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
+	   unsigned int cp = (unsigned int)_pSearchResultView->execute(SCI_GETCODEPAGE); 
+	   const char *text2FindA = wmc->wchar2char(p.getSearchText().c_str(), cp);
+	   size_t text2FindALen = strlen(text2FindA);
+	   targetStart = _pSearchResultView->execute(SCI_SEARCHINTARGET, 
+         (WPARAM)text2FindALen, 
+         (LPARAM)text2FindA);
+#else
+      targetStart = (int)_pSearchResultView->execute(SCI_SEARCHINTARGET, 
          (WPARAM)p.getSearchText().size(), 
          (LPARAM)p.getSearchText().c_str());
+#endif
       return targetStart;
    }
 
@@ -237,7 +279,7 @@ public :
       TCHAR* text = TEXT(" instances found.");
       TCHAR msg[100];
       _itow(iCount, msg, 10);
-      wcsncpy(msg+wcslen(msg), text, 100-wcslen(text));
+      wcsncpy(msg+generic_strlen(msg), text, 100-wcslen(text));
       ::MessageBox(_hSelf, msg, TEXT("Count Instances"), MB_OK);
    }
 
@@ -299,9 +341,35 @@ protected :
 			   }
 			   break;
 		   }
-	   }
+         case WM_NOTIFY:
+         {
+            if (lParam) {
+               SCNotification* pscn = (SCNotification *)lParam;
+               switch(pscn->nmhdr.code)
+               {
+                  case NM_CLICK:
+                  {
+                     LPNMITEMACTIVATE pItem = (LPNMITEMACTIVATE) lParam;
+                     DBG1("NM_CLICK row %d", pItem->iItem);
+                     // pattern in suchse übernehmen
+                     const tclPattern& rp = mPatterns.getPattern(pItem->iItem);
+                     _CmbSearchText.addText2Combo(rp.getSearchText().c_str(), false);
+                     _CmbSearchType.addText2Combo(rp.getSearchTypeStr().c_str(), false);
+                     ::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_SETCHECK, rp.getIsWholeWord()?BST_CHECKED:BST_UNCHECKED, 0);
+                     ::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_SETCHECK, rp.getIsMatchCase()?BST_CHECKED:BST_UNCHECKED, 0);
+                     
+                     return TRUE;
+                  }
+                  default:
+                     break;
+               } // switch(pscn->nmhdr.code)
+            } // if
+         } // WM_NOTIFY
+         default:
+            break;
+	   } // switch (Message)
 	   return FALSE;
-   }
+   } // run_dlgProc()
 
    tclComboBoxCtrl _CmbSearchText;
    tclComboBoxCtrl _CmbSearchType;
@@ -309,6 +377,8 @@ protected :
    ScintillaSearchView* _pSearchResultView;
    bool _bSearchDown;
    bool _bDoWrap;
+   HWND mhlvPatterns;
+   tclPatternList mPatterns; // used for the find window
 };
 
 #endif //TCLFINDRESULTSEARCHDLG_H

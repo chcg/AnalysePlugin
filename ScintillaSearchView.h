@@ -644,7 +644,7 @@ protected:
 //Lexers and Styling
 	void defineDocType(LangType typeDoc);	//setup stylers for active document
 	void restyleBuffer();
-	//const char * getCompleteKeywordList(std::string & kwl, LangType langType, int keywordIndex);
+	//const char * getCompleteKeywordList(generic_string & kwl, LangType langType, int keywordIndex);
 	//void setKeywords(LangType langType, const char *keywords, int index);
 	//void setLexer(int lexerID, LangType langType, int whichList);
 	inline void makeStyle(LangType langType, const char **keywordArray = NULL);

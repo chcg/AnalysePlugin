@@ -45,6 +45,8 @@ public:
 
    void setParent(MyPlugin* parent);
 
+   void setCodePage(int cp);
+
    void setLineNumColSize(int size); 
 
    int getLineNumColSize() const ;
@@ -76,7 +78,7 @@ public:
    
    void moveResult(tPatId oldPattId, tPatId newPattId);
 
-   void updateWindowData(const std::string& fontName, unsigned fontSize);
+   void updateWindowData(const generic_string& fontName, unsigned fontSize);
    
    void clear(); 
 
@@ -91,7 +93,9 @@ public:
    function is called whenever the styles in the result window have to be changed
    */
    void setPatternStyles(const tclPatternList& list);
-   	
+   
+   void setSearchPatterns(const tclPatternList& list);
+  	
    virtual void updateDockingDlg(void);
 
 protected :
@@ -140,7 +144,7 @@ protected:
 
    tclFindResultSearchDlg mFindResultSearchDlg;
 
-   std::string mFontName;
+   generic_string mFontName;
    unsigned mFontSize;
 
 };

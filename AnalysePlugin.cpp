@@ -218,11 +218,7 @@ void AnalysePlugin::loadSettings()
    ::GetPrivateProfileString(SECTIONNAME, KEYONENTERACTION, TEXT("0"), tmp, COUNTCHAR(tmp), iniFilePath);
    _configDlg.setOnEnterAction((teOnEnterAction)generic_atoi(tmp));
    ::GetPrivateProfileString(SECTIONNAME, KEYFONTNAME, TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
-#ifdef UNICODE
-   _configDlg.setFontText(string(WcharMbcsConvertor::getInstance()->wchar2char(tmp, CP_ACP)));
-#else
-   _configDlg.setFontText(string(tmp));
-#endif
+   _configDlg.setFontText(generic_string(tmp));
    ::GetPrivateProfileString(SECTIONNAME, KEYFONTSIZE, TEXT("8"), tmp, COUNTCHAR(tmp), iniFilePath);
    _configDlg.setFontSize(generic_atoi(tmp));
 }
@@ -240,11 +236,7 @@ void AnalysePlugin::saveSettings() {
    TCHAR tmp[10];
    generic_itoa((int)_configDlg.getOnEnterAction(), tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYONENTERACTION, tmp, iniFilePath);
-#ifdef UNICODE
-   const TCHAR* cp = WcharMbcsConvertor::getInstance()->char2wchar(_configDlg.getFontText().c_str(), CP_ACP);
-#else
    const TCHAR* cp = _configDlg.getFontText().c_str();
-#endif
    ::WritePrivateProfileString(SECTIONNAME, KEYFONTNAME, cp, iniFilePath);
    generic_itoa(_configDlg.getFontSize(), tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYFONTSIZE, tmp, iniFilePath);
@@ -300,7 +292,7 @@ void AnalysePlugin::displaySectionCentered(int posStart, int posEnd, bool isDown
    execute(scnMainHandle, SCI_SETANCHOR, posStart);	
 }
 
-void AnalysePlugin::setSearchFileName(const /*std::*/ generic_string& file) {
+void AnalysePlugin::setSearchFileName(const generic_string& file) {
    if(_findDlg.getFileName() != file) {
       _findDlg.setFileName(file.c_str());
       _findResult.clear();
@@ -334,6 +326,7 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList){
    _findResult.setPatternStyles(_findDlg.getPatternList());
    // make sure result is shown
    _findResult.display();
+   _findResult.setCodePage(execute(scnMainHandle, SCI_GETCODEPAGE));
    // check whether searchwindow is the same as before
    //static TCHAR lastFileName[MAX_PATH] = "";
    TCHAR newFilename[MAX_PATH] = TEXT("");
@@ -493,7 +486,7 @@ teOnEnterAction AnalysePlugin::getOnEnterAction() const {
    return _configDlg.getOnEnterAction();
 }
 
-std::string AnalysePlugin::getResultFontName() const {
+generic_string AnalysePlugin::getResultFontName() const {
    return _configDlg.getFontText();
 }
 
@@ -543,7 +536,7 @@ void AnalysePlugin::beNotified(SCNotification *notification)
 			::SendMessage(nppData._nppHandle, NPPM_SETMENUITEMCHECK, funcItem[SHOWFINDDLG]._cmdID, (LPARAM)gbPluginVisible);
          showFindDlg();
 //         _findResult.updateWindowData(_configDlg.getFontText(), _configDlg.getFontSize());
-         SetFocus(nppData._nppHandle);
+         SetFocus(nppData._scintillaMainHandle);
          break;
       }
    case NPPN_SHUTDOWN:
@@ -557,13 +550,13 @@ void AnalysePlugin::beNotified(SCNotification *notification)
    } // switch (notification->nmhdr.code)
 }
 
-std::string AnalysePlugin::convertExtendedToString(const std::string& query) {	
+generic_string AnalysePlugin::convertExtendedToString(const generic_string& query) {	
 	int i = 0, j = 0;
    int length = (int)query.size();
 	int charLeft = length;
 	bool isGood = true;
 	TCHAR current;
-   std::string result;
+   generic_string result;
    result.reserve(length);
 	while(i < length) {	//because the backslash escape quences always reduce the size of the generic_string, no overflow checks have to be made for target, assuming parameters are correct
 		current = query[i];
@@ -581,7 +574,7 @@ std::string AnalysePlugin::convertExtendedToString(const std::string& query) {
 					result += '\n';
 					break;
 				case '0':
-					result += '\0';
+					result += (TCHAR)'\0';
 					break;
 				case 't':
 					result += '\t';
@@ -635,7 +628,7 @@ std::string AnalysePlugin::convertExtendedToString(const std::string& query) {
    return result;
 }
 
-bool AnalysePlugin::readBase(const std::string& str, int curPos, int * value, int base, int size) {
+bool AnalysePlugin::readBase(const generic_string& str, int curPos, int * value, int base, int size) {
 	int i = 0, temp = 0;
 	*value = 0;
 	TCHAR max = '0' + (TCHAR)base - 1;
@@ -665,7 +658,7 @@ bool AnalysePlugin::readBase(const std::string& str, int curPos, int * value, in
 
 int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
 {
-   DBG1("doFindPattern() %s", pattern.getSearchText().c_str());
+   DBGW1("doFindPattern() %s", pattern.getSearchText().c_str());
    if(pattern.getDoSearch() == false) {
       DBG0("doFindPattern() don't search: mDoSearch==false.");
       result.clear();
@@ -683,7 +676,7 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
    } 
    // flags for the search 
    int flags =0;
-   std::string text;
+   generic_string text;
    if(pattern.getSearchType()== tclPattern::regex) {
       flags |= (SCFIND_REGEXP|SCFIND_POSIX);
       text = pattern.getSearchText(); // text to be searched
@@ -712,10 +705,19 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
       DBG0("doFindPattern() don't search: empty search string.");
       return 0;
    }
-
+#ifdef UNICODE
+	WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
+	unsigned int cp = (unsigned int)execute(scnMainHandle, SCI_GETCODEPAGE); 
+	const char *text2FindA = wmc->wchar2char(text.c_str(), cp);
+	size_t text2FindALen = strlen(text2FindA);
+	targetStart = execute(scnMainHandle, SCI_SEARCHINTARGET, 
+      (WPARAM)text2FindALen, 
+      (LPARAM)text2FindA);
+#else
    targetStart = (int)execute(scnMainHandle, SCI_SEARCHINTARGET, 
       (WPARAM)text.size(), 
       (LPARAM)text.c_str());
+#endif
    while (targetStart != -1) // something has been found
    {
       targetStart = (int)execute(scnMainHandle, SCI_GETTARGETSTART);
@@ -743,9 +745,15 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
       //DBG2("doFindPattern() tstart %d, tend %d.", startRange, endRange);
       nbProcessed++;
       // do next search
+#ifdef UNICODE
+	   targetStart = execute(scnMainHandle, SCI_SEARCHINTARGET, 
+         (WPARAM)text2FindALen, 
+         (LPARAM)text2FindA);
+#else
       targetStart = (int)execute(scnMainHandle, SCI_SEARCHINTARGET, 
          (WPARAM)text.size(), 
          (LPARAM)text.c_str());
+#endif
    } // while
    result.setDirty(false); // once through we mark the list as ready
    if(nbProcessed == 0) {
@@ -838,7 +846,7 @@ void AnalysePlugin::showFindDlg ()
                pos = (unsigned)mSearchPatternFileName.find_last_of('/');
             }
             if( pos > 0 ) {
-               /*std::*/ generic_string s = mSearchPatternFileName.substr(0, pos+1); // we want to have the slash too
+               generic_string s = mSearchPatternFileName.substr(0, pos+1); // we want to have the slash too
                s += TEXT("*.xml");
                _findDlg.setFileName(s.c_str());
             }else {
