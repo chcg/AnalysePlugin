@@ -24,7 +24,6 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "versioninfo.inc"
 #include <shlobj.h>
 #include "myDebug.h"
-// #include "GoToLineDlg.h"
 
 // outscourced demo functions
 //#include "CDemoFunction.h"
