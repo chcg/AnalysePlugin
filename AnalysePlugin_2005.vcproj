@@ -43,7 +43,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".\DockingFeature;.\;.\TinyXmlA;.\scintilla\include;.\PowerEditor\src;.\PowerEditor\src\MISC\Common;.\PowerEditor\src\MISC\PluginsManager;.\PowerEditor\src\MISC\SysMsg;.\PowerEditor\src\ScitillaComponent;.\PowerEditor\src\TinyXml;.\PowerEditor\src\WinControls;.\PowerEditor\src\WinControls\ColourPicker;.\PowerEditor\src\WinControls\ContextMenu;.\PowerEditor\src\WinControls\DockingWnd;.\PowerEditor\src\WinControls\ImageListSet;.\PowerEditor\src\WinControls\shortcut;.\PowerEditor\src\WinControls\StaticDialog;.\PowerEditor\src\WinControls\TabBar;.\PowerEditor\src\WinControls\ToolBar;.\PowerEditor\src\WinControls\AboutDlg"
+				AdditionalIncludeDirectories=".\DockingFeature;.\;.\scintilla\include;.\PowerEditor\src;.\PowerEditor\src\MISC\Common;.\PowerEditor\src\MISC\PluginsManager;.\PowerEditor\src\MISC\SysMsg;.\PowerEditor\src\ScitillaComponent;.\PowerEditor\src\TinyXml;.\PowerEditor\src\TinyXml\tinyXmlA;.\PowerEditor\src\WinControls;.\PowerEditor\src\WinControls\ColourPicker;.\PowerEditor\src\WinControls\ContextMenu;.\PowerEditor\src\WinControls\DockingWnd;.\PowerEditor\src\WinControls\ImageListSet;.\PowerEditor\src\WinControls\shortcut;.\PowerEditor\src\WinControls\StaticDialog;.\PowerEditor\src\WinControls\TabBar;.\PowerEditor\src\WinControls\ToolBar;.\PowerEditor\src\WinControls\AboutDlg"
 				PreprocessorDefinitions="__STDC_WANT_SECURE_LIB__=1;_UNICODE;UNICODE;CONFIG_DIALOG;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -129,7 +129,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				WholeProgramOptimization="true"
-				AdditionalIncludeDirectories=".\DockingFeature;.\;.\TinyXmlA;.\scintilla\include;.\PowerEditor\src;.\PowerEditor\src\MISC\Common;.\PowerEditor\src\MISC\PluginsManager;.\PowerEditor\src\MISC\SysMsg;.\PowerEditor\src\ScitillaComponent;.\PowerEditor\src\TinyXml;.\PowerEditor\src\WinControls;.\PowerEditor\src\WinControls\ColourPicker;.\PowerEditor\src\WinControls\ContextMenu;.\PowerEditor\src\WinControls\DockingWnd;.\PowerEditor\src\WinControls\ImageListSet;.\PowerEditor\src\WinControls\shortcut;.\PowerEditor\src\WinControls\StaticDialog;.\PowerEditor\src\WinControls\TabBar;.\PowerEditor\src\WinControls\ToolBar;.\PowerEditor\src\WinControls\AboutDlg"
+				AdditionalIncludeDirectories=".\DockingFeature;.\;.\scintilla\include;.\PowerEditor\src;.\PowerEditor\src\MISC\Common;.\PowerEditor\src\MISC\PluginsManager;.\PowerEditor\src\MISC\SysMsg;.\PowerEditor\src\ScitillaComponent;.\PowerEditor\src\TinyXml;.\PowerEditor\src\TinyXml\tinyXmlA;.\PowerEditor\src\WinControls;.\PowerEditor\src\WinControls\ColourPicker;.\PowerEditor\src\WinControls\ContextMenu;.\PowerEditor\src\WinControls\DockingWnd;.\PowerEditor\src\WinControls\ImageListSet;.\PowerEditor\src\WinControls\shortcut;.\PowerEditor\src\WinControls\StaticDialog;.\PowerEditor\src\WinControls\TabBar;.\PowerEditor\src\WinControls\ToolBar;.\PowerEditor\src\WinControls\AboutDlg"
 				PreprocessorDefinitions="_UNICODE;UNICODE;CONFIG_DIALOG;WIN32;NDEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;_UNICODE;UNICODE;TIXML_USE_STL;TIXMLA_USE_STL"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -269,19 +269,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\tinyXmlA\tinystrA.cpp"
+				RelativePath=".\PowerEditor\src\TinyXml\tinystr.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\tinyXmlA\tinyxmlA.cpp"
+				RelativePath=".\PowerEditor\src\TinyXml\tinyxml.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\tinyXmlA\tinyxmlerrorA.cpp"
+				RelativePath=".\PowerEditor\src\TinyXml\tinyxmlerror.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\tinyXmlA\tinyxmlparserA.cpp"
+				RelativePath=".\PowerEditor\src\TinyXml\tinyxmlparser.cpp"
 				>
 			</File>
 			<File
@@ -407,11 +407,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\tinyXmlA\tinystrA.h"
+				RelativePath=".\PowerEditor\src\TinyXml\tinystr.h"
 				>
 			</File>
 			<File
-				RelativePath=".\tinyXmlA\tinyxmlA.h"
+				RelativePath=".\PowerEditor\src\TinyXml\tinyxml.h"
 				>
 			</File>
 			<File

@@ -132,6 +132,7 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
                _pParent->clearResult();
                mResultList.clear();
                mTableView.refillTable(mResultList);
+               _pParent->updateSearchPatterns();
                return TRUE;
             }
          case IDC_BUT_ADD:
@@ -188,6 +189,7 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
                   tclResult newResult;
                   _pParent->removeUnusedResultLines(mResultList.getPatternId(i), oldResult, newResult);
                   mResultList.remove(mResultList.getPatternId(i));
+                  _pParent->updateSearchPatterns();
                }
                if(mTableView.getRowCount() == 0) {
                   mResultList.clear();
@@ -226,6 +228,7 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
                   }
                   mTableView.refillTable(mResultList);
                   mTableView.setSelectedRow(iOldRow-1);
+                  _pParent->updateSearchPatterns();
                }
                return TRUE;
             }
@@ -254,6 +257,7 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
                   }
                   mTableView.refillTable(mResultList);
                   mTableView.setSelectedRow(iOldRow+1);
+                  _pParent->updateSearchPatterns();
                }
                return TRUE;
             }

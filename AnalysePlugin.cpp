@@ -486,7 +486,7 @@ teOnEnterAction AnalysePlugin::getOnEnterAction() const {
    return _configDlg.getOnEnterAction();
 }
 
-generic_string AnalysePlugin::getResultFontName() const {
+const generic_string& AnalysePlugin::getResultFontName() const {
    return _configDlg.getFontText();
 }
 

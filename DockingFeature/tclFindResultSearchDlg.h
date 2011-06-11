@@ -352,7 +352,8 @@ protected :
                      LPNMITEMACTIVATE pItem = (LPNMITEMACTIVATE) lParam;
                      DBG1("NM_CLICK row %d", pItem->iItem);
                      // pattern in suchse übernehmen
-                     const tclPattern& rp = mPatterns.getPattern(pItem->iItem);
+                     tPatId i = mPatterns.getPatternId(pItem->iItem);
+                     const tclPattern& rp = mPatterns.getPattern(i);
                      _CmbSearchText.addText2Combo(rp.getSearchText().c_str(), false);
                      _CmbSearchType.addText2Combo(rp.getSearchTypeStr().c_str(), false);
                      ::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_SETCHECK, rp.getIsWholeWord()?BST_CHECKED:BST_UNCHECKED, 0);

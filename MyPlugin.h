@@ -135,7 +135,7 @@ public:
    /**
    * function reports which font result dialog shall use
    */
-   virtual generic_string getResultFontName() const =0;
+   virtual const generic_string& getResultFontName() const =0;
 
    virtual unsigned getResultFontSize() const =0;
 };

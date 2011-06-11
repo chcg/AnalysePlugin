@@ -73,7 +73,7 @@ public:
    void setOnEnterActionStr(const generic_string& action) ;
 
    void setFontText(const generic_string& str);
-   generic_string getFontText() const;
+   const generic_string& getFontText() const;
    void setFontSize(unsigned s);
    void setFontSizeStr(const generic_string& s);
    unsigned getFontSize() const;

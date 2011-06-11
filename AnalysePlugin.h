@@ -155,7 +155,7 @@ public:
 
    virtual void visibleChanged(bool isVisible);
    virtual teOnEnterAction getOnEnterAction() const;
-   virtual generic_string getResultFontName() const;
+   virtual const generic_string& getResultFontName() const;
    virtual unsigned getResultFontSize() const;
 
    LRESULT messageProc(UINT Message, WPARAM wParam, LPARAM lParam);

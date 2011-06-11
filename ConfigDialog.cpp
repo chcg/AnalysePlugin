@@ -28,7 +28,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "tclPattern.h"
 
 #define FONTSIZELIST_COUNT 11
-const TCHAR * FONTSIZELIST[] = {L"6", L"7", L"8", L"9", L"10", L"11", L"12", L"14", L"16", L"18", L"20" };
+const TCHAR * FONTSIZELIST[] = {L"20", L"18", L"16", L"14", L"12", L"11", L"10", L"9", L"8", L"7", L"6" };
 
 using namespace std;
 
@@ -173,7 +173,7 @@ void ConfigDialog::setFontText(const generic_string& str) {
    mResultFontName = str;
 }
 
-generic_string ConfigDialog::getFontText() const {
+const generic_string& ConfigDialog::getFontText() const {
    return mResultFontName;
 }
 

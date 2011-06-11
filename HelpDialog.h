@@ -31,12 +31,14 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #define DIALOG_DESCRIPTION TEXT("\r\n\
 This Plugin will help you to search for more than one \
-search pattern at a time. \r\n\r\n\
+search pattern at a time. \r\n\
+\r\n\
 Add the different search patterns to the configuration dialog and press [search]. \
 As result you will find all matching lines in the result window and in the main \
 window matching lines are marked. \r\n\
-All patterns can have a different search option e.g. regular expression or \
-normal text. Additionally you may want to blend out a sub set of a search \
+All patterns can have a different search type e.g. regular expression or \
+normal text same as the find dialog in NotePad++ (see manual in \"?\")\r\n\
+Additionally you may want to blend out a sub set of a search \
 pattern. For this you can check the \"hide\" option which results in hiding \
 of that line or text from the search result. The text is still there and \
 clipboard copy will still hold all text. To hint that a line was found once, \
@@ -63,6 +65,7 @@ following buttons:\r\n\
          \tIf no pattern exists the actual settings are made to one line\r\n\
          \tof pattern. If only one line exists and actual settings are\r\n\
          \tdifferent, the line is updated before starting the search.\r\n\
+\r\n\
 ---- Search Options ---- \r\n\
 Search Type: \tSame as in find dialog; chose the type how to search.\r\n\
 \t           \tHere an interesting feature is that \\r\\n can be used\r\n\
@@ -75,6 +78,7 @@ Whole Word:  \tSame as in find dialog; search for whole word or parts\r\n\
 Do Search:   \tAllows to temporarily switching off this pattern \r\n\
 \t           \t(remove from search result).\r\n\
 Comment:     \tUseful for info what this pattern helps to find.\r\n\
+\r\n\
 ---- Visualization Options ---- \r\n\
 These options can be updated without activating a re-search\r\n\
 Hide Text:   \tIf on, the found pattern is removed from result line.\r\n\
@@ -84,12 +88,14 @@ Colour FG/BG:\tThe result window text becomes coloured in \r\n\
 \t           \tcolour of the last pattern in list is used.\r\n\
 Selection on:\tDecides if found text or the whole line shall be \r\n\
 \t           \tcoloured / hidden.\r\n\
----- Mouse Events --- \r\n\
+\r\n\
+---- Mouse Events ---- \r\n\
  - Configuration table -\r\n\
 Left mouse click   \tCopies the actual data of the clicked line into the \r\n\
                    \tconfiguration dialog for editing. click [update] to \r\n\
                    \tput the changes back to the marked line.\r\n\
 Double click       \tToggles the current line to be searched or not.\r\n\
+\r\n\
  - Result window -\r\n\
 Double click       \tMoves the main window to the corresponding line\r\n\
 Right mouse click  \tOpens the context menu.\r\n\
@@ -141,6 +147,8 @@ public:
    void setVersion(const generic_string& ver){
       mVersionString = ver;
    }
+
+   void resizeWindow();
 
 protected :
    virtual BOOL CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);

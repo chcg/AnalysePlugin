@@ -53,9 +53,9 @@ BOOL CALLBACK HelpDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
 
          ::SendDlgItemMessage(_hSelf, IDC_VERSION_STRING, WM_SETTEXT, 0, (LPARAM)mVersionString.c_str());
          ::SendDlgItemMessage(_hSelf, IDC_AUTHOR_NAME, WM_SETTEXT, 0,  (LPARAM)AUTHOR_NAME);
-
          ::SendDlgItemMessage(_hSelf, IDC_DIALOG_DESCRIPTION, WM_SETTEXT, 0,  (LPARAM)DIALOG_DESCRIPTION);
-
+         
+         resizeWindow(); 
          return TRUE;
       }
    case WM_CLOSE :
@@ -80,29 +80,32 @@ BOOL CALLBACK HelpDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
       }
    case WM_SIZE :
       {
-         RECT rcDlg, rcText, rcOk;
-         getClientRect(rcDlg);
-         HWND hOk = ::GetDlgItem(_hSelf, IDOK);
-         HWND hText = ::GetDlgItem(_hSelf,IDC_DIALOG_DESCRIPTION);
-         ::GetClientRect(hText, &rcText);
-         ::GetClientRect(hOk, &rcOk);
-         POINT pOk = getLeftTopPoint(hOk);
-         POINT pText = getLeftTopPoint(hText);
-         int dWidth = rcDlg.right-rcDlg.left-20; // for border
-         int dTextHeight = rcDlg.bottom-rcDlg.top-pText.y-10; // for border
-         if(dWidth>=0) {
-            if(dTextHeight>=0){
-               ::MoveWindow(hText, pText.x, pText.y, dWidth, dTextHeight, TRUE);
-            }
-            ::MoveWindow(hOk, pOk.x, pOk.y, dWidth, rcOk.bottom, TRUE);
-            redraw();
-         }
+         resizeWindow();
          break;
       } // case WM_SIZE
    }
 	return FALSE;
 }
 
+void HelpDlg::resizeWindow() {
+   RECT rcDlg, rcText, rcOk;
+   getClientRect(rcDlg);
+   HWND hOk = ::GetDlgItem(_hSelf, IDOK);
+   HWND hText = ::GetDlgItem(_hSelf,IDC_DIALOG_DESCRIPTION);
+   ::GetClientRect(hText, &rcText);
+   ::GetClientRect(hOk, &rcOk);
+   POINT pOk = getLeftTopPoint(hOk);
+   POINT pText = getLeftTopPoint(hText);
+   int dWidth = rcDlg.right-rcDlg.left-20; // for border
+   int dTextHeight = rcDlg.bottom-rcDlg.top-pText.y-10; // for border
+   if(dWidth>=0) {
+      if(dTextHeight>=0){
+         ::MoveWindow(hText, pText.x, pText.y, dWidth, dTextHeight, TRUE);
+      }
+      ::MoveWindow(hOk, pOk.x, pOk.y, dWidth, rcOk.bottom, TRUE);
+      redraw();
+   }
+}
 BOOL CALLBACK HelpDlg::run_dlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
 {
    return run_dlgProc(Message, wParam, lParam);

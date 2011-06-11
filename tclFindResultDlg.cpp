@@ -267,15 +267,25 @@ void tclFindResultDlg::moveResult(tPatId oldPattId, tPatId newPattId)
 }
    
 void tclFindResultDlg::setPatternFonts() {
+   // set the result window font style
    unsigned iPat = FNDRESDLG_DEFAULT_STYLE;
-   _scintView.execute(SCI_STYLESETFONT, iPat, (LPARAM)mFontName.c_str());
+   const char *fontName;
+#ifdef UNICODE
+	WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
+	unsigned int cp = (unsigned int)_scintView.execute(SCI_GETCODEPAGE); 
+	fontName = wmc->wchar2char(mFontName.c_str(), cp);
+#else
+   fontName = mFontName.c_str();
+#endif
+   _scintView.execute(SCI_STYLESETFONT, iPat, (LPARAM)fontName);
    _scintView.execute(SCI_STYLESETSIZE, iPat, (LPARAM)mFontSize);
+   
    // copy styles into result window cache because while painting
    // user may have removed a pattern already
    for(unsigned iPat = 0; iPat < mPatStyleList.size(); ++iPat) 
    {
       const tclPattern& rPat = mPatStyleList.getPattern(mPatStyleList.getPatternId(iPat));
-      _scintView.execute(SCI_STYLESETFONT, iPat+1, (LPARAM)mFontName.c_str());
+      _scintView.execute(SCI_STYLESETFONT, iPat+1, (LPARAM)fontName);
       _scintView.execute(SCI_STYLESETSIZE, iPat+1, (LPARAM)mFontSize);
    } // for 
 }
