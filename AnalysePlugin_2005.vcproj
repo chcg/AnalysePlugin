@@ -184,7 +184,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				Description="copy to program folders..."
-				CommandLine="postbuild-copy.bat &quot;$(TargetPath)&quot; &quot;C:\Program Files\NotePad++\plugins&quot; &quot;C:\Programme\NotePad++\plugins&quot; &quot;D:\Programme\NotePad++\plugins&quot;"
+				CommandLine="postbuild-copy.bat &quot;$(TargetPath)&quot; &quot;C:\Program Files\NotePad++\plugins&quot; &quot;C:\Programme\NotePad++\plugins&quot; &quot;D:\Programme\NotePad++\plugins&quot; &quot;C:\Program Files (x86)\NotePad++\plugins&quot;"
 			/>
 		</Configuration>
 	</Configurations>

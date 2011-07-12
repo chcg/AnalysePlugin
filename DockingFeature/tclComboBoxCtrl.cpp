@@ -57,7 +57,7 @@ void tclComboBoxCtrl::addText2Combo(const TCHAR * txt2add, bool isUTF8)
 	int i = 0;
 
 #ifdef UNICODE
-   if (!lstrcmp(txt2add, TEXT(""))) return;
+   // add even if empty!  if (!lstrcmp(txt2add, TEXT(""))) return;
 	
 	i = ::SendMessage(mhMyCtrl, CB_FINDSTRINGEXACT, (WPARAM)-1, (LPARAM)txt2add);
 	if (i != CB_ERR) // found
