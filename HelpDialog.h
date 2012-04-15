@@ -86,6 +86,8 @@ Colour FG/BG:\tThe result window text becomes coloured in \r\n\
 \t           \tforeground and background herewith.\r\n\
 \t           \tIf a result text is cached by several patterns, the \r\n\
 \t           \tcolour of the last pattern in list is used.\r\n\
+\t           \tThe maximum of mainatinable pattern colors is 119!\r\n\
+\t           \tAll further patterns will get the default color.\r\n\
 Selection on:\tDecides if found text or the whole line shall be \r\n\
 \t           \tcoloured / hidden.\r\n\
 \r\n\

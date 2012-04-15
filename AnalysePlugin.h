@@ -72,6 +72,8 @@ public:
       , _hModule(0)
       , _line(0)
       , _maxNbCharAllocated(0)
+      ,_FindProcessCancelled(false)
+      ,_bIgnoreBufferModify(false)
 //      , mResultFontSize(0)
   {
       memset(&nppData, 0, sizeof(nppData));
@@ -80,7 +82,7 @@ public:
       _findDlg.setParent(this);
       _findResult.setParent(this);
 
-      mVersionString = TEXT("Analyse Plugin V1.7 ");
+      mVersionString = TEXT("Analyse Plugin V1.8 ");
       mVersionString += TEXT("Rev. ");
       mVersionString += SVNRevInfo;
       mVersionString += TEXT(" ");
@@ -151,11 +153,13 @@ public:
    virtual void moveResult(tPatId oldPattId, tPatId newPattId);
 
    virtual BOOL doSearch(tclResultList& resultList);
+   virtual bool bCheckLastFileNameSame(generic_string& file);
 
    virtual void visibleChanged(bool isVisible);
    virtual teOnEnterAction getOnEnterAction() const;
    virtual const generic_string& getResultFontName() const;
    virtual unsigned getResultFontSize() const;
+   virtual int getUseBookmark() const;
 
    LRESULT messageProc(UINT Message, WPARAM wParam, LPARAM lParam);
 
@@ -244,6 +248,8 @@ protected:
    static const TCHAR KEYSEARCHHISTORY[];
    static const TCHAR KEYCOMMENTHISTORY[];
    static const TCHAR KEYDEFAULTOPTIONS[];
+   static const TCHAR KEYUSEBOOKMARK[];
+   static const TCHAR KEYONAUTOUPDATE[];
    static const TCHAR KEYONENTERACTION[];
    static const TCHAR KEYLASTFILENAME[];
    static const TCHAR KEYFONTNAME[];
@@ -297,7 +303,8 @@ protected:
       
    char * _line;
    size_t _maxNbCharAllocated;
-
+   bool _FindProcessCancelled;
+   bool _bIgnoreBufferModify;
    // LexAnalyseResult mLex;
 
 };

@@ -22,16 +22,13 @@ must not be misrepresented as being the original software.
 distribution.
 */
 
-#include <string>
-#include <vector>
+#include "precompiledHeaders.h"
 #include "tinyxmlA.h"
 
 #ifndef TIXMLA_USE_STL
 
 
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
+
 
 #include "tinystrA.h"
 

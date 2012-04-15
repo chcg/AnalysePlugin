@@ -260,7 +260,7 @@ class Window;
 class ScintillaEditView;
 
 struct recordedMacroStep {
-	enum MacroTypeIndex {mtUseLParameter, mtUseSParameter, mtMenuCommand};
+	enum MacroTypeIndex {mtUseLParameter, mtUseSParameter, mtMenuCommand, mtSavedSnR};
 	
 	int message;
 	long wParameter;
@@ -268,16 +268,18 @@ struct recordedMacroStep {
 	generic_string sParameter;
 	MacroTypeIndex MacroType;
 	
-	recordedMacroStep(int iMessage, long wParam, long lParam);
+	recordedMacroStep(int iMessage, long wParam, long lParam, int codepage);
 	recordedMacroStep(int iCommandID) : message(0), wParameter(iCommandID), lParameter(0), MacroType(mtMenuCommand) {};
 
-	recordedMacroStep(int type, int iMessage, long wParam, long lParam, const TCHAR *sParam)
+	recordedMacroStep(int iMessage, long wParam, long lParam, const TCHAR *sParam, int type)
 		: message(iMessage), wParameter(wParam), lParameter(lParam), MacroType(MacroTypeIndex(type)){
-		sParameter = *reinterpret_cast<const TCHAR *>(sParam);	
+			sParameter = (sParam)?generic_string(sParam):TEXT("");	
 	};
+
 	bool isValid() const {
 		return true;
 	};
+	bool isPlayable() const {return MacroType <= mtMenuCommand;};
 
 	void PlayBack(Window* pNotepad, ScintillaEditView *pEditView);
 };

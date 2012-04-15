@@ -42,6 +42,9 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define RTF_COL_G(g) ((BYTE)(g>>8)) // mask short
 #define RTF_COL_B(b) ((BYTE)(b>>16)) // mask third byte
 
+#define MY_STYLE_MASK 0x7f  // 7 bits
+#define MY_STYLE_BITS 7    
+
 // see ~\scintilla\src\ScintillaBase.h
 #define FNDRESDLG_SCINTILLAFINFER_COPY (13) 
 #define FNDRESDLG_SCINTILLAFINFER_SELECTALL (16)
@@ -578,6 +581,7 @@ public:
    bool doRichTextCopy();
 
 protected:
+   static const int transStylePos[MY_STYLE_MASK+1];
 	static HINSTANCE _hLib;
 	static int _refCount;
 	

@@ -6,7 +6,6 @@
 #define IDC_DO_CLOSE                    1001
 #define IDC_DO_SEARCH                   1002
 #define IDC_FINDFIRST                   1003
-#define IDC_BTN_FINDFIRST               1003
 #define IDC_FINDNEXT                    1004
 #define IDC_LIST_CONF                   1005
 #define IDC_BUT_ADD                     1006
@@ -25,7 +24,6 @@
 #define IDC_CHK_WHOLE_WORD              1019
 #define IDC_CMB_SEARCH_TEXT             1020
 #define IDC_DIALOG_DESCRIPTION          1021
-#define IDC_CMB_COMMENT                 1029
 #define IDC_BUT_CLEAR                   1022
 #define IDC_CMB_ONENTERACT              1024
 #define IDC_FINDPREV                    1025
@@ -33,14 +31,14 @@
 #define IDC_CMB_SEARCH_DIR              1026
 #define IDC_STATIC                      1027
 #define IDC_CMB_FONTNAME                1028
-#define IDC_COMBO2                      1030
+#define IDC_CMB_COMMENT                 1029
 #define IDC_CMB_FONTSIZE                1030
 #define IDC_STATIC_COL_FG               1031
 #define IDC_STATIC_COL_BG               1032
 #define IDC_STATIC_COL_BG2              1033
 #define IDC_STATIC_COL_FG2              1034
 #define IDC_STATIC1                     1035
-#define IDC_STATIC2                     1036 
+#define IDC_STATIC2                     1036
 #define IDC_STATIC3                     1037
 #define IDC_STATIC4                     1038
 #define IDC_STATIC5                     1039
@@ -55,6 +53,15 @@
 #define IDC_STATIC14                    1048
 #define IDC_STATIC15                    1049
 #define IDC_STATIC16                    1050
+#define IDC_LST_PATTERNS                1051
+#define IDC_DO_RESEARCH                 1052
+#define IDC_CHK_AUTOUPDT                1053
+#define IDC_CHK_USEBOOKMARK             1054
+#define IDC_PROGRESS_SEARCH             1056
+#define IDC_DO_CHECK_CONF               1057
+#define IDC_DO_TOGGLE_SEARCH            1058
+#define IDC_DO_DISABLE_ALL              1059
+#define IDC_DO_ENABLE_ALL               1060
 #define IDI_ANALYSE                     1204
 #define IDB_TB_ANALYSE                  1206
 #define IDC_WRAP                        1606
@@ -70,15 +77,14 @@
 #define IDS_SHOW_ANALYSE_DIAG           3002
 #define IDS_SHOW_ANALYSE_HELP           3003
 #define IDD_FIND_RES_DLG_SEARCH         3004
-#define IDS_SHOW_ANALYSE_CONFIG         3004
 #define IDD_FIND_DLG_RESULT             3005
+#define IDS_SHOW_ANALYSE_CONFIG         3006
 #define IDD_ANALYSE_CONF_DLG            3007
-#define IDC_DO_CHECK_CONF               5002
 #define IDC_RADIO_DIRUP                 20405
 #define IDC_RADIO_DIRDOWN               20406
 #define IDC_COUNT                       20408
 #define IDC_STATIC_DIRECTION            20420
-#define IDC_LST_PATTERNS                1051
+#define IDC_STATIC_PLSWAIT              65535
 
 // Next default values for new objects
 // 
@@ -86,7 +92,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        3010
 #define _APS_NEXT_COMMAND_VALUE         5003
-#define _APS_NEXT_CONTROL_VALUE         1052
+#define _APS_NEXT_CONTROL_VALUE         1061
 #define _APS_NEXT_SYMED_VALUE           6003
 #endif
 #endif

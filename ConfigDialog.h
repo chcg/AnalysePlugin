@@ -54,12 +54,30 @@ public:
       , mbOkPressed(false) 
       ,_pFgColour(0)
       ,_pBgColour(0)
+      ,mOnAutoUpdate(1)
+      ,mUseBookmark(1)
    {}
       //, mFontSize(8) {}
 
    void init(HINSTANCE hInst, NppData nppData);
    
    void setFontList(HWND hWnd);
+
+   void setOnAutoUpdate(int iOn) {
+      mOnAutoUpdate = iOn;
+   }
+
+   int getOnAutoUpdate() const {
+      return mOnAutoUpdate;
+   }
+
+   void setUseBookmark(int iOn) {
+      mUseBookmark = iOn;
+   }
+
+   int getUseBookmark() const {
+      return mUseBookmark;
+   }
 
    void setOnEnterAction(teOnEnterAction i) {
       mOnEnterAction = i;
@@ -130,7 +148,8 @@ protected :
    unsigned mResultFontSize;
    ColourPicker2* _pFgColour;
    ColourPicker2* _pBgColour;
-
+   int mOnAutoUpdate;
+   int mUseBookmark;
 };
 
 

@@ -138,6 +138,8 @@ public:
    virtual const generic_string& getResultFontName() const =0;
 
    virtual unsigned getResultFontSize() const =0;
+
+   virtual int getUseBookmark() const = 0;
 };
 #endif //MYPLUGIN_H
 

@@ -21,10 +21,8 @@ must not be misrepresented as being the original software.
 3. This notice may not be removed or altered from any source
 distribution.
 */
-#include <string>
-#include <vector>
 
-#include <ctype.h>
+#include "precompiledHeaders.h"
 #include "tinyxmlA.h"
 
 #ifdef TIXMLA_USE_STL
@@ -766,8 +764,8 @@ bool TiXmlDocumentA::LoadUnicodeFilePath( const TCHAR* filename )
 
 	// There was a really terrifying little bug here. The code:
 	//		value = filename
-	// in the STL case, cause the assignment method of the /*std::*/ generic_string to
-	// be called. What is strange, is that the /*std::*/ generic_string had the same
+	// in the STL case, cause the assignment method of the string to
+	// be called. What is strange, is that the string had the same
 	// address as it's c_str() method, and so bad things happen. Looks
 	// like a bug in the Microsoft STL implementation.
 	// See STL_STRING_BUG above.

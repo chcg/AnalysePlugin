@@ -46,6 +46,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 class tclPattern;
 #include "tclResult.h"
 #include "tclTableview.h"
+#include "PleaseWaitDlg.h"
 
 //off #define FEATURE_HEADLINE
 
@@ -126,6 +127,7 @@ public :
       ,_lineCounter(0)
       ,_pFgColour(0)
       ,_pBgColour(0)
+      ,_pPlsWait(0)
    {
       memset(szFile, 0, sizeof(szFile));
    }
@@ -144,6 +146,8 @@ public :
 
    void display(bool toShow = true) const ;
 
+   void setAllDoSearch(bool bOn) ;
+
    void setAllDirty() 
    {
       // make sure found patterns become rechecked
@@ -158,6 +162,7 @@ public :
    }
 
    void setFileName(const TCHAR* str);
+   void doSearch();
 
    const TCHAR* getFileName() const{
       return szFile;
@@ -234,6 +239,9 @@ public :
    const tclPatternList& getPatternList() const {
       return mResultList;
    }
+   tclPatternList& refPatternList() {
+      return mResultList;
+   }
    
    /**
    * same as moveResult() but for the patterns
@@ -246,6 +254,15 @@ public :
    bool getIsRowSelected()const {
       return (-1 != mTableView.getSelectedRow());
    }
+
+   // triggers that a research has to be done
+   void SetModified(bool bModified=true);
+   static void CALLBACK MyTimerProc(HWND hwnd, UINT message, UINT idTimer, DWORD dwTime); 
+
+   void activatePleaseWait(bool isEnable=true);
+   void setPleaseWaitRange(int iMin, int iMax);
+   void setPleaseWaitProgress(int iCurr);
+   bool getPleaseWaitCanceled();
 
 //ScintillaEditView **_ppEditView;    // access to the editor window
 // find result cache
@@ -283,7 +300,9 @@ protected:
    ColourPicker2* _pFgColour;
    ColourPicker2* _pBgColour;
 
-
+   static int _ModifiedMode;
+   static HWND _ModifiedHwnd;
+   PleaseWaitDlg* _pPlsWait;
 };
 
 #endif //FIND_DLG_H

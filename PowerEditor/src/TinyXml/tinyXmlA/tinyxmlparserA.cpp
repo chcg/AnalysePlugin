@@ -21,11 +21,9 @@ must not be misrepresented as being the original software.
 3. This notice may not be removed or altered from any source 
 distribution.
 */
-#include <string>
-#include <vector>
 
+#include "precompiledHeaders.h"
 #include "tinyxmlA.h"
-#include <ctype.h>
 
 //#define DEBUG_PARSER
 
@@ -176,7 +174,7 @@ const char* TiXmlBaseA::SkipWhiteSpace( const char* p )
 		int c = in->peek();
 		if ( !IsWhiteSpace( c ) )
 			return true;
-		*tag += in->get();
+		*tag += (char)in->get();
 	}
 }
 
@@ -189,7 +187,7 @@ const char* TiXmlBaseA::SkipWhiteSpace( const char* p )
 			return true;
 
 		in->get();
-		*tag += c;
+		*tag += (char)c;
 	}
 	return false;
 }
@@ -240,19 +238,23 @@ const char* TiXmlBaseA::GetEntity( const char* p, char* value )
 		if ( *(p+4) == ';' )
 		{
 			// Short, one value entity.
-			if ( isalpha( *(p+3) ) ) *value += ( tolower( *(p+3) ) - 'a' + 10 );
-			else				     *value += ( *(p+3) - '0' );
+			if ( isalpha( *(p+3) ) ) 
+				*value += ( (char)tolower( *(p+3) ) - 'a' + 10 );
+			else				     
+				*value += ( (char)*(p+3) - '0' );
 
 			return p+5;
 		}
 		else
 		{
 			// two value entity
-			if ( isalpha( *(p+3) ) ) *value += ( tolower( *(p+3) ) - 'a' + 10 ) * 16;
-			else				     *value += ( *(p+3) - '0' ) * 16;
+			if ( isalpha( *(p+3) ) ) *value += ((char) tolower( *(p+3) ) - 'a' + 10 ) * 16;
+			else				     *value += ((char) *(p+3) - '0' ) * 16;
 
-			if ( isalpha( *(p+4) ) ) *value += ( tolower( *(p+4) ) - 'a' + 10 );
-			else				     *value += ( *(p+4) - '0' );
+			if ( isalpha( *(p+4) ) ) 
+				*value += ((char) tolower( *(p+4) ) - 'a' + 10 );
+			else				     
+				*value += ((char) *(p+4) - '0' );
 
 			return p+6;
 		}
@@ -396,7 +398,7 @@ void TiXmlDocumentA::StreamIn( TIXMLA_ISTREAM * in, TIXMLA_STRING * tag )
 
 	while ( in->good() )
 	{
-		int tagIndex = (int)tag->length();
+		int tagIndex = tag->length();
 		while ( in->good() && in->peek() != '>' )
 		{
 			int c = in->get();
@@ -637,7 +639,7 @@ void TiXmlElementA::StreamIn (TIXMLA_ISTREAM * in, TIXMLA_STRING * tag)
 			// We should be at a "<", regardless.
 			if ( !in->good() ) return;
 			assert( in->peek() == '<' );
-			int tagIndex = (int)tag->length();
+			int tagIndex = tag->length();
 
 			bool closingTag = false;
 			bool firstCharFound = false;
@@ -652,7 +654,7 @@ void TiXmlElementA::StreamIn (TIXMLA_ISTREAM * in, TIXMLA_STRING * tag)
 				if ( c == '>' )
 					break;
 
-				*tag += c;
+				*tag += (char)c;
 				in->get();
 
 				if ( !firstCharFound && c != '<' && !IsWhiteSpace( c ) )
@@ -668,7 +670,7 @@ void TiXmlElementA::StreamIn (TIXMLA_ISTREAM * in, TIXMLA_STRING * tag)
 			{
 				int c = in->get();
 				assert( c == '>' );
-				*tag += c;
+				*tag += (char)c;
 
 				// We are done, once we've found our closing tag.
 				return;
@@ -877,7 +879,7 @@ void TiXmlUnknownA::StreamIn( TIXMLA_ISTREAM * in, TIXMLA_STRING * tag )
 	while ( in->good() )
 	{
 		int c = in->get();	
-		(*tag) += c;
+		(*tag) += (char)c;
 
 		if ( c == '>' )
 		{
@@ -929,7 +931,7 @@ void TiXmlCommentA::StreamIn( TIXMLA_ISTREAM * in, TIXMLA_STRING * tag )
 	while ( in->good() )
 	{
 		int c = in->get();	
-		(*tag) += c;
+		(*tag) += (char)c;
 
 		if ( c == '>' 
 			 && tag->at( tag->length() - 2 ) == '-'
@@ -1048,7 +1050,7 @@ void TiXmlTextA::StreamIn( TIXMLA_ISTREAM * in, TIXMLA_STRING * tag )
 		if ( c == '<' )
 			return;
 
-		(*tag) += c;
+		(*tag) += (char)c;
 		in->get();
 	}
 }
@@ -1078,7 +1080,7 @@ void TiXmlDeclarationA::StreamIn( TIXMLA_ISTREAM * in, TIXMLA_STRING * tag )
 	while ( in->good() )
 	{
 		int c = in->get();
-		(*tag) += c;
+		(*tag) += (char)c;
 
 		if ( c == '>' )
 		{

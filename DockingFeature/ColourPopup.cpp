@@ -44,7 +44,7 @@ void ColourPopup::create(int dialogID)
 
    if (!_hSelf)
    {
-      systemMessage(TEXT("ColourPopup"));
+//      systemMessage(TEXT("ColourPopup"));
       throw int(69623);
    }
    Window::getClientRect(_rc);

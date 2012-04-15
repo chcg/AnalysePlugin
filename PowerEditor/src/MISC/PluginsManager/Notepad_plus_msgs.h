@@ -122,7 +122,7 @@ enum winVer{WV_UNKNOWN, WV_WIN32S, WV_95, WV_98, WV_ME, WV_NT, WV_W2K, WV_XP, WV
 	//BOOL NPPM_SWITCHTOFILE(0, TCHAR *filePathName2switch)
 
 	#define NPPM_SAVECURRENTFILE (NPPMSG + 38)
-	//BOOL WM_SWITCHTOFILE(0, 0)
+	//BOOL NPPM_SAVECURRENTFILE(0, 0)
 
 	#define NPPM_SAVEALLFILES	(NPPMSG + 39)
 	//BOOL NPPM_SAVEALLFILES(0, 0)
@@ -191,8 +191,9 @@ enum winVer{WV_UNKNOWN, WV_WIN32S, WV_95, WV_98, WV_ME, WV_NT, WV_W2K, WV_XP, WV
 	// returned value : TRUE if tab bar is hidden, otherwise FALSE
 
 	#define NPPM_GETPOSFROMBUFFERID (NPPMSG + 57)
-	// INT NPPM_GETPOSFROMBUFFERID(INT bufferID, 0)
+	// INT NPPM_GETPOSFROMBUFFERID(INT bufferID, INT priorityView)
 	// Return VIEW|INDEX from a buffer ID. -1 if the bufferID non existing
+	// if priorityView set to SUB_VIEW, then SUB_VIEW will be search firstly
 	//
 	// VIEW takes 2 highest bits and INDEX (0 based) takes the rest (30 bits) 
 	// Here's the values for the view :
@@ -307,6 +308,57 @@ enum winVer{WV_UNKNOWN, WV_WIN32S, WV_95, WV_98, WV_ME, WV_NT, WV_W2K, WV_XP, WV
 	// BOOL NPPM_DOOPEN(0, const TCHAR *fullPathName2Open)
 	// fullPathName2Open indicates the full file path name to be opened.
 	// The return value is TRUE (1) if the operation is successful, otherwise FALSE (0).
+
+	#define NPPM_SAVECURRENTFILEAS (NPPMSG + 78)
+	// BOOL NPPM_SAVECURRENTFILEAS (BOOL asCopy, const TCHAR* filename)
+
+    #define NPPM_GETCURRENTNATIVELANGENCODING (NPPMSG + 79)
+	// INT NPPM_GETCURRENTNATIVELANGENCODING(0, 0)
+	// returned value : the current native language enconding
+
+    #define NPPM_ALLOCATESUPPORTED   (NPPMSG + 80)
+    // returns TRUE if NPPM_ALLOCATECMDID is supported
+    // Use to identify if subclassing is necessary
+
+	#define NPPM_ALLOCATECMDID   (NPPMSG + 81)
+    // BOOL NPPM_ALLOCATECMDID(int numberRequested, int* startNumber)
+    // sets startNumber to the initial command ID if successful
+    // Returns: TRUE if successful, FALSE otherwise. startNumber will also be set to 0 if unsuccessful
+
+	#define NPPM_ALLOCATEMARKER  (NPPMSG + 82)
+    // BOOL NPPM_ALLOCATEMARKER(int numberRequested, int* startNumber)
+    // sets startNumber to the initial command ID if successful
+    // Allocates a marker number to a plugin
+    // Returns: TRUE if successful, FALSE otherwise. startNumber will also be set to 0 if unsuccessful
+
+	#define NPPM_GETLANGUAGENAME  (NPPMSG + 83)
+	// INT NPPM_GETLANGUAGENAME(int langType, TCHAR *langName)
+	// Get programing language name from the given language type (LangType)
+	// Return value is the number of copied character / number of character to copy (\0 is not included)
+	// You should call this function 2 times - the first time you pass langName as NULL to get the number of characters to copy.
+    // You allocate a buffer of the length of (the number of characters + 1) then call NPPM_GETLANGUAGENAME function the 2nd time 
+	// by passing allocated buffer as argument langName
+
+	#define NPPM_GETLANGUAGEDESC  (NPPMSG + 84)
+	// INT NPPM_GETLANGUAGEDESC(int langType, TCHAR *langDesc)
+	// Get programing language short description from the given language type (LangType)
+	// Return value is the number of copied character / number of character to copy (\0 is not included)
+	// You should call this function 2 times - the first time you pass langDesc as NULL to get the number of characters to copy.
+    // You allocate a buffer of the length of (the number of characters + 1) then call NPPM_GETLANGUAGEDESC function the 2nd time 
+	// by passing allocated buffer as argument langDesc
+
+	#define NPPM_SHOWDOCSWITCHER    (NPPMSG + 85)
+	// VOID NPPM_ISDOCSWITCHERSHOWN(0, BOOL toShowOrNot)
+	// Send this message to show or hide doc switcher.
+	// if toShowOrNot is TRUE then show doc switcher, otherwise hide it.
+
+	#define NPPM_ISDOCSWITCHERSHOWN    (NPPMSG + 86)
+	// BOOL NPPM_ISDOCSWITCHERSHOWN(0, 0)
+	// Check to see if doc switcher is shown.
+
+	#define NPPM_GETAPPDATAPLUGINSALLOWED    (NPPMSG + 87)
+	// BOOL NPPM_GETAPPDATAPLUGINSALLOWED(0, 0)
+	// Check to see if loading plugins from "%APPDATA%\Notepad++\plugins" is allowed.
 
 #define	RUNCOMMAND_USER    (WM_USER + 3000)
 	#define NPPM_GETFULLCURRENTPATH		(RUNCOMMAND_USER + FULL_CURRENT_PATH)

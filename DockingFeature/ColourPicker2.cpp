@@ -39,8 +39,8 @@ void ColourPicker2::init(HINSTANCE hInst, HWND parent)
       (LPVOID)0);
    if (!_hSelf)
    {
-      systemMessage(TEXT("System Err"));
-      //throw int(6969);
+//      systemMessage(TEXT("System Err"));
+      throw int(69691);
    }
 
 #pragma warning (disable:4311 4312 4244)

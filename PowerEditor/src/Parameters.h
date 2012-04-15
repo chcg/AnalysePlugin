@@ -54,6 +54,8 @@
 #include "ContextMenu.h"
 #endif //CONTEXTMENU
 
+class NativeLangSpeaker;
+
 using namespace std;
 
 const bool POS_VERTICAL = true;
@@ -95,13 +97,10 @@ const int COPYDATA_PARAMS = 0;
 const int COPYDATA_FILENAMESA = 1;
 const int COPYDATA_FILENAMESW = 2;
 
-
-const bool SCIV_PRIMARY = false;
-const bool SCIV_SECOND = true;
-
 const TCHAR fontSizeStrs[][3] = {TEXT(""), TEXT("8"), TEXT("9"), TEXT("10"), TEXT("11"), TEXT("12"), TEXT("14"), TEXT("16"), TEXT("18"), TEXT("20"), TEXT("22"), TEXT("24"), TEXT("26"), TEXT("28")};
 
 const TCHAR localConfFile[] = TEXT("doLocalConf.xml");
+const TCHAR allowAppDataPluginsFile[] = TEXT("allowAppDataPlugins.xml");
 const TCHAR notepadStyleFile[] = TEXT("asNotepad.xml");
 
 void cutString(const TCHAR *str2cut, vector<generic_string> & patternVect);
@@ -155,6 +154,7 @@ struct CmdLineParams {
 	bool _isNoTab;
 	bool _isPreLaunch;
 	bool _showLoadingTime;
+	bool _alwaysOnTop;
 
 	int _line2go;
     int _column2go;
@@ -186,7 +186,7 @@ struct FloatingWindowInfo {
 	};
 };
 
-struct PlugingDlgDockingInfo {
+struct PluginDlgDockingInfo {
 	generic_string _name;
 	int _internalID;
 
@@ -194,9 +194,9 @@ struct PlugingDlgDockingInfo {
 	int _prevContainer;
 	bool _isVisible;
 
-	PlugingDlgDockingInfo(const TCHAR *pluginName, int id, int curr, int prev, bool isVis) : _internalID(id), _currContainer(curr), _prevContainer(prev), _isVisible(isVis), _name(pluginName){};
+	PluginDlgDockingInfo(const TCHAR *pluginName, int id, int curr, int prev, bool isVis) : _internalID(id), _currContainer(curr), _prevContainer(prev), _isVisible(isVis), _name(pluginName){};
 
-	friend inline const bool operator==(const PlugingDlgDockingInfo & a, const PlugingDlgDockingInfo & b) {
+	friend inline const bool operator==(const PluginDlgDockingInfo & a, const PluginDlgDockingInfo & b) {
 		if ((a._name == b._name) && (a._internalID == b._internalID))
 			return true;
 		else
@@ -220,16 +220,22 @@ struct DockingManagerData {
 	DockingManagerData() : _leftWidth(200), _rightWidth(200), _topHeight(200), _bottomHight(200) {};
 
 	vector<FloatingWindowInfo>		_flaotingWindowInfo;
-	vector<PlugingDlgDockingInfo>	_pluginDockInfo;
+	vector<PluginDlgDockingInfo>	_pluginDockInfo;
 	vector<ContainerTabInfo>		_containerTabInfo;
 
-	RECT * getFloatingRCFrom(int floatCont) {
+	bool getFloatingRCFrom(int floatCont, RECT & rc) {
 		for (size_t i = 0 ; i < _flaotingWindowInfo.size() ; i++)
 		{
 			if (_flaotingWindowInfo[i]._cont == floatCont)
-				return &(_flaotingWindowInfo[i]._pos);
+      {
+        rc.left = _flaotingWindowInfo[i]._pos.left;
+        rc.top = _flaotingWindowInfo[i]._pos.top;
+        rc.right = _flaotingWindowInfo[i]._pos.right;
+        rc.bottom = _flaotingWindowInfo[i]._pos.bottom;
+				return true;
 		}
-		return NULL;
+		}
+		return false;
 	}
 };
 
@@ -478,7 +484,8 @@ struct NewDocDefaultSettings
 	UniMode _encoding;
 	bool _openAnsiAsUtf8;
 	LangType _lang;
-	NewDocDefaultSettings():_format(WIN_FORMAT), _encoding(uni8Bit), _openAnsiAsUtf8(false), _lang(L_TEXT){};
+	int _codepage; // -1 when not using
+	NewDocDefaultSettings():_format(WIN_FORMAT), _encoding(uni8Bit), _openAnsiAsUtf8(false), _lang(L_TEXT), _codepage(-1){};
 };
 
 struct LangMenuItem {
@@ -749,14 +756,16 @@ struct NppGUI
 
 struct ScintillaViewParams
 {
-	ScintillaViewParams() : _lineNumberMarginShow(true), _bookMarkMarginShow(true),\
-		                    _folderStyle(FOLDER_STYLE_BOX), _indentGuideLineShow(true),\
-	                        _currentLineHilitingShow(true), _wrapSymbolShow(false),  _doWrap(false),\
-					_zoom(0), _whiteSpaceShow(false), _eolShow(false){};
+	ScintillaViewParams() : _lineNumberMarginShow(true), _bookMarkMarginShow(true),_borderWidth(2),\
+		                    _folderStyle(FOLDER_STYLE_BOX), _foldMarginShow(true), _indentGuideLineShow(true),\
+	                        _currentLineHilitingShow(true), _wrapSymbolShow(false),  _doWrap(false), _edgeNbColumn(80),\
+							_zoom(0), _zoom2(0), _whiteSpaceShow(false), _eolShow(false), _lineWrapMethod(LINEWRAP_ALIGNED){};
 	bool _lineNumberMarginShow;
 	bool _bookMarkMarginShow;
 	//bool _docChangeStateMarginShow;
-	folderStyle  _folderStyle; //"simple", TEXT("arrow"), TEXT("circle") and "box"
+	folderStyle  _folderStyle; //"simple", "arrow", "circle", "box" and "none"
+	lineWrapMethod _lineWrapMethod;
+	bool _foldMarginShow;
 	bool _indentGuideLineShow;
 	bool _currentLineHilitingShow;
 	bool _wrapSymbolShow;
@@ -764,15 +773,17 @@ struct ScintillaViewParams
 	int _edgeMode;
 	int _edgeNbColumn;
 	int _zoom;
+	int _zoom2;
 	bool _whiteSpaceShow;
 	bool _eolShow;
-        
+    int _borderWidth;
 };
 
 const int NB_LIST = 20;
 const int NB_MAX_LRF_FILE = 30;
 const int NB_MAX_USER_LANG = 30;
 const int NB_MAX_EXTERNAL_LANG = 30;
+const int NB_MAX_IMPORTED_UDL = 50;
 
 const int NB_MAX_FINDHISTORY_FIND    = 30;
 const int NB_MAX_FINDHISTORY_REPLACE = 30;
@@ -1036,7 +1047,7 @@ public :
 	};
 
 	void addDefaultThemeFromXml(generic_string xmlFullPath) {
-		_themeList.push_back(pair<generic_string, generic_string>(TEXT("Default (styles.xml)"), xmlFullPath));
+		_themeList.push_back(pair<generic_string, generic_string>(TEXT("Default (stylers.xml)"), xmlFullPath));
 	};
 
 	generic_string getThemeFromXmlFileName(const TCHAR *fn) const;
@@ -1084,6 +1095,9 @@ private :
 const int NB_LANG = 80;
 const bool DUP = true;
 const bool FREE = false;
+
+const int RECENTFILES_SHOWFULLPATH = -1;
+const int RECENTFILES_SHOWONLYFILENAME = 0;
 
 class NppParameters 
 {
@@ -1145,41 +1159,44 @@ public:
 		return NULL;
 	};
 
-	int getNbLRFile() const {return _nbFile;};
+	int getNbLRFile() const {return _nbRecentFile;};
 
 	generic_string *getLRFile(int index) const {
 		return _LRFileList[index];
 	};
 
-	void setNbMaxFile(int nb) {
-		_nbMaxFile = nb;
+	void setNbMaxRecentFile(int nb) {
+		_nbMaxRecentFile = nb;
 	};
 
-	int getNbMaxFile() const {return _nbMaxFile;};
+	int getNbMaxRecentFile() const {return _nbMaxRecentFile;};
 
-    const ScintillaViewParams & getSVP(bool whichOne) const {
-        return _svp[whichOne];
+	void setPutRecentFileInSubMenu(bool doSubmenu) {
+		_putRecentFileInSubMenu = doSubmenu;
+	};
+
+	bool putRecentFileInSubMenu() const {return _putRecentFileInSubMenu;};
+
+	void setRecentFileCustomLength(int len) {
+		_recentFileCustomLength = len;
+	};
+
+	int getRecentFileCustomLength() const {return _recentFileCustomLength;};
+
+
+    const ScintillaViewParams & getSVP() const {
+        return _svp;
     };
 
-	bool writeNbHistoryFile(int nb) {
-		if (!_pXmlUserDoc) return false;
-		
-		TiXmlNode *nppRoot = _pXmlUserDoc->FirstChild(TEXT("NotepadPlus"));
-		if (!nppRoot) return false;
-		
-		TiXmlNode *historyNode = nppRoot->FirstChildElement(TEXT("History"));
-		if (!historyNode) return false;
-			
-		(historyNode->ToElement())->SetAttribute(TEXT("nbMaxFile"), nb);
-		return true;
-	};
-
+	bool writeRecentFileHistorySettings(int nbMaxFile = -1) const;
 	bool writeHistory(const TCHAR *fullpath);
+
+	bool writeProjectPanelsSettings() const;
 
 	TiXmlNode * getChildElementByAttribut(TiXmlNode *pere, const TCHAR *childName,\
 										  const TCHAR *attributName, const TCHAR *attributVal) const;
 
-	bool writeScintillaParams(const ScintillaViewParams & svp, bool whichOne);
+	bool writeScintillaParams(const ScintillaViewParams & svp);
 
 	bool writeGUIParams();
 
@@ -1284,8 +1301,6 @@ public:
 
 	int addExternalLangToEnd(ExternalLangContainer * externalLang);
 
-	//TiXmlDocument * getNativeLang() const {return _pXmlNativeLangDoc;};
-
 	TiXmlDocumentA * getNativeLangA() const {return _pXmlNativeLangDocA;};
 
 	TiXmlDocument * getToolIcons() const {return _pXmlToolIconsDoc;};
@@ -1338,58 +1353,34 @@ public:
 	ScintillaAccelerator * getScintillaAccelerator() {return _pScintAccelerator;}; 
 
 	generic_string getNppPath() const {return _nppPath;};
+    generic_string getContextMenuPath() const {return _contextMenuPath;};
 	const TCHAR * getAppDataNppDir() const {return _appdataNppDir.c_str();};
 	const TCHAR * getWorkingDir() const {return _currentDirectory.c_str();};
+	const TCHAR * getworkSpaceFilePath(int i) const {
+		if (i < 0 || i > 2) return NULL;
+		return _workSpaceFilePathes[i].c_str();
+	};
+
+	void setWorkSpaceFilePath(int i, const TCHAR *wsFile) {
+		if (i < 0 || i > 2 || !wsFile) return;
+		_workSpaceFilePathes[i] = wsFile;
+	};
+
 	void setWorkingDir(const TCHAR * newPath);
 
 	bool loadSession(Session & session, const TCHAR *sessionFileName);
 	int langTypeToCommandID(LangType lt) const;
 	WNDPROC getEnableThemeDlgTexture() const {return _enableThemeDialogTextureFuncAddr;};
-		
+
 	struct FindDlgTabTitiles {
 		generic_string _find;
 		generic_string _replace;
 		generic_string _findInFiles;
-		FindDlgTabTitiles() : _find(TEXT("")), _replace(TEXT("")), _findInFiles(TEXT("")) {};
-		bool isWellFilled() {
-			return (lstrcmp(_find.c_str(), TEXT("")) != 0 && lstrcmp(_replace.c_str(), TEXT("")) && lstrcmp(_findInFiles.c_str(), TEXT("")));
-		};
+		generic_string _mark;
+		FindDlgTabTitiles() : _find(TEXT("")), _replace(TEXT("")), _findInFiles(TEXT("")), _mark(TEXT("")) {};
 	};
 
 	FindDlgTabTitiles & getFindDlgTabTitiles() { return _findDlgTabTitiles;};
-
-	const char * getNativeLangMenuStringA(int itemID) {
-		if (!_pXmlNativeLangDocA)
-			return NULL;
-
-		TiXmlNodeA * node =  _pXmlNativeLangDocA->FirstChild("NotepadPlus");
-		if (!node) return NULL;
-
-		node = node->FirstChild("Native-Langue");
-		if (!node) return NULL;
-
-		node = node->FirstChild("Menu");
-		if (!node) return NULL;
-
-		node = node->FirstChild("Main");
-		if (!node) return NULL;
-
-		node = node->FirstChild("Commands");
-		if (!node) return NULL;
-
-		for (TiXmlNodeA *childNode = node->FirstChildElement("Item");
-			childNode ;
-			childNode = childNode->NextSibling("Item") )
-		{
-			TiXmlElementA *element = childNode->ToElement();
-			int id;
-			if (element->Attribute("id", &id) && (id == itemID))
-			{
-				return element->Attribute("name");
-			}
-		}
-		return NULL;
-	};
 
 	bool asNotepadStyle() const {return _asNotepadStyle;};
 
@@ -1397,11 +1388,12 @@ public:
 		return getPluginCmdsFromXmlTree();
 	}
 
-	bool getContextMenuFromXmlTree(HMENU mainMenuHadle);
-	bool reloadContextMenuFromXmlTree(HMENU mainMenuHadle);
+	bool getContextMenuFromXmlTree(HMENU mainMenuHadle, HMENU pluginsMenu);
+	bool reloadContextMenuFromXmlTree(HMENU mainMenuHadle, HMENU pluginsMenu);
 	winVer getWinVersion() { return _winVersion;};
 	FindHistory & getFindHistory() {return _findHistory;};
 	bool _isFindReplacing; // an on the fly variable for find/replace functions
+	void safeWow64EnableWow64FsRedirection(BOOL Wow64FsEnableRedirection);
 
 #ifdef UNICODE
 	LocalizationSwitcher & getLocalizationSwitcher() {
@@ -1422,6 +1414,18 @@ public:
     };
 
     PluginList & getPluginList() {return _pluginList;};
+    bool importUDLFromFile(generic_string sourceFile);
+    bool exportUDLToFile(int langIndex2export, generic_string fileName2save);
+	NativeLangSpeaker * getNativeLangSpeaker() {
+		return _pNativeLangSpeaker;
+	};
+	void setNativeLangSpeaker(NativeLangSpeaker *nls) {
+		_pNativeLangSpeaker = nls;
+	};
+
+	bool isLocal() const {
+		return _isLocal;
+	};
 
 private:
     NppParameters();
@@ -1430,21 +1434,29 @@ private:
     static NppParameters *_pSelf;
 
 	TiXmlDocument *_pXmlDoc, *_pXmlUserDoc, *_pXmlUserStylerDoc, *_pXmlUserLangDoc,\
-		*_pXmlToolIconsDoc, *_pXmlShortcutDoc, *_pXmlContextMenuDoc, *_pXmlSessionDoc,\
+		*_pXmlToolIconsDoc, *_pXmlShortcutDoc, *_pXmlSessionDoc,\
         *_pXmlBlacklistDoc;
+
+	TiXmlDocument *_importedULD[NB_MAX_IMPORTED_UDL];
+	int _nbImportedULD;
 	
-	TiXmlDocumentA *_pXmlNativeLangDocA;
+	TiXmlDocumentA *_pXmlNativeLangDocA, *_pXmlContextMenuDocA;
 
 	vector<TiXmlDocument *> _pXmlExternalLexerDoc;
 
 	NppGUI _nppGUI;
-	ScintillaViewParams _svp[2];
+	ScintillaViewParams _svp;
 	Lang *_langList[NB_LANG];
 	int _nbLang;
 
+	// Recent File History
 	generic_string *_LRFileList[NB_MAX_LRF_FILE];
-	int _nbFile;
-	int _nbMaxFile;
+	int _nbRecentFile;
+	int _nbMaxRecentFile;
+	bool _putRecentFileInSubMenu;
+	int _recentFileCustomLength;	//	<0: Full File Path Name
+									//	=0: Only File Name
+									//	>0: Custom Entry Length
 
 	FindHistory _findHistory;
 
@@ -1471,6 +1483,7 @@ private:
 
 	WNDPROC _transparentFuncAddr;
 	WNDPROC _enableThemeDialogTextureFuncAddr;
+	bool _isLocal;
 
 
 	vector<CommandShortcut> _shortcuts;			//main menu shortuts. Static size
@@ -1500,6 +1513,7 @@ private:
 	generic_string _stylerPath;
 	generic_string _appdataNppDir; // sentinel of the absence of "doLocalConf.xml" : (_appdataNppDir == TEXT(""))?"doLocalConf.xml present":"doLocalConf.xml absent"
 	generic_string _currentDirectory;
+	generic_string _workSpaceFilePathes[3];
 
 	Accelerator *_pAccelerator;
 	ScintillaAccelerator * _pScintAccelerator;
@@ -1509,13 +1523,15 @@ private:
 
 	winVer _winVersion;
 
+	NativeLangSpeaker *_pNativeLangSpeaker;
+
 	static int CALLBACK EnumFontFamExProc(ENUMLOGFONTEX *lpelfe, NEWTEXTMETRICEX *, int, LPARAM lParam) {
 		vector<generic_string> *pStrVect = (vector<generic_string> *)lParam;
         size_t vectSize = pStrVect->size();
 
 		//Search through all the fonts, EnumFontFamiliesEx never states anything about order
 		//Start at the end though, that's the most likely place to find a duplicate
-		for(int i = (int)vectSize - 1 ; i >= 0 ; i--) {
+		for(int i = vectSize - 1 ; i >= 0 ; i--) {
 			if ( !lstrcmp((*pStrVect)[i].c_str(), (const TCHAR *)lpelfe->elfLogFont.lfFaceName) )
 				return 1;	//we already have seen this typeface, ignore it
 		}
@@ -1528,7 +1544,11 @@ private:
 	void getLangKeywordsFromXmlTree();
 	bool getUserParametersFromXmlTree();
 	bool getUserStylersFromXmlTree();
-	bool getUserDefineLangsFromXmlTree();
+	bool getUserDefineLangsFromXmlTree(TiXmlDocument *tixmldoc);
+    bool getUserDefineLangsFromXmlTree() {
+        return getUserDefineLangsFromXmlTree(_pXmlUserLangDoc);
+    };
+
 	bool getShortcutsFromXmlTree();
 
 	bool getMacrosFromXmlTree();
@@ -1541,14 +1561,16 @@ private:
 	void feedGUIParameters(TiXmlNode *node);
 	void feedKeyWordsParameters(TiXmlNode *node);
 	void feedFileListParameters(TiXmlNode *node);
-    void feedScintillaParam(bool whichOne, TiXmlNode *node);
+    void feedScintillaParam(TiXmlNode *node);
 	void feedDockingManager(TiXmlNode *node);
 	void feedFindHistoryParameters(TiXmlNode *node);
+	void feedProjectPanelsParameters(TiXmlNode *node);
     
 	bool feedStylerArray(TiXmlNode *node);
     void getAllWordStyles(TCHAR *lexerName, TiXmlNode *lexerNode);
 
-	void feedUserLang(TiXmlNode *node);
+	bool feedUserLang(TiXmlNode *node);
+
 	int getIndexFromKeywordListName(const TCHAR *name);
 	void feedUserStyles(TiXmlNode *node);
 	void feedUserKeywordList(TiXmlNode *node);

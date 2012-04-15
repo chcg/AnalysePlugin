@@ -6,10 +6,12 @@
 #ifdef _RELEASE
 #define NPP_TRY try
 #define NPP_CATCH(ex) catch(ex)
+#define NPP_CATCH_NOP(ex) catch(ex)
 #define NPP_CATCH_ALL catch(...)
 #else
 #define NPP_TRY if (true)
 #define NPP_CATCH(ex) for(ex;false;)
+#define NPP_CATCH_NOP(ex) if(false)
 #define NPP_CATCH_ALL if(false)
 #endif
 

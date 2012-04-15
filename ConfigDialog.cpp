@@ -96,7 +96,9 @@ void ConfigDialog::doDialog(int FuncCmdId)
       mCmbFontName.addInitialText2Combo(mlsFontList, false);
       mCmbFontSize.addInitialText2Combo(FONTSIZELIST_COUNT, FONTSIZELIST, false);
 
+      ::SendDlgItemMessage(_hSelf, IDC_CHK_USEBOOKMARK, BM_SETCHECK, getUseBookmark()?BST_CHECKED:BST_UNCHECKED, 0);
       // now get the stuff from configuration in the dialog 
+      ::SendDlgItemMessage(_hSelf, IDC_CHK_AUTOUPDT, BM_SETCHECK, getOnAutoUpdate()?BST_CHECKED:BST_UNCHECKED, 0);
       mCmbOnEnterAction.addText2Combo(getOnEnterActionStr().c_str(), false);
       mCmbSearchType.addText2Combo(mDefPat.getSearchTypeStr().c_str(), false);
       mCmbSelType.addText2Combo(mDefPat.getSelectionTypeStr().c_str(), false);
@@ -131,7 +133,8 @@ void ConfigDialog::doDialog(int FuncCmdId)
       ::MoveWindow((HWND)_pBgColour->getHSelf(), p2.x, p2.y, 12, 12, TRUE);
       _pFgColour->display();
       _pBgColour->display();
-   }
+   } // isCreated()
+
    ::EnableWindow(_pFgColour->getHSelf(), true);
    ::EnableWindow(_pBgColour->getHSelf(), true);
    mbOkPressed = false;
@@ -239,6 +242,8 @@ BOOL CALLBACK ConfigDialog::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lPar
          case IDOK :
             ::SendMessage(_hParent, NPPM_SETMENUITEMCHECK, (WPARAM)_cmdId, (LPARAM)false);
             display(FALSE);
+            setOnAutoUpdate((BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_AUTOUPDT, BM_GETCHECK, 0, 0))?1:0);
+            setUseBookmark((BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_USEBOOKMARK, BM_GETCHECK, 0, 0))?1:0);
             setOnEnterActionStr(mCmbOnEnterAction.getTextFromCombo(false));
             setFontText(mCmbFontName.getTextFromCombo(false));
             setFontSizeStr(mCmbFontSize.getTextFromCombo(false));

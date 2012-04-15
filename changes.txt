@@ -1,0 +1,20 @@
+Changes since 1.7
+ - add additional files from NPP 5.9.6.2
+ - bug fix search working also on sub view
+ - new feature OnAutoUpdate search
+     When a recently searched file changes in the edit window the search becomes repeated
+     unfortunately this causes a full re-searching. If you don't like this feature, it can 
+     be deactivated in AnalyseConfiguration.
+ - feature useBookmark config switch added
+ - bugfix MY_STYLE_MAX increased to 7 bit
+ - bugfix default patten also in find result search dialog
+ - feature find result search dialog resizeable
+ - bugfix search patterns in find result search dialog on load
+ - bugfix reading pipe sign in search text and comment from ini-file
+ - adding please wiat popup to allow user to cancel long lasting searches
+ - progress bar added
+ - bugfix unwanted end of window and line number coloring avoided
+ - bugfix ensuring maximum 119 colors working as expected
+ - feature context menu added to pattern list table
+ - sync with npp 5.9.8 files
+ 

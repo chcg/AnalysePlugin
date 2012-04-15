@@ -217,6 +217,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\PowerEditor\src\WinControls\ContextMenu\ContextMenu.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\FindConfigDoc.cpp"
 				>
 			</File>
@@ -226,6 +230,10 @@
 			</File>
 			<File
 				RelativePath=".\HelpDialog.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\DockingFeature\PleaseWaitDlg.cpp"
 				>
 			</File>
 			<File
@@ -340,6 +348,10 @@
 			</File>
 			<File
 				RelativePath=".\Notepad_plus_msgs.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DockingFeature\PleaseWaitDlg.h"
 				>
 			</File>
 			<File

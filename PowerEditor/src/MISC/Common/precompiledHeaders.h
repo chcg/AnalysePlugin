@@ -20,9 +20,8 @@
 
 // w/o precompiled headers file : 1 minute 55 sec
 
-#ifdef UNICODE
-#include <wchar.h>
-#endif
+#define _WIN32_WINNT 0x0501
+
 // C RunTime Header Files
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,6 +55,9 @@
 #include <dbghelp.h>
 #include <eh.h>
 
+#ifdef UNICODE
+#include <wchar.h>
+#endif
 
 // Notepad++
 #include "Common.h"

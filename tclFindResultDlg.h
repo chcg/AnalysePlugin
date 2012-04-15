@@ -34,6 +34,7 @@ search result string cache
 #include "myDebug.h"
 #include "tclFindResultSearchDlg.h"
 
+#define MY_STYLE_COUNT (MY_STYLE_MASK-8) // 0 and 32-39 are defaults
 //off #define FEATURE_HEADLINE
 
 class tclFindResultDlg : public DockingDlgInterface {
@@ -51,7 +52,7 @@ public:
 
    int getLineNumColSize() const ;
 
-   void initEdit(); 
+   void initEdit(const tclPattern& defaultPattern); 
 
    void reserve(unsigned count) {
       mFindResults.reserve(count);
@@ -98,7 +99,12 @@ public:
   	
    virtual void updateDockingDlg(void);
 
+   void setUseBookmark(int useIt){
+      mUseBookmark = useIt;
+   }
+
 protected :
+   static const int transStyleId[MY_STYLE_COUNT];
    // public version calls internal with correct start and end values
    void doStyle(int iFoundLine); 
 
@@ -146,6 +152,7 @@ protected:
 
    generic_string mFontName;
    unsigned mFontSize;
+   int mUseBookmark;
 
 };
 #endif //TCLFINDRESULTDLG_H

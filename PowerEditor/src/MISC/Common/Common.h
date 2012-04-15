@@ -40,6 +40,7 @@ const bool dirDown = false;
 	#define generic_strtok wcstok
 	#define generic_strftime wcsftime
 	#define generic_fprintf fwprintf
+	#define generic_sprintf swprintf
 	#define generic_sscanf swscanf
 	#define generic_fopen _wfopen
 	#define generic_fgets fgetws
@@ -61,6 +62,7 @@ const bool dirDown = false;
 	#define generic_strtok strtok
 	#define generic_strftime strftime
 	#define generic_fprintf fprintf
+	#define generic_sprintf sprintf
 	#define generic_sscanf sscanf
 	#define generic_fopen fopen
 	#define generic_fgets fgets
@@ -72,15 +74,13 @@ const bool dirDown = false;
 typedef std::basic_string<TCHAR> generic_string;
 
 void folderBrowser(HWND parent, int outputCtrlID, const TCHAR *defaultStr = NULL);
+generic_string getFolderName(HWND parent, const TCHAR *defaultDir = NULL);
 
-void systemMessage(const TCHAR *title);
-//DWORD ShortToLongPathName(LPCTSTR lpszShortPath, LPTSTR lpszLongPath, DWORD cchBuffer);
 void printInt(int int2print);
 void printStr(const TCHAR *str2print);
 
 void writeLog(const TCHAR *logFileName, const char *log2write);
 int filter(unsigned int code, struct _EXCEPTION_POINTERS *ep);
-//int getCpFromStringValue(const char * encodingStr);
 generic_string purgeMenuItemString(const TCHAR * menuItemStr, bool keepAmpersand = false);
 std::vector<generic_string> tokenizeString(const generic_string & tokenString, const char delim);
 
@@ -97,39 +97,65 @@ public:
 	static WcharMbcsConvertor * getInstance() {return _pSelf;};
 	static void destroyInstance() {delete _pSelf;};
 
-	const wchar_t * char2wchar(const char *mbStr, UINT codepage);
+	const wchar_t * char2wchar(const char *mbStr, UINT codepage, int lenIn=-1, int *pLenOut=NULL, int *pBytesNotProcessed=NULL);
 	const wchar_t * char2wchar(const char *mbcs2Convert, UINT codepage, int *mstart, int *mend);
-	const char * wchar2char(const wchar_t *wcStr, UINT codepage);
+	const char * wchar2char(const wchar_t *wcStr, UINT codepage, int lenIn=-1, int *pLenOut=NULL);
 	const char * wchar2char(const wchar_t *wcStr, UINT codepage, long *mstart, long *mend);
 	
-	const char * encode(UINT fromCodepage, UINT toCodepage, const char *txt2Encode) {
-        const wchar_t * strW = char2wchar(txt2Encode, fromCodepage);
-        return wchar2char(strW, toCodepage);
+	const char * encode(UINT fromCodepage, UINT toCodepage, const char *txt2Encode, int lenIn=-1, int *pLenOut=NULL, int *pBytesNotProcessed=NULL) {
+		int lenWc = 0;
+        const wchar_t * strW = char2wchar(txt2Encode, fromCodepage, lenIn, &lenWc, pBytesNotProcessed);
+        return wchar2char(strW, toCodepage, lenWc, pLenOut);
     };
 
 protected:
-	WcharMbcsConvertor() : _multiByteStr(NULL), _wideCharStr(NULL), _multiByteAllocLen(0), _wideCharAllocLen(0), initSize(1024) {
+	WcharMbcsConvertor() {
 	};
 	~WcharMbcsConvertor() {
-		if (_multiByteStr)
-			delete [] _multiByteStr;
-		if (_wideCharStr)
-			delete [] _wideCharStr;
 	};
 	static WcharMbcsConvertor * _pSelf;
 
-	const int initSize;
-	char *_multiByteStr;
-	size_t _multiByteAllocLen;
-	wchar_t *_wideCharStr;
-	size_t _wideCharAllocLen;
+	template <class T>
+	class StringBuffer {
+	public:
+		StringBuffer() : _str(0), _allocLen(0) { }
+		~StringBuffer() { if(_allocLen) delete [] _str; }
+
+		void sizeTo(size_t size) {
+			if(_allocLen < size)
+			{
+				if(_allocLen) delete[] _str;
+				_allocLen = max(size, initSize);
+				_str = new T[_allocLen];
+			}
+		}
+		void empty() {
+			static T nullStr = 0; // routines may return an empty string, with null terminator, without allocating memory; a pointer to this null character will be returned in that case
+			if(_allocLen == 0)
+				_str = &nullStr;
+			else
+				_str[0] = 0;
+		}
+
+		operator T*() { return _str; }
+
+	protected:
+		static const int initSize = 1024;
+		size_t _allocLen;
+		T* _str;
+	};
+
+	StringBuffer<char> _multiByteStr;
+	StringBuffer<wchar_t> _wideCharStr;
 
 private:
 	// Since there's no public ctor, we need to void the default assignment operator.
 	WcharMbcsConvertor& operator= (const WcharMbcsConvertor&);
-	
+
 };
 
+#define MACRO_RECORDING_IN_PROGRESS 1
+#define MACRO_RECORDING_HAS_STOPPED 2
 
 #if _MSC_VER > 1400 // MS Compiler > VS 2005
 #define REBARBAND_SIZE REBARBANDINFO_V3_SIZE

@@ -86,7 +86,7 @@ HGLOBAL StaticDialog::makeRTLResource(int dialogID, DLGTEMPLATE **ppMyDlgTemplat
 	return hMyDlgTemplate;
 }
 
-void StaticDialog::create(int dialogID, bool isRTL)
+void StaticDialog::create(int dialogID, bool isRTL, bool msgDestParent)
 {
 	if (isRTL)
 	{
@@ -98,15 +98,17 @@ void StaticDialog::create(int dialogID, bool isRTL)
 	else
 		_hSelf = ::CreateDialogParam(_hInst, MAKEINTRESOURCE(dialogID), _hParent, (DLGPROC)dlgProc, (LPARAM)this);
 
-   // at this place the dialog handle is mostly not avaiable but create will be called at implementation level again
 	if (!_hSelf)
 	{
-		//systemMessage(TEXT("StaticDialog"));
-		//throw int(666);
+		DWORD err = ::GetLastError();
+		char errMsg[256];
+		sprintf(errMsg, "CreateDialogParam() return NULL.\rGetLastError() == %d", err);
+		::MessageBoxA(NULL, errMsg, "In StaticDialog::create()", MB_OK);
 		return;
 	}
 
-	::SendMessage(_hParent, NPPM_MODELESSDIALOG, MODELESSDIALOGADD, (WPARAM)_hSelf);
+	// if the destination of message NPPM_MODELESSDIALOG is not its parent, then it's the grand-parent
+	::SendMessage(msgDestParent?_hParent:(::GetParent(_hParent)), NPPM_MODELESSDIALOG, MODELESSDIALOGADD, (WPARAM)_hSelf);
 }
 
 BOOL CALLBACK StaticDialog::dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
@@ -117,9 +119,7 @@ BOOL CALLBACK StaticDialog::dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPAR
 		{
 			StaticDialog *pStaticDlg = (StaticDialog *)(lParam);
 			pStaticDlg->_hSelf = hwnd;
-#pragma warning (disable: 4244)
 			::SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)lParam);
-#pragma warning (default: 4244)
 			::GetWindowRect(hwnd, &(pStaticDlg->_rc));
             pStaticDlg->run_dlgProc(message, wParam, lParam);
 			
@@ -128,12 +128,9 @@ BOOL CALLBACK StaticDialog::dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPAR
 
 		default :
 		{
-#pragma warning (disable: 4312)
 			StaticDialog *pStaticDlg = reinterpret_cast<StaticDialog *>(::GetWindowLongPtr(hwnd, GWL_USERDATA));
-#pragma warning (default: 4312)
-			if (!pStaticDlg) {
+			if (!pStaticDlg)
 				return FALSE;
-            }
 			return pStaticDlg->run_dlgProc(message, wParam, lParam);
 		}
 	}

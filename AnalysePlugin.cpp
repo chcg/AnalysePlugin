@@ -25,6 +25,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "SciLexer.h"
 #include "tclFindResultDoc.h"
 #include "chardefines.h"
+#include "PleaseWaitDlg.h"
 
 AnalysePlugin g_plugin;
 
@@ -34,6 +35,8 @@ const TCHAR AnalysePlugin::KEYNAME[] = TEXT("doAnalyse");
 const TCHAR AnalysePlugin::KEYSEARCHHISTORY[] = TEXT("searchHistory");
 const TCHAR AnalysePlugin::KEYCOMMENTHISTORY[] = TEXT("commentHistory");
 const TCHAR AnalysePlugin::KEYDEFAULTOPTIONS[] = TEXT("defaultOptions");
+const TCHAR AnalysePlugin::KEYONAUTOUPDATE[] = TEXT("onAutoUpdate");
+const TCHAR AnalysePlugin::KEYUSEBOOKMARK[] = TEXT("useBookmark");
 const TCHAR AnalysePlugin::KEYONENTERACTION[] = TEXT("onEnterAction");
 const TCHAR AnalysePlugin::KEYLASTFILENAME[] = TEXT("lastFile");
 const TCHAR AnalysePlugin::KEYFONTNAME[] = TEXT("resultFontName");
@@ -101,33 +104,11 @@ BOOL AnalysePlugin::dllmain(HANDLE hModule,
          _hModule = (HINSTANCE)hModule;
          // init all to zero
          memset(funcItem, 0, sizeof(funcItem));
-         //funcItem[INSERTCURRENTFULLPATH]._pFunc = _demofunction.insertCurrentFullPath;
-         //funcItem[INSERTCURRENTFILENAME]._pFunc = _demofunction.insertCurrentFileName;
-         //funcItem[INSERTCURRENTDIRECTORY]._pFunc = _demofunction.insertCurrentDirectory;
-         //funcItem[INSERTSHORTDATETIME]._pFunc = _demofunction.insertShortDateTime;
-         //funcItem[INSERTLONGDATETIME]._pFunc = _demofunction.insertLongDateTime;
-         //funcItem[INSERTHTMLCLOSETAG]._pFunc = _demofunction.insertHtmlCloseTag;
-         //funcItem[GETFILENAMESDEMO]._pFunc = _demofunction.getFileNamesDemo;
-         //funcItem[GETSESSIONFILENAMESDEMO]._pFunc = _demofunction.getSessionFileNamesDemo;
-         //funcItem[SAVECURRENTSESSIONDEMO]._pFunc = _demofunction.saveCurrentSessionDemo;
          funcItem[SHOWFINDDLG]._pFunc = MenuAnalyseToggle;
-         //funcItem[DOCKABLEDLGDEMO]._pFunc = DockableDlgDemo;
          funcItem[SHOWHELPDLG]._pFunc = MenuShowHelpDialog;
 #ifdef CONFIG_DIALOG
          funcItem[SHOWCNFGDLG]._pFunc = MenuShowConfigDialog;
 #endif
-         //strcpy(funcItem[INSERTCURRENTFULLPATH]._itemName, "Current Full Path");
-         //strcpy(funcItem[INSERTCURRENTFILENAME]._itemName, "Current File Name");
-         //strcpy(funcItem[INSERTCURRENTDIRECTORY]._itemName, "Current Directory");
-         //strcpy(funcItem[INSERTSHORTDATETIME]._itemName, "Date & Time - short format");
-         //strcpy(funcItem[INSERTLONGDATETIME]._itemName, "Date & Time - long format");
-         //strcpy(funcItem[INSERTHTMLCLOSETAG]._itemName, "Close HTML/XML tag automatically");
-         //strcpy(funcItem[GETFILENAMESDEMO]._itemName, "Get File Names Demo");
-         //strcpy(funcItem[GETSESSIONFILENAMESDEMO]._itemName, "Get Session File Names Demo");
-         //strcpy(funcItem[SAVECURRENTSESSIONDEMO]._itemName, "Save Current Session Demo");
-         //strcpy(funcItem[SHOWFINDDLG]._itemName, "Show Find Dialog");
-         //strcpy(funcItem[DOCKABLEDLGDEMO]._itemName, "Dockable Dialog Demo");
-
          ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_DIAG, funcItem[SHOWFINDDLG]._itemName, nbChar);
          ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_HELP, funcItem[SHOWHELPDLG]._itemName, nbChar);
 #ifdef CONFIG_DIALOG
@@ -138,11 +119,8 @@ BOOL AnalysePlugin::dllmain(HANDLE hModule,
          // bind to the shortcut Ctrl-Alt-F
          // TODO doesn't work jet funcItem[SHOWFINDDLG]._pShKey = new MyShortcutKey(0x46, true, true, false); //VK_F
          //funcItem[INSERTLONGDATETIME]._pShKey = new MyShortcutKey(0x51, false, true, false); //VK_Q
-
+         // may be to check NPPM_MODELESSDIALOG
          GetModuleFileName((HMODULE)_hModule, _szPluginFileName, COUNTCHAR(_szPluginFileName));
-         //loadSettings();  moved to setInfo()
-         //_findDlg.init((HMODULE)_hModule, 0);
-         //_findResult.init((HMODULE)_hModule, 0);
       }
       break;
 
@@ -188,8 +166,6 @@ void AnalysePlugin::loadSettings()
 
    // Test if localConf.xml exist
    bool isLocal = (PathFileExists(localConfPath) == TRUE);
-   //bool isLocal = (PathFileExists(nppPath) == TRUE);
-   //MessageBox(NULL, isLocal?"true":"false", "isLocal", 0);
 
    if (isLocal) 
    {
@@ -215,6 +191,11 @@ void AnalysePlugin::loadSettings()
    mCommentHistory = tmp;
    ::GetPrivateProfileString(SECTIONNAME, KEYDEFAULTOPTIONS, TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
    mDefaultOptions = tmp;
+   ::GetPrivateProfileString(SECTIONNAME, KEYUSEBOOKMARK, TEXT("1"), tmp, COUNTCHAR(tmp), iniFilePath);
+   _configDlg.setUseBookmark(generic_atoi(tmp));
+   _findResult.setUseBookmark(generic_atoi(tmp));
+   ::GetPrivateProfileString(SECTIONNAME, KEYONAUTOUPDATE, TEXT("1"), tmp, COUNTCHAR(tmp), iniFilePath);
+   _configDlg.setOnAutoUpdate(generic_atoi(tmp));
    ::GetPrivateProfileString(SECTIONNAME, KEYONENTERACTION, TEXT("0"), tmp, COUNTCHAR(tmp), iniFilePath);
    _configDlg.setOnEnterAction((teOnEnterAction)generic_atoi(tmp));
    ::GetPrivateProfileString(SECTIONNAME, KEYFONTNAME, TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
@@ -234,6 +215,10 @@ void AnalysePlugin::saveSettings() {
    ::WritePrivateProfileString(SECTIONNAME, KEYCOMMENTHISTORY, mCommentHistory.c_str(), iniFilePath);
    ::WritePrivateProfileString(SECTIONNAME, KEYDEFAULTOPTIONS, mDefaultOptions.c_str(), iniFilePath);
    TCHAR tmp[10];
+   generic_itoa(_configDlg.getUseBookmark(), tmp, 10);
+   ::WritePrivateProfileString(SECTIONNAME, KEYUSEBOOKMARK, tmp, iniFilePath);
+   generic_itoa(_configDlg.getOnAutoUpdate(), tmp, 10);
+   ::WritePrivateProfileString(SECTIONNAME, KEYONAUTOUPDATE, tmp, iniFilePath);
    generic_itoa((int)_configDlg.getOnEnterAction(), tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYONENTERACTION, tmp, iniFilePath);
    const TCHAR* cp = _configDlg.getFontText().c_str();
@@ -259,13 +244,13 @@ void AnalysePlugin::displaySectionCentered(int posStart, int posEnd, bool isDown
    // to make sure the found result is visible
    //When searching up, the beginning of the (possible multiline) result is important, when scrolling down the end
    int testPos = (isDownwards)?posEnd:posStart;
-   execute(scnMainHandle, SCI_SETCURRENTPOS, testPos);
-   int currentlineNumberDoc = (int)execute(scnMainHandle, SCI_LINEFROMPOSITION, testPos);
-   int currentlineNumberVis = (int)execute(scnMainHandle, SCI_VISIBLEFROMDOCLINE, currentlineNumberDoc);
-   execute(scnMainHandle, SCI_ENSUREVISIBLE, currentlineNumberDoc);	// make sure target line is unfolded
+   execute(scnActiveHandle, SCI_SETCURRENTPOS, testPos);
+   int currentlineNumberDoc = (int)execute(scnActiveHandle, SCI_LINEFROMPOSITION, testPos);
+   int currentlineNumberVis = (int)execute(scnActiveHandle, SCI_VISIBLEFROMDOCLINE, currentlineNumberDoc);
+   execute(scnActiveHandle, SCI_ENSUREVISIBLE, currentlineNumberDoc);	// make sure target line is unfolded
 
-   int firstVisibleLineVis =	(int)execute(scnMainHandle, SCI_GETFIRSTVISIBLELINE);
-   int linesVisible =			(int)execute(scnMainHandle, SCI_LINESONSCREEN) - 1;	//-1 for the scrollbar
+   int firstVisibleLineVis =	(int)execute(scnActiveHandle, SCI_GETFIRSTVISIBLELINE);
+   int linesVisible =			(int)execute(scnActiveHandle, SCI_LINESONSCREEN) - 1;	//-1 for the scrollbar
    int lastVisibleLineVis =	(int)linesVisible + firstVisibleLineVis;
 
    //if out of view vertically, scroll line into (center of) view
@@ -282,14 +267,14 @@ void AnalysePlugin::displaySectionCentered(int posStart, int posEnd, bool isDown
       //use center
       linesToScroll += linesVisible/2;
    }
-	execute(scnMainHandle, SCI_LINESCROLL, 0, linesToScroll);
+	execute(scnActiveHandle, SCI_LINESCROLL, 0, linesToScroll);
 
    //Make sure the caret is visible, scroll horizontally (this will also fix wrapping problems)
-   execute(scnMainHandle, SCI_GOTOPOS, posStart);
-   execute(scnMainHandle, SCI_GOTOPOS, posEnd);
-   //execute(scnMainHandle, SCI_SETSEL, start, posEnd);	
-   //execute(scnMainHandle, SCI_SETCURRENTPOS, posEnd);
-   execute(scnMainHandle, SCI_SETANCHOR, posStart);	
+   execute(scnActiveHandle, SCI_GOTOPOS, posStart);
+   execute(scnActiveHandle, SCI_GOTOPOS, posEnd);
+   //execute(scnActiveHandle, SCI_SETSEL, start, posEnd);	
+   //execute(scnActiveHandle, SCI_SETCURRENTPOS, posEnd);
+   execute(scnActiveHandle, SCI_SETANCHOR, posStart);	
 }
 
 void AnalysePlugin::setSearchFileName(const generic_string& file) {
@@ -319,34 +304,45 @@ void AnalysePlugin::moveResult(tPatId oldPattId, tPatId newPattId)
    _findResult.updateDockingDlg();
 }
 
-BOOL AnalysePlugin::doSearch(tclResultList& resultList){
-   DBG0("doSearch()");
-   BOOL bRes = TRUE;
-   // set all styles actually used
-   _findResult.setPatternStyles(_findDlg.getPatternList());
-   // make sure result is shown
-   _findResult.display();
-   _findResult.setCodePage(execute(scnMainHandle, SCI_GETCODEPAGE));
-   // check whether searchwindow is the same as before
+bool AnalysePlugin::bCheckLastFileNameSame(generic_string& file) {
    //static TCHAR lastFileName[MAX_PATH] = "";
    TCHAR newFilename[MAX_PATH] = TEXT("");
    TCHAR newDirname[MAX_PATH] = TEXT("");
-   bool bReSearch = false;
    execute(nppHandle, NPPM_GETFILENAME, COUNTCHAR(newFilename), (LPARAM)newFilename);
    execute(nppHandle, NPPM_GETCURRENTDIRECTORY, COUNTCHAR(newDirname), (LPARAM)newDirname);
-   generic_string file(newDirname);
+   file = newDirname;
    if(file.size()>0) {
      file += TEXT("\\");
    }
    file += newFilename;
-   if(mLastSearchedFileName.compare(file)!=0) 
+   if(mLastSearchedFileName.compare(file)==0) 
    {
+      return true;
+   }
+   return false;
+}
+
+BOOL AnalysePlugin::doSearch(tclResultList& resultList)
+{
+   DBG0("doSearch() started");
+   BOOL bRes = TRUE;
+   // set all styles actually used
+   _findResult.setPatternStyles(_findDlg.getPatternList());
+   // make sure result is shown when we are active
+   if(isVisible()) {
+      _findResult.display();
+   }
+   _findResult.setCodePage(execute(scnActiveHandle, SCI_GETCODEPAGE));
+   // check whether searchwindow is the same as before
+   bool bReSearch = false;
+   generic_string currentfile;
+   if (!bCheckLastFileNameSame(currentfile)){
       // not same file in editor. Remove content from results
-      mLastSearchedFileName = file;
+      mLastSearchedFileName = currentfile;
       bReSearch = true;
    }
    // check if we have the correct linenumcolumnsize
-   int iNumLines = (int)execute(scnMainHandle, SCI_GETLINECOUNT, 0, (LPARAM)0);
+   int iNumLines = (int)execute(scnActiveHandle, SCI_GETLINECOUNT, 0, (LPARAM)0);
    // easy way of int(log10(iNumLines))
    int iLineNumColSize = (iNumLines<10)?1:
                          (iNumLines<100)?2:
@@ -373,9 +369,17 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList){
       _findResult.clear();
       _findDlg.setAllDirty();
    }
+   // create the please wait message box
+   _FindProcessCancelled = false;
+
+   // activate progress controls
+   _findDlg.setPleaseWaitRange(0, resultList.size());
+   _findDlg.activatePleaseWait();
+
    // for all patterns in the list test if result is dirty
    tclResultList::iterator iResult = resultList.begin();
-   for (; iResult != resultList.end(); ++iResult) 
+   int iPatIndex = 1;
+   for (; iResult != resultList.end(); ++iResult, ++iPatIndex) 
    {
       tclResult & result = iResult.refResult();
       // if result is dirty, start the search of the given pattern
@@ -387,13 +391,16 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList){
       tclResult oldResult = result;
       result.clear();
       const tclPattern& pattern = resultList.getPattern(iResult.getPatId());
+      // update please wait controls
+      _findDlg.setPleaseWaitProgress(iPatIndex);
+
       if(u = doFindPattern(pattern, result)){
          DBG1("doSearch() %d items found. Update result window.", u);
          _findResult.reserve(u);
          _findResult.removeUnusedResultLines(iResult.getPatId(), oldResult, result);
          tclResult::tlvPosInfo::const_iterator it = result.getPositions().begin();
          int erasedLen = 0;
-         int lcount = (int)execute(scnMainHandle, SCI_GETLINECOUNT);
+         int lcount = (int)execute(scnActiveHandle, SCI_GETLINECOUNT);
          for (;it!=result.getPositions().end();++it) {
             if(it->line >= lcount) {
                DBG4("doSearch() ERROR line is out of range! possible %d, line %d, start %d, end %d.",
@@ -401,8 +408,8 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList){
                continue;
             }
             int resultLine = _findResult.insertPosInfo(iResult.getPatId(), it->line, *it);
-            int lend = (int)execute(scnMainHandle, SCI_GETLINEENDPOSITION, it->line);
-            int lstart = (int)execute(scnMainHandle, SCI_POSITIONFROMLINE, it->line);
+            int lend = (int)execute(scnActiveHandle, SCI_GETLINEENDPOSITION, it->line);
+            int lstart = (int)execute(scnActiveHandle, SCI_POSITIONFROMLINE, it->line);
             int lineLength = lend - lstart; // formerly nbChar
             if(!_findResult.getLineAvail(it->line)) {
                if (_line==0 || ((int)_maxNbCharAllocated < lineLength))	//line longer than buffer, resize buffer
@@ -411,79 +418,44 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList){
                   delete [] _line;
                   _line = new char[_maxNbCharAllocated + 3];
 
-                  //// also resize unicode buffer
-                  //const int uniCharLen = (_maxNbCharAllocated + 3) * 2 + 1;
-                  //delete [] _uniCharLine;
-                  //_uniCharLine = new char[uniCharLen];
                }
-               execute(scnMainHandle, SCI_GETLINE, it->line, (LPARAM)_line);
+               execute(scnActiveHandle, SCI_GETLINE, it->line, (LPARAM)_line);
                _line[lineLength] = 0x0D;
                _line[lineLength+1] = 0x0A;
                _line[lineLength+2] = '\0';
-               //const char *pLine;
-               ////if (!isUnicode)
-               ////{
-               ////	ascii_to_utf8(_line, (lineLength + 3), _uniCharLine);
-               ////	pLine = _uniCharLine;
-               ////}
-               ////else
-               ////{
-               //pLine = _line;
-               ////}
-               if(0)//pattern.getIsHideText()) 
-               {
-                  if(pattern.getSelectionType()== tclPattern::line) {
-                     DBG1("hiding whole new line %d.", it->line);
-                     _line[0] = 0;
-                  } else {
-                     DBG1("hiding text in new line %d.", it->line);
-                     std::string s(_line);
-                     s.erase(it->start-lstart, it->end - it->start);
-                     erasedLen = it->end - it->start;
-                     strcpy(_line, s.c_str());
-                  }
-               }
                _findResult.setLineText(it->line, _line);
             } else {
                // line is already in search result
-               if(0)//pattern.getIsHideText()) 
-               {
-                  if(pattern.getSelectionType()== tclPattern::line) {
-                     DBG1("hiding whole existing line %d.", it->line);
-                     _findResult.setLineText(it->line, "");
-                  } else {
-                     DBG1("hiding text in existing line %d.", it->line);
-                     std::string s(_findResult.getLineText(it->line));
-                     // calculate the position of the text to be deleted
-                     int iPos = it->start-lstart-erasedLen;
-                     if (iPos < 0) {
-                        DBG3("error removing part of line with pos as negativ it->line %d length %d: left content %s.",
-                           it->line, iPos, s.c_str());
-                     } else {
-                        s.erase((unsigned)iPos, it->end - it->start);
-                        erasedLen += it->end - it->start;
-                        _findResult.setLineText(it->line, s.c_str());
-                     }
-                  }
-               }
-               //_findResult.doStyle(it->line);
+               DBG0("doSearch() line is already in search result");
             }
          }
       } else {
          _findResult.removeUnusedResultLines(iResult.getPatId(), oldResult, result);
       }
+      if (_FindProcessCancelled) {
+         DBG1("doSearch(_FindProcessCancelled) cancelled at pattern %d", iPatIndex );
+         break;
+      }
+      if(_findDlg.getPleaseWaitCanceled()) {
+         DBG1("doSearch(APN_MSG_CANCEL_FIND) cancelled at pattern %d", iPatIndex );
+         break;
+      }
+
       _findResult.updateDockingDlg();
 
       // we could store the the search range to the result too so that we  
       //    later can check whether update of search is required when text
       //    becomes appended
-
    } // for patterns
+   _findDlg.activatePleaseWait(false);
    return bRes;
 }
 
 teOnEnterAction AnalysePlugin::getOnEnterAction() const {
    return _configDlg.getOnEnterAction();
+}
+int AnalysePlugin::getUseBookmark() const {
+   return _configDlg.getUseBookmark();
 }
 
 const generic_string& AnalysePlugin::getResultFontName() const {
@@ -498,8 +470,29 @@ void AnalysePlugin::beNotified(SCNotification *notification)
 {
    if(notification==0) return;
 
+   //DBG2("beNotified() 0x%04x \t %d", notification->nmhdr.code, notification->nmhdr.code);
+
    switch (notification->nmhdr.code) 
    {
+   case NPPN_FILEBEFORELOAD:
+      {
+         DBG0("beNotified() NPPN_FILEBEFORELOAD _bIgnoreBufferModify = true");
+         _bIgnoreBufferModify = true;
+         break;
+      }
+   case SCN_SAVEPOINTLEFT:DBG0("beNotified() SCN_SAVEPOINTLEFT");break;
+   case SCN_SAVEPOINTREACHED:DBG0("beNotified() SCN_SAVEPOINTREACHED");break;
+   case NPPN_FILEBEFOREOPEN:DBG0("beNotified() NPPN_FILEBEFOREOPEN");break;
+   case NPPN_FILEOPENED:DBG0("beNotified() NPPN_FILEOPENED");break;
+   case NPPN_BUFFERACTIVATED:DBG0("beNotified() NPPN_BUFFERACTIVATED");break;
+   case SCN_UPDATEUI:
+      {
+         if(_bIgnoreBufferModify) {
+            DBG0("beNotified() SCN_UPDATEUI _bIgnoreBufferModify = false");
+            _bIgnoreBufferModify = false;
+         }
+         break;
+      }
 #if 1 
       // diese nachricht ist hier nicht angekommen trotz
       //::SendMessage(hwnd, SCI_SETLEXER, SCLEX_CONTAINER , 0 );
@@ -518,6 +511,45 @@ void AnalysePlugin::beNotified(SCNotification *notification)
       }
       break;
 #endif // 0
+   case SCN_MODIFIED:
+      {
+         if((notification->modificationType & (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT))!= 0) {
+            if (notification->length < 100) {
+            DBG4("AnalysePlugin: SCN_MODIFIED(text) linesAdded %d, position %d, length %d, text '%s'",
+                  notification->linesAdded,
+                  notification->position,
+                  notification->length,
+                  notification->text);
+            } else {
+            DBG3("AnalysePlugin: SCN_MODIFIED(text) linesAdded %d, position %d, length %d, text >100 chars",
+                  notification->linesAdded,
+                  notification->position,
+                  notification->length);
+            }
+            if (!_bIgnoreBufferModify && _findDlg.isVisible() && _configDlg.getOnAutoUpdate()) {
+               generic_string currentfile;
+               if(bCheckLastFileNameSame(currentfile)){
+                  // set the modification flag which will become activated after timer has elapsed
+                  DBG0("AnalysePlugin: SCN_MODIFIED(text) setting SetModified()");
+                  _findDlg.SetModified();
+               } else {
+                  char name[MAX_PATH];
+#ifdef UNICODE
+                  wcstombs(name, currentfile.c_str(),MAX_PATH);
+#else
+                  strcpy(name, currentfile.c_str());
+#endif
+                  DBG1("AnalysePlugin: SCN_MODIFIED(text) for different file %s", name);
+               }
+            }
+         }
+         break;
+      }
+   case NPPN_READONLYCHANGED:
+      {
+         DBG0("AnalysePlugin: NPPN_READONLYCHANGED");
+         break;
+      }
 
    case NPPN_TBMODIFICATION:
       {
@@ -536,7 +568,7 @@ void AnalysePlugin::beNotified(SCNotification *notification)
 			::SendMessage(nppData._nppHandle, NPPM_SETMENUITEMCHECK, funcItem[SHOWFINDDLG]._cmdID, (LPARAM)gbPluginVisible);
          showFindDlg();
 //         _findResult.updateWindowData(_configDlg.getFontText(), _configDlg.getFontSize());
-         SetFocus(nppData._scintillaMainHandle);
+         ::SetFocus(nppData._scintillaMainHandle);
          break;
       }
    case NPPN_SHUTDOWN:
@@ -668,7 +700,7 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
    // when finding an entry add it to the result and set the result to not dirty 
    // initial range definition
    int startRange = 0; // from very begin
-   int endRange = (int)execute(scnMainHandle, SCI_GETLENGTH);
+   int endRange = (int)execute(scnActiveHandle, SCI_GETLENGTH);
    if (endRange < 1) {
       DBG0("doFindPattern() don't search: document is empty.");
       // nothing to do because that means the document is empty
@@ -690,9 +722,9 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
    flags |= pattern.getIsWholeWord()?SCFIND_WHOLEWORD:0;
 
    //Initial range for searching
-   execute(scnMainHandle, SCI_SETTARGETSTART, startRange);
-   execute(scnMainHandle, SCI_SETTARGETEND, endRange);
-   execute(scnMainHandle, SCI_SETSEARCHFLAGS, flags);
+   execute(scnActiveHandle, SCI_SETTARGETSTART, startRange);
+   execute(scnActiveHandle, SCI_SETTARGETEND, endRange);
+   execute(scnActiveHandle, SCI_SETSEARCHFLAGS, flags);
    DBG2("doFindPattern() initial tstart %d, tend %d.", startRange, endRange);
 
 
@@ -703,25 +735,33 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
    if(text.length()==0) {
       // empty string is found "every where" so we return directly with 0 
       DBG0("doFindPattern() don't search: empty search string.");
-      return 0;
+      result.setDirty(false); // once through we mark the list as ready
+      return nbProcessed;
    }
 #ifdef UNICODE
 	WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
-	unsigned int cp = (unsigned int)execute(scnMainHandle, SCI_GETCODEPAGE); 
+	unsigned int cp = (unsigned int)execute(scnActiveHandle, SCI_GETCODEPAGE); 
 	const char *text2FindA = wmc->wchar2char(text.c_str(), cp);
 	size_t text2FindALen = strlen(text2FindA);
-	targetStart = execute(scnMainHandle, SCI_SEARCHINTARGET, 
+	targetStart = execute(scnActiveHandle, SCI_SEARCHINTARGET, 
       (WPARAM)text2FindALen, 
       (LPARAM)text2FindA);
 #else
-   targetStart = (int)execute(scnMainHandle, SCI_SEARCHINTARGET, 
+   targetStart = (int)execute(scnActiveHandle, SCI_SEARCHINTARGET, 
       (WPARAM)text.size(), 
       (LPARAM)text.c_str());
 #endif
    while (targetStart != -1) // something has been found
-   {
-      targetStart = (int)execute(scnMainHandle, SCI_GETTARGETSTART);
-      targetEnd = (int)execute(scnMainHandle, SCI_GETTARGETEND);
+   {	
+      if(_findDlg.getPleaseWaitCanceled()) {
+         // please wait dialog indicates stopping
+         DBG1("doFindPattern() cancelled! Return with %d results",nbProcessed);
+         _FindProcessCancelled = true;
+         return nbProcessed;
+      }
+
+      targetStart = (int)execute(scnActiveHandle, SCI_GETTARGETSTART);
+      targetEnd = (int)execute(scnActiveHandle, SCI_GETTARGETEND);
       if (targetEnd > endRange) {	
          // we found a result but outside our range, therefore we do not process it
          // in fact that should not happen, because we set the range before
@@ -729,8 +769,8 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
       }
       int foundTextLen = targetEnd - targetStart;
 
-      int lineNumberStart = (int)execute(scnMainHandle, SCI_LINEFROMPOSITION, targetStart);
-      int lineNumberEnd = (int)execute(scnMainHandle, SCI_LINEFROMPOSITION, targetEnd);
+      int lineNumberStart = (int)execute(scnActiveHandle, SCI_LINEFROMPOSITION, targetStart);
+      int lineNumberEnd = (int)execute(scnActiveHandle, SCI_LINEFROMPOSITION, targetEnd);
       int lineCount = lineNumberEnd - lineNumberStart;
       int thisLineIndex = 0;
       while (thisLineIndex <= lineCount) {
@@ -739,18 +779,18 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
          ++thisLineIndex;
       }
       startRange = targetStart + foundTextLen ;	//search from result onwards
-      execute(scnMainHandle, SCI_SETTARGETSTART, startRange);
+      execute(scnActiveHandle, SCI_SETTARGETSTART, startRange);
       // end needs to be set because search did use it to signal found selection
-      execute(scnMainHandle, SCI_SETTARGETEND, endRange);
+      execute(scnActiveHandle, SCI_SETTARGETEND, endRange);
       //DBG2("doFindPattern() tstart %d, tend %d.", startRange, endRange);
       nbProcessed++;
       // do next search
 #ifdef UNICODE
-	   targetStart = execute(scnMainHandle, SCI_SEARCHINTARGET, 
+	   targetStart = execute(scnActiveHandle, SCI_SEARCHINTARGET, 
          (WPARAM)text2FindALen, 
          (LPARAM)text2FindA);
 #else
-      targetStart = (int)execute(scnMainHandle, SCI_SEARCHINTARGET, 
+      targetStart = (int)execute(scnActiveHandle, SCI_SEARCHINTARGET, 
          (WPARAM)text.size(), 
          (LPARAM)text.c_str());
 #endif
@@ -769,7 +809,7 @@ void AnalysePlugin::doStyleFormating(HWND hCurrentEditView, int startPos, int en
    // get the result list, including all positions 
    // get the pattern list including all the styles
    // apply to all positions in the given area the correct pattern
-   ::SendMessage(hCurrentEditView, SCI_STARTSTYLING, 0, STYLE_MAX ); //(int pos, int mask)
+   ::SendMessage(hCurrentEditView, SCI_STARTSTYLING, 0, MY_STYLE_MASK ); //(int pos, int mask)
    ::SendMessage(hCurrentEditView, SCI_SETSTYLING, 100, 10);//foundTextLen, fs
 
 }
@@ -868,9 +908,7 @@ void AnalysePlugin::showFindDlg ()
          //::GetWindowRect(_findDlg.getHSelf(), &rect);
          //::MoveWindow(_findDlg.getHSelf(), 0, 0, 100, 100, true);
          ::SendMessage(nppData._nppHandle, NPPM_DMMREGASDCKDLG, 0, (LPARAM)&data);
-         _findResult.initEdit(); // here findresult first time exists
          DBG0("showFindDlg() result window initEdit()");
-         _findResult.updateWindowData(_configDlg.getFontText(), _configDlg.getFontSize());
          // set the diag 
          _findDlg.setSearchHistory(mSearchHistory.c_str());
          _findDlg.setCommentHistory(mCommentHistory.c_str());
@@ -878,6 +916,8 @@ void AnalysePlugin::showFindDlg ()
          _findDlg.setDefaultOptions(mDefaultOptions.c_str());
          // afterwards transfer the data to the config dialog
          _configDlg.setDialogData(_findDlg.getDefaultPattern());
+         _findResult.initEdit(_findDlg.getDefaultPattern()); // here findresult first time exists
+         _findResult.updateWindowData(_configDlg.getFontText(), _configDlg.getFontSize());
       }
 
       // Always show, unless npp is not ready yet

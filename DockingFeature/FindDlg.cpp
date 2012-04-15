@@ -20,6 +20,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
 #include "stdafx.h"
 #include "precompiledHeaders.h"
+#include "resource.h"
 
 #include "FindDlg.h"
 #include <vector>
@@ -34,9 +35,59 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include <commctrl.h>// For ListView control APIs
 #include <commdlg.h>// For fileopen dialog.
 
+// vars for deferred research
+#define IDT_ANALYSEPLG_TIMER 9882
+int FindDlg::_ModifiedMode = 0;
+HWND FindDlg::_ModifiedHwnd = 0;
+
 void FindDlg::setFileName(const TCHAR* str) {
    (void)generic_strncpy(szFile, str, COUNTCHAR(szFile));
    szFile[COUNTCHAR(szFile)-1]=0;
+}
+void FindDlg::doSearch() 
+{
+   DBG0("IDC_DO_SEARCH");
+   // make sure last edited config values are tsored into the patterns
+   if(mTableView.getRowCount() < 1) {
+      ::SendMessage(getHSelf(), WM_COMMAND, IDC_BUT_UPD, (LPARAM)0);
+   } else {
+      switch(_pParent->getOnEnterAction()) 
+      {
+      case enOnEntUpdate: 
+         if (!isPatternEqual()) {
+            ::SendMessage(getHSelf(), WM_COMMAND, IDC_BUT_UPD, (LPARAM)0);
+         }
+         break;
+      case enOnEntAdd:
+         if (!isSearchTextEqual()) {
+            ::SendMessage(getHSelf(), WM_COMMAND, IDC_BUT_ADD, (LPARAM)0);
+         } else if (!isPatternEqual()) {
+            ::SendMessage(getHSelf(), WM_COMMAND, IDC_BUT_UPD, (LPARAM)0);
+         }
+         break;
+      default: // enOnEntNoAction
+         {
+            if(mTableView.getRowCount() == 1) {
+               ::SendMessage(getHSelf(), WM_COMMAND, IDC_BUT_UPD, (LPARAM)0);
+            } else {
+               // to avoid errors in clicking the search button w/o update
+               // we reset the dialog with what ever has been selected
+               doCopyLineToDialog();
+            }
+         }
+      };
+   }
+   // start search
+   _pParent->doSearch(mResultList);
+   // set the modification notification for this window if not already on
+   int mode = (int)_pParent->execute(scnActiveHandle,SCI_GETMODEVENTMASK);
+   if ((mode & (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT)) != (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT)) {
+      DBG1("FindDlg: editor notification mode was not ok: mode=%d add insert text and delete text", mode);
+      mode |= (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT);
+      _pParent->execute(scnActiveHandle,SCI_SETMODEVENTMASK, mode);
+   }
+   // finally set focus to editor window
+   ::SetFocus(_pParent->getCurrentHScintilla(scnActiveHandle));
 }
 
 BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
@@ -67,47 +118,36 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
       {
          switch (wParam)
          {
+         case IDC_DO_DISABLE_ALL:
+            {
+               setAllDoSearch(false);               
+               return TRUE;
+            }
+         case IDC_DO_ENABLE_ALL:
+            {
+               setAllDoSearch(true);               
+               return TRUE;
+            }
+         case IDC_DO_TOGGLE_SEARCH:
+            {
+               doToggleToSearch();
+               return TRUE;
+            }
          case IDC_DO_CLOSE : // Close
             {
                DBG0("IDC_DO_CLOSE");
                display(false);
                return FALSE;  // message shall go to all further clients too
             }
+         case IDC_DO_RESEARCH :
+            {
+               setAllDirty();
+               doSearch();
+               return TRUE;
+            }
          case IDC_DO_SEARCH :
             {
-               DBG0("IDC_DO_SEARCH");
-               // make sure last edited config values are tsored into the patterns
-               if(mTableView.getRowCount() < 1) {
-                  ::SendMessage(getHSelf(), WM_COMMAND, IDC_BUT_UPD, (LPARAM)0);
-               } else {
-                  switch(_pParent->getOnEnterAction()) 
-                  {
-                  case enOnEntUpdate: 
-                     if (!isPatternEqual()) {
-                        ::SendMessage(getHSelf(), WM_COMMAND, IDC_BUT_UPD, (LPARAM)0);
-                     }
-                     break;
-                  case enOnEntAdd:
-                     if (!isSearchTextEqual()) {
-                        ::SendMessage(getHSelf(), WM_COMMAND, IDC_BUT_ADD, (LPARAM)0);
-                     } else if (!isPatternEqual()) {
-                        ::SendMessage(getHSelf(), WM_COMMAND, IDC_BUT_UPD, (LPARAM)0);
-                     }
-                     break;
-                  default: // enOnEntNoAction
-                     {
-                        if(mTableView.getRowCount() == 1) {
-                           ::SendMessage(getHSelf(), WM_COMMAND, IDC_BUT_UPD, (LPARAM)0);
-                        } else {
-                           // to avoid errors in clicking the search button w/o update
-                           // we reset the dialog with what ever has been selected
-                           doCopyLineToDialog();
-                        }
-                     }
-                  };
-               }
-               // start search
-               _pParent->doSearch(mResultList);
+               doSearch();
                return TRUE;
             }
          case IDC_BUT_LOAD:
@@ -117,6 +157,7 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
                // instantiate xml doc
                if(doLoadConfigFile()) {
                   refillTable();
+                  _pParent->updateSearchPatterns();
                } 
                return TRUE;
             }
@@ -365,6 +406,7 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
          //}
          break;
       }
+
    default :
       return DockingDlgInterface::run_dlgProc(message, wParam, lParam);
    } // switch (message)
@@ -464,19 +506,31 @@ BOOL FindDlg::notify(SCNotification *notification)
 
    switch (notification->nmhdr.code) 
    {
-      //case SCN_MARGINCLICK: 
-      //   {   
-      //      DBG0("SCN_MARGINCLICK");
-      //      if (notification->margin == ScintillaEditView::_SC_MARGE_FOLDER)
-      //      {
-      //         _scintView.marginClick(notification->position, notification->modifiers);
-      //      }
-      //      break;
-      //   }
+   case NM_RCLICK:
+      {
+         LPNMITEMACTIVATE pItem = (LPNMITEMACTIVATE) notification;
+         DBG1("NM_RCLICK row %d", pItem->iItem);
+         POINT pt = pItem->ptAction;
+         ::ClientToScreen(mTableView.getHSelf(), &pt);
+         ContextMenu contextmenu;
+         std::vector<MenuItemUnit> tmp;
+         if(pItem->iItem) {
+            tmp.push_back(MenuItemUnit(IDC_DO_TOGGLE_SEARCH, TEXT("Toggle this")));
+            tmp.push_back(MenuItemUnit(IDC_BUT_DEL, TEXT("Delete this")));
+            tmp.push_back(MenuItemUnit(IDC_BUT_MOVE_UP, TEXT("Move this up")));
+            tmp.push_back(MenuItemUnit(IDC_BUT_MOVE_DOWN, TEXT("Move this down")));
+         }
+         tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
+         tmp.push_back(MenuItemUnit(IDC_DO_ENABLE_ALL, TEXT("Enable All")));
+         tmp.push_back(MenuItemUnit(IDC_DO_DISABLE_ALL, TEXT("Disable All")));
+         tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
+         tmp.push_back(MenuItemUnit(IDC_BUT_CLEAR, TEXT("Clear All")));
 
-      //case SCN_DOUBLECLICK :
-      //   // moved to AnalysePlugin
-      //   break;
+         contextmenu.create(_hSelf, tmp);
+         contextmenu.display(pt);
+         ret = false; // we want rclick to still continue with selection
+         break;
+      }
    case NM_CLICK:
       {
          LPNMITEMACTIVATE pItem = (LPNMITEMACTIVATE) notification;
@@ -664,9 +718,10 @@ void FindDlg::setCmbHistory(tclComboBoxCtrl& thisCmb, const TCHAR* hist, int cha
                ++pcEsc;
             }while(*pcEsc);
             --pcEnd;
-            ++pc;
+           // ++pc;
+         } else {
+            *pc = 1;
          }
-         *pc = 1;
       }
       ++pc;
    }
@@ -937,7 +992,7 @@ void FindDlg::create(tTbData * data, bool isRTL){
    //data->rcFloat.right += 300;
    // TODO find a solution for being taler as default
    // store for live time
-   _data = data;
+//   _data = data;
    HWND hList = ::GetDlgItem(_hSelf, IDC_LIST_CONF);
    mTableView.setListViewHandle(hList);
    mTableView.create();
@@ -948,14 +1003,13 @@ void FindDlg::create(tTbData * data, bool isRTL){
 #ifdef RESULT_COLORING
    //mCmbColor.init(::GetDlgItem(_hSelf, IDC_CMB_COLOR));
 #endif
-   tclPattern p(mDefPat); // for default values
-   setDialogData(p);
+   setDialogData(mDefPat);
    _pFgColour = new ColourPicker2;
    _pBgColour = new ColourPicker2;
    _pFgColour->init(_hInst, _hSelf);
    _pBgColour->init(_hInst, _hSelf);
-   _pFgColour->setColour(p.getColorNum());
-   _pBgColour->setColour(p.getBgColorNum());
+   _pFgColour->setColour(mDefPat.getColorNum());
+   _pBgColour->setColour(mDefPat.getBgColorNum());
 
    POINT p1, p2;
 
@@ -969,6 +1023,9 @@ void FindDlg::create(tTbData * data, bool isRTL){
    ::MoveWindow((HWND)_pBgColour->getHSelf(), p2.x, p2.y, 12, 12, TRUE);
    _pFgColour->display();
    _pBgColour->display();
+   
+   _pPlsWait = new PleaseWaitDlg(_hSelf);
+
 }
 void FindDlg::setDialogData(const tclPattern& p) {
    // fill combos
@@ -1004,3 +1061,84 @@ void FindDlg::display(bool toShow) const {
    ::EnableWindow(_pBgColour->getHSelf(), toShow);
    _pParent->visibleChanged(toShow);
 }
+
+void FindDlg::setAllDoSearch(bool bOn) {
+   
+   tclPatternList::iterator iPatt = refPatternList().begin();
+   for (; iPatt != refPatternList().end(); ++iPatt) {
+      iPatt.refPattern().setDoSearch(bOn);
+   }      
+   mTableView.refillTable(refPatternList());
+   doCopyLineToDialog();
+   updateDockingDlg();
+}
+
+void FindDlg::SetModified(bool bModified) {
+   if (bModified) {
+      if ( mResultList.size() ) {
+         if (_ModifiedMode == 0) {
+            _ModifiedHwnd = getHSelf();
+            if (_ModifiedHwnd){
+               _ModifiedMode = 1;
+               SetTimer(_ModifiedHwnd,IDT_ANALYSEPLG_TIMER, 500, (TIMERPROC) &FindDlg::MyTimerProc);
+               DBG0("FindDlg::SetModified started");
+            } else {
+               DBG0("FindDlg::SetModified started");
+            }
+         } else if(_ModifiedMode == 1) {
+            // set for wating
+            DBG0("FindDlg::SetModified wait");
+            _ModifiedMode = 2;
+         } else {
+            DBG0("FindDlg::SetModified nop");
+         }
+      } else {
+         DBG0("FindDlg::SetModified while no search data");
+      }
+   } else {
+      DBG0("FindDlg::SetModified kill timer");
+      KillTimer(_ModifiedHwnd,IDT_ANALYSEPLG_TIMER);
+   } 
+}
+
+void CALLBACK FindDlg::MyTimerProc( 
+    HWND hwnd,        // handle to window for timer messages 
+    UINT message,     // WM_TIMER message 
+    UINT idTimer,     // timer identifier 
+    DWORD dwTime)     // current system time 
+{ 
+   DBG2("MyTimerProc() _ModifiedMode=%d, correct ID? %s",_ModifiedMode,(idTimer == IDT_ANALYSEPLG_TIMER)?"YES":"NO");
+   if(idTimer == IDT_ANALYSEPLG_TIMER) {
+      if ( _ModifiedMode == 1) {
+         DBG0("MyTimerProc activate search");
+         ::PostMessage(_ModifiedHwnd, WM_COMMAND, IDC_DO_RESEARCH, (LPARAM)0);
+         _ModifiedMode = 0;
+         KillTimer(_ModifiedHwnd,IDT_ANALYSEPLG_TIMER);
+      } else if (_ModifiedMode == 2) {
+         _ModifiedMode = 1;
+      }
+   }
+} 
+
+void FindDlg::activatePleaseWait(bool isEnable) {
+   if(_pPlsWait) {
+      _pPlsWait->activate(isEnable);
+   }
+}
+void FindDlg::setPleaseWaitRange(int iMin, int iMax) {
+   if(_pPlsWait) {
+      _pPlsWait->setProgressRange(iMin, iMax);
+   }
+}
+void FindDlg::setPleaseWaitProgress(int iCurr) {
+   if(_pPlsWait) {
+      _pPlsWait->setProgressPos(iCurr);
+   }
+}
+bool FindDlg::getPleaseWaitCanceled() {
+   if(_pPlsWait) {
+      return _pPlsWait->getCanceled();
+   }
+   return false;
+}
+

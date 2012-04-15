@@ -85,14 +85,14 @@ public :
          _CmbSearchText.init(::GetDlgItem(_hSelf, IDC_CMB_SEARCH_TEXT));
          _CmbSearchType.init(::GetDlgItem(_hSelf, IDC_CMB_SEARCH_TYPE));
          _CmbSearchDir.init(::GetDlgItem(_hSelf, IDC_CMB_SEARCH_DIR));
-         tclPattern p; // for default values
+         
          // fill combos
-         _CmbSearchType.addInitialText2Combo(p.getDefSearchTypeListSize(), p.getDefSearchTypeList(), false);
+         _CmbSearchType.addInitialText2Combo(mDefPat.getDefSearchTypeListSize(), mDefPat.getDefSearchTypeList(), false);
          // set to default values
-         _CmbSearchType.addText2Combo(p.getSearchTypeStr().c_str(), false); 
-         _CmbSearchText.addText2Combo(p.getSearchText().c_str(), false); 
-         ::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_SETCHECK, p.getIsWholeWord()?BST_CHECKED:BST_UNCHECKED, 0);
-         ::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_SETCHECK, p.getIsMatchCase()?BST_CHECKED:BST_UNCHECKED, 0);
+         _CmbSearchType.addText2Combo(mDefPat.getSearchTypeStr().c_str(), false); 
+         //_CmbSearchText.addText2Combo(mDefPat.getSearchText().c_str(), false); 
+         ::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_SETCHECK, mDefPat.getIsWholeWord()?BST_CHECKED:BST_UNCHECKED, 0);
+         ::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_SETCHECK, mDefPat.getIsMatchCase()?BST_CHECKED:BST_UNCHECKED, 0);
          ::SendDlgItemMessage(_hSelf, IDC_RADIO_DIRDOWN , BM_SETCHECK, _bSearchDown?BST_CHECKED:BST_UNCHECKED, 0);
          ::SendDlgItemMessage(_hSelf, IDC_CHK_WRAP , BM_SETCHECK, _bDoWrap?BST_CHECKED:BST_UNCHECKED, 0);
          updatePatternList();
@@ -283,6 +283,10 @@ public :
       ::MessageBox(_hSelf, msg, TEXT("Count Instances"), MB_OK);
    }
 
+   void setdefaultPattern(const tclPattern& p) {
+      mDefPat = p;
+   }
+
 protected :
 //	/* Subclassing combo boxes */
 //	static LRESULT CALLBACK wndDefaultProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) {
@@ -306,16 +310,35 @@ protected :
    //   DBG1("run_dlgProc(HWND hwnd) message 0x%04x", Message);
    //   return run_dlgProc(Message, wParam, lParam);
    //}
-
    virtual BOOL CALLBACK run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
    {
       //DBG1("run_dlgProc() message 0x%04x", Message);
 	   switch (Message) 
 	   {
-     //      case WM_INITDIALOG :
-		   //{
-			  // return TRUE;
-		   //}
+         case WM_INITDIALOG :
+		   {
+            // set button pos
+            RECT rc;
+            getClientRect(rc);
+            mpPatt = getLeftTopPoint(::GetDlgItem(_hSelf, IDC_LST_PATTERNS));
+            RECT rcPatt;
+            ::GetClientRect(::GetDlgItem(_hSelf, IDC_LST_PATTERNS), &rcPatt);
+            mpPattDist.y = rc.bottom - rcPatt.bottom - mpPatt.y - 4; // 4 for border
+            mpPattDist.x = rc.right - rcPatt.right- mpPatt.x - 4; // 4 for border
+			   return FALSE;
+		   }
+         case WM_SIZE:
+         {
+            RECT rcDiag;
+		      getClientRect(rcDiag);
+
+            HWND hList = ::GetDlgItem(_hSelf, IDC_LST_PATTERNS);
+            if((rcDiag.right-mpPatt.x-mpPattDist.x) > 0) {
+               ::MoveWindow(hList, mpPatt.x, mpPatt.y, rcDiag.right-mpPatt.x-mpPattDist.x, rcDiag.bottom-mpPatt.y-mpPattDist.y, FALSE);
+            }
+            // now repaint
+            redraw();
+         }
 		   case WM_COMMAND : 
 		   {
 			   switch (wParam)
@@ -380,6 +403,9 @@ protected :
    bool _bDoWrap;
    HWND mhlvPatterns;
    tclPatternList mPatterns; // used for the find window
+   tclPattern mDefPat;
+   POINT mpPatt; // original posisition
+   POINT mpPattDist; // right / bottom boundary for patterns
 };
 
 #endif //TCLFINDRESULTSEARCHDLG_H

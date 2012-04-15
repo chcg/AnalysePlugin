@@ -50,7 +50,7 @@ public :
 			destroy();
 		}
 	};
-	virtual void create(int dialogID, bool isRTL = false);
+	virtual void create(int dialogID, bool isRTL = false, bool msgDestParent = true);
 
     virtual bool isCreated() const {
 		return (_hSelf != NULL);
@@ -68,6 +68,10 @@ public :
 		p.y = rc.top;
 		::ScreenToClient(_hSelf, &p);
 		return p;
+	};
+
+	bool isCheckedOrNot(int checkControlID) const {
+		return (BST_CHECKED == ::SendMessage(::GetDlgItem(_hSelf, checkControlID), BM_GETCHECK, 0, 0));
 	};
 
     void destroy() {

@@ -44,7 +44,22 @@ search result string cache
 #else
 #define filestat _stat
 #endif
-
+const int tclFindResultDlg::transStyleId[MY_STYLE_COUNT] = {
+        1,  2,  3,  4,  5,  6,  7,  8,  9, // 0 is for default color
+   10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+   20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+   30, 31,                                 // scintilla defined numbers
+   40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+   50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
+   60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+   70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
+   80, 81, 82, 83, 84, 85, 86, 87, 88, 89,
+   90, 91, 92, 93, 94, 95, 96, 97, 98, 99,
+  100,101,102,103,104,105,106,107,108,109,
+  110,111,112,113,114,115,116,117,118,119,
+  120,121,122,123,124,125,126,127
+};
+   
 tlpLinePosInfo tclFindResultDoc::mDefLineInfo = tlpLinePosInfo();
 
 tclFindResultDlg::tclFindResultDlg() 
@@ -54,6 +69,7 @@ tclFindResultDlg::tclFindResultDlg()
    , miLineNumColSize(0)
    , miLineHeadSize(0)
    , mFontSize(8)
+   , mUseBookmark(1)
 {};
 
 tclFindResultDlg::~tclFindResultDlg() {
@@ -77,7 +93,7 @@ int tclFindResultDlg::getLineNumColSize() const {
    return miLineNumColSize;
 }
 
-void tclFindResultDlg::initEdit() {
+void tclFindResultDlg::initEdit(const tclPattern& defaultPattern) {
    _scintView.init(_hInst, _hSelf);
    _scintView.display();
 	setFinderReadOnly(true);
@@ -87,7 +103,9 @@ void tclFindResultDlg::initEdit() {
 	//_scintView.execute(SCI_SETCODEPAGE, SC_CP_UTF8);
    // let window parent (this class) do the styling
    _scintView.execute(SCI_SETLEXER,SCLEX_CONTAINER);
+   _scintView.execute(SCI_SETSTYLEBITS, MY_STYLE_BITS); // maximum possible
    mFindResultSearchDlg.init(_hInst, _hParent, &_scintView);
+   mFindResultSearchDlg.setdefaultPattern(defaultPattern);
    mFindResultSearchDlg.create(IDD_FIND_RES_DLG_SEARCH);
    // TODO _scintView.showMargin(ScintillaSearchView::_SC_MARGE_LINENUMBER);
 }
@@ -109,8 +127,9 @@ void tclFindResultDlg::removeUnusedResultLines(tPatId pattId, const tclResult& o
          if(l.posInfos().size() == 0) {
             int resultLine = mFindResults.getLineNoAtRes(thisLine);
             if(resultLine >= 0) {
-               _pParent->execute(scnMainHandle, SCI_MARKERDELETE, thisLine, MARK_BOOKMARK);
-               
+               if(mUseBookmark){
+                  _pParent->execute(scnActiveHandle, SCI_MARKERDELETE, thisLine, MARK_BOOKMARK);
+               }
                int startL = (int)_scintView.execute(SCI_POSITIONFROMLINE, resultLine);
                int endL = (int)_scintView.execute(SCI_GETLINEENDPOSITION, resultLine);
                if (endL+2 <= _scintView.execute(SCI_GETLENGTH)) {
@@ -185,7 +204,7 @@ void tclFindResultDlg::create(tTbData * data, bool isRTL)
    data->uMask	= (DWS_DF_CONT_BOTTOM | DWS_PARAMSALL);
 
    // store for live time
-   _data = data;
+//   _data = data;
 }
 
 #ifdef FEATURE_HEADLINE
@@ -232,7 +251,9 @@ void tclFindResultDlg::setLineText(int iFoundLine, const std::string& text) {
       DBG3("setLineText() iFoundLine: %d resLine: %d text: \"%s\"", iFoundLine, resLine, s.c_str());
       if(bNewLine) {
          // adding a newlin into result -> set bookmark in main window
-         _pParent->execute(scnMainHandle, SCI_MARKERADD, iFoundLine, MARK_BOOKMARK);
+         if(mUseBookmark) {
+            _pParent->execute(scnActiveHandle, SCI_MARKERADD, iFoundLine, MARK_BOOKMARK);
+         }
          _scintView.execute(SCI_INSERTTEXT, startPos, (LPARAM)s.c_str());
          ++_lineCounter;
       } else {
@@ -285,8 +306,8 @@ void tclFindResultDlg::setPatternFonts() {
    for(unsigned iPat = 0; iPat < mPatStyleList.size(); ++iPat) 
    {
       const tclPattern& rPat = mPatStyleList.getPattern(mPatStyleList.getPatternId(iPat));
-      _scintView.execute(SCI_STYLESETFONT, iPat+1, (LPARAM)fontName);
-      _scintView.execute(SCI_STYLESETSIZE, iPat+1, (LPARAM)mFontSize);
+      _scintView.execute(SCI_STYLESETFONT, transStyleId[iPat], (LPARAM)fontName);
+      _scintView.execute(SCI_STYLESETSIZE, transStyleId[iPat], (LPARAM)mFontSize);
    } // for 
 }
 
@@ -302,7 +323,9 @@ void tclFindResultDlg::clear()
    //_foundInfos.clear(); 
    mFindResults.clear();
    setFinderReadOnly(false);
-   _pParent->execute(scnMainHandle, SCI_MARKERDELETEALL, MARK_BOOKMARK);
+   if(mUseBookmark) {
+      _pParent->execute(scnActiveHandle, SCI_MARKERDELETEALL, MARK_BOOKMARK);
+   }
    _scintView.execute(SCI_CLEARALL);
    setFinderReadOnly(true);
    _lineCounter = 0;
@@ -320,7 +343,7 @@ void tclFindResultDlg::setCurrentMarkedLine(int line)
 {  // we set the current mark here
    _markedLine = line;
    if(line != -1) {
-      _pParent->execute(scnMainHandle, SCI_GOTOLINE, _markedLine);
+      _pParent->execute(scnActiveHandle, SCI_GOTOLINE, _markedLine);
    }
 }
 
@@ -390,15 +413,16 @@ void tclFindResultDlg::setPatternStyles(const tclPatternList& list)
    // copy styles into result window cache because while painting
    // user may have removed a pattern already
    for(unsigned iPat = 0; iPat < mPatStyleList.size(); ++iPat) 
-   {
+   {  
+      int i = iPat < MY_STYLE_COUNT ? iPat : FNDRESDLG_DEFAULT_STYLE;
       const tclPattern& rPat = mPatStyleList.getPattern(mPatStyleList.getPatternId(iPat));
-      _scintView.execute(SCI_STYLESETVISIBLE, iPat+1, !rPat.getIsHideText());
-      _scintView.execute(SCI_STYLESETBOLD, iPat+1, rPat.getIsBold());
-      _scintView.execute(SCI_STYLESETITALIC, iPat+1, rPat.getIsItalic());
-      _scintView.execute(SCI_STYLESETUNDERLINE, iPat+1, rPat.getIsUnderlined());
-      _scintView.execute(SCI_STYLESETFORE, iPat+1, rPat.getColorNum());
-      _scintView.execute(SCI_STYLESETBACK, iPat+1, rPat.getBgColorNum());
-      _scintView.execute(SCI_STYLESETEOLFILLED, iPat+1, (rPat.getSelectionType()==tclPattern::line));
+      _scintView.execute(SCI_STYLESETVISIBLE, transStyleId[i], !rPat.getIsHideText());
+      _scintView.execute(SCI_STYLESETBOLD, transStyleId[i], rPat.getIsBold());
+      _scintView.execute(SCI_STYLESETITALIC, transStyleId[i], rPat.getIsItalic());
+      _scintView.execute(SCI_STYLESETUNDERLINE, transStyleId[i], rPat.getIsUnderlined());
+      _scintView.execute(SCI_STYLESETFORE, transStyleId[i], rPat.getColorNum());
+      _scintView.execute(SCI_STYLESETBACK, transStyleId[i], rPat.getBgColorNum());
+      _scintView.execute(SCI_STYLESETEOLFILLED, transStyleId[i], (rPat.getSelectionType()==tclPattern::line));
       rtfColTbl += RTF_COLTAG_RED;
       rtfColTbl += itoa(RTF_COL_R(rPat.getColorNum()),styleNum, 10);
       rtfColTbl += RTF_COLTAG_GREEN;
@@ -443,6 +467,7 @@ BOOL CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM 
    {
    case IDC_DO_CHECK_CONF: 
       {
+         mUseBookmark = _pParent->getUseBookmark();
          updateWindowData(_pParent->getResultFontName(), _pParent->getResultFontSize());
          break;
       }
@@ -529,9 +554,9 @@ scintilla win with the corresponding style id converted from the mPatStyleList
 void tclFindResultDlg::setStyle(tPatId iPatternId, int iBeginPos, int iLength)
 {
    unsigned u = mPatStyleList.getPatternIndex(iPatternId);
-   u += 1; // shift by 1 to allow 0 being default style
+   u = transStyleId[u]; // shift by table lookup to avoid predefined default styles
    DBG4("setStyle() pattern %f style %d begin %d length %d", iPatternId, u, iBeginPos, iLength);
-   _scintView.execute(SCI_STARTSTYLING, iBeginPos, 0xFF);
+   _scintView.execute(SCI_STARTSTYLING, iBeginPos, MY_STYLE_MASK);
    _scintView.execute(SCI_SETSTYLING, iLength, u);
 }
 
@@ -542,7 +567,7 @@ scintilla win with the corresponding style id
 void tclFindResultDlg::setDefaultStyle(int iBeginPos, int iLength)
 {
    DBG2("setDefaultStyle() begin %d length %d", iBeginPos, iLength);
-   _scintView.execute(SCI_STARTSTYLING, iBeginPos, 0xFF);
+   _scintView.execute(SCI_STARTSTYLING, iBeginPos, MY_STYLE_MASK);
    _scintView.execute(SCI_SETSTYLING, iLength, FNDRESDLG_DEFAULT_STYLE);
 }
 
@@ -623,7 +648,7 @@ void tclFindResultDlg::doStyle(int startResultLineNo, int startStyleNeeded, int 
                tlsPosInfo::const_iterator iFoundPos = iPosInfo->second.begin();
                for(; iFoundPos != iPosInfo->second.end(); ++iFoundPos) {
                   int iPosInfoLength = (iFoundPos->end - iFoundPos->start);
-                  int iPosLineBegin = iFoundPos->start - (int)_pParent->execute(scnMainHandle,SCI_POSITIONFROMLINE,iFoundPos->line);
+                  int iPosLineBegin = iFoundPos->start - (int)_pParent->execute(scnActiveHandle,SCI_POSITIONFROMLINE,iFoundPos->line);
                   if((iPosInfoLength>0) && (iPosLineBegin>=0) &&
                      ((styleBegin+miLineHeadSize+iPosLineBegin) >= styleBegin) &&
                      (iPosInfoLength <= (endOfLine-styleBegin))) {
@@ -712,7 +737,7 @@ bool tclFindResultDlg::notify(SCNotification *notification)
             }
             const tlpLinePosInfo& lineInfo = mFindResults.getLineAtRes(resLineNo);
             int lineMain = (int)lineInfo.first;
-            int startMain = (int)_pParent->execute(scnMainHandle, SCI_POSITIONFROMLINE, lineMain, 0);
+            int startMain = (int)_pParent->execute(scnActiveHandle, SCI_POSITIONFROMLINE, lineMain, 0);
 
             //int cmd = NPPM_SWITCHTOFILE;//getMode()==FILES_IN_DIR?WM_DOOPEN:NPPM_SWITCHTOFILE;
             int iSuccess = (int)_pParent->execute(nppHandle, NPPM_SWITCHTOFILE, 0, (LPARAM)fullPath.c_str());
@@ -722,6 +747,8 @@ bool tclFindResultDlg::notify(SCNotification *notification)
                // try to open it
                if (iSuccess != 0) {
                   iSuccess = (int)_pParent->execute(nppHandle, NPPM_DOOPEN, 0, (LPARAM)fullPath.c_str());
+               } else {
+                  DBG0("notify(SCNotification) SCN_DOUBLECLICK filestat() didn't find the file");
                }
             }
             if(iSuccess == 0) {
