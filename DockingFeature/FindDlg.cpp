@@ -514,7 +514,7 @@ BOOL FindDlg::notify(SCNotification *notification)
          ::ClientToScreen(mTableView.getHSelf(), &pt);
          ContextMenu contextmenu;
          std::vector<MenuItemUnit> tmp;
-         if(pItem->iItem) {
+         if(pItem->iItem >= 0) {
             tmp.push_back(MenuItemUnit(IDC_DO_TOGGLE_SEARCH, TEXT("Toggle this")));
             tmp.push_back(MenuItemUnit(IDC_BUT_DEL, TEXT("Delete this")));
             tmp.push_back(MenuItemUnit(IDC_BUT_MOVE_UP, TEXT("Move this up")));
