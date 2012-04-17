@@ -194,7 +194,7 @@ void AnalysePlugin::loadSettings()
    ::GetPrivateProfileString(SECTIONNAME, KEYUSEBOOKMARK, TEXT("1"), tmp, COUNTCHAR(tmp), iniFilePath);
    _configDlg.setUseBookmark(generic_atoi(tmp));
    _findResult.setUseBookmark(generic_atoi(tmp));
-   ::GetPrivateProfileString(SECTIONNAME, KEYONAUTOUPDATE, TEXT("1"), tmp, COUNTCHAR(tmp), iniFilePath);
+   ::GetPrivateProfileString(SECTIONNAME, KEYONAUTOUPDATE, TEXT("0"), tmp, COUNTCHAR(tmp), iniFilePath);
    _configDlg.setOnAutoUpdate(generic_atoi(tmp));
    ::GetPrivateProfileString(SECTIONNAME, KEYONENTERACTION, TEXT("0"), tmp, COUNTCHAR(tmp), iniFilePath);
    _configDlg.setOnEnterAction((teOnEnterAction)generic_atoi(tmp));

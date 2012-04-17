@@ -54,7 +54,7 @@ public:
       , mbOkPressed(false) 
       ,_pFgColour(0)
       ,_pBgColour(0)
-      ,mOnAutoUpdate(1)
+      ,mOnAutoUpdate(0)
       ,mUseBookmark(1)
    {}
       //, mFontSize(8) {}
