@@ -174,7 +174,7 @@ generic_string tclComboBoxCtrl::getComboTextList(bool isUTF8) const {
          pc = s1.c_str() + pos+2;
       }
 
-      if(s.length()>0) {
+      if(s.length()>0 && s1.length()>0) {
          // if not the first put the delimiter
          s += L"|";
       }
