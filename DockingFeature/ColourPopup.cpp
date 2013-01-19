@@ -44,8 +44,7 @@ void ColourPopup::create(int dialogID)
 
    if (!_hSelf)
    {
-//      systemMessage(TEXT("ColourPopup"));
-      throw int(69623);
+		throw std::runtime_error("ColourPopup::create : CreateDialogParam() function return null");
    }
    Window::getClientRect(_rc);
    display();
@@ -121,7 +120,7 @@ BOOL CALLBACK ColourPopup::run_dlgProc(UINT message, WPARAM wParam, LPARAM lPara
       }
 
    case WM_CTLCOLORLISTBOX:
-      return (0 != CreateSolidBrush(GetSysColor(COLOR_3DFACE)));
+      return (LRESULT) CreateSolidBrush(GetSysColor(COLOR_3DFACE));
 
    case WM_DRAWITEM:
       {

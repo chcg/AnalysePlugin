@@ -118,9 +118,7 @@ public:
    int instertAfterRow();
    void removeRow(int row);
    void removeAll();
-   HWND getHSelf() {
-      return mhList;
-   }
+
 protected:
    static const tstPatternConfTab gPatternConfTab[TBLVIEW_COL_MAX];
 

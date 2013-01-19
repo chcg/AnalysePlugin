@@ -129,9 +129,16 @@ BOOL CALLBACK StaticDialog::dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPAR
 		default :
 		{
 			StaticDialog *pStaticDlg = reinterpret_cast<StaticDialog *>(::GetWindowLongPtr(hwnd, GWL_USERDATA));
-			if (!pStaticDlg)
+         if (!pStaticDlg) {
 				return FALSE;
-			return pStaticDlg->run_dlgProc(message, wParam, lParam);
+         }
+			BOOL lResult = pStaticDlg->run_dlgProc(message, wParam, lParam);
+         if (lResult!= 0){
+            // this function transfers the return value around dialogue proc using only bool
+            SetWindowLong(hwnd, DWL_MSGRESULT, lResult); 
+            return TRUE;
+         }
+         return lResult;
 		}
 	}
 }

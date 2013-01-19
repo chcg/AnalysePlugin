@@ -39,8 +39,7 @@ void ColourPicker2::init(HINSTANCE hInst, HWND parent)
       (LPVOID)0);
    if (!_hSelf)
    {
-//      systemMessage(TEXT("System Err"));
-      throw int(69691);
+		throw std::runtime_error("ColourPicker::init : CreateWindowEx() function return null");
    }
 
 #pragma warning (disable:4311 4312 4244)
@@ -49,6 +48,15 @@ void ColourPicker2::init(HINSTANCE hInst, HWND parent)
 #pragma warning (default:4311 4312 4244)
 }
 
+void ColourPicker2::destroy()
+{
+	if (_pColourPopup)
+	{
+		delete _pColourPopup;
+		_pColourPopup = NULL;
+	}
+	::DestroyWindow(_hSelf);
+}
 void ColourPicker2::drawBackground(HDC hDC)
 {
    RECT rc;

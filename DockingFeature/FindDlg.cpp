@@ -511,7 +511,7 @@ BOOL FindDlg::notify(SCNotification *notification)
          LPNMITEMACTIVATE pItem = (LPNMITEMACTIVATE) notification;
          DBG1("NM_RCLICK row %d", pItem->iItem);
          POINT pt = pItem->ptAction;
-         ::ClientToScreen(mTableView.getHSelf(), &pt);
+         ::ClientToScreen(mTableView.getListViewHandle(), &pt);
          ContextMenu contextmenu;
          std::vector<MenuItemUnit> tmp;
          if(pItem->iItem >= 0) {
@@ -584,24 +584,32 @@ BOOL FindDlg::notify(SCNotification *notification)
                //case CDIS_SHOWKEYBOARDCUES:cp="CDIS_SHOWKEYBOARDCUES";break;
                default:cp="default";break;
             };
+
             switch(pItem->nmcd.dwDrawStage) {
                case CDDS_PREPAINT  :cp1="CDDS_PREPAINT  "; 
-                  ret = CDRF_NOTIFYSUBITEMDRAW; 
+                  ret = (CDRF_NOTIFYITEMDRAW); 
                   break;
                case CDDS_POSTPAINT :cp1="CDDS_POSTPAINT "; break;
                case CDDS_PREERASE  :cp1="CDDS_PREERASE  "; break;
                case CDDS_POSTERASE :cp1="CDDS_POSTERASE "; break;
-               case CDDS_ITEMPREPAINT :cp1="CDDS_ITEMPREPAINT "; 
+               case CDDS_ITEMPREPAINT :cp1="CDDS_ITEMPREPAINT ";
+               {
                   //SelectObject(pItem->nmcd.hdc,
                   //             GetFontForItem(pItem->nmcd.dwItemSpec,
                   //                            pItem->nmcd.lItemlParam) );
                   //pItem->clrText = GetColorForItem(pItem->nmcd.dwItemSpec,
                   //                                 pItem->nmcd.lItemlParam);
+                  //DBG3("CDDS_ITEMPREPAINT clrText (%x,%x,%x)", GetRValue(pItem->clrText),
+                  //   GetGValue(pItem->clrText), GetBValue(pItem->clrText));
                   //pItem->clrTextBk = GetBkColorForItem(pItem->nmcd.dwItemSpec,
                   //                                     pItem->nmcd.lItemlParam);
-                  pItem->clrText = RGB(0xff, 0, 0);  
+                  int iPattern = (int)pItem->nmcd.dwItemSpec;
+                  const tclPattern& pat = mResultList.getPattern(mResultList.getPatternId(iPattern));
+                  pItem->clrText = pat.getColorNum();  
+                  pItem->clrTextBk = pat.getBgColorNum();
                   ret = CDRF_NEWFONT; 
                   break; 
+               }
                case CDDS_ITEMPOSTPAINT:cp1="CDDS_ITEMPOSTPAINT"; break;
                case CDDS_ITEMPREERASE :cp1="CDDS_ITEMPREERASE "; break;
                case CDDS_ITEMPOSTERASE:cp1="CDDS_ITEMPOSTERASE"; break;

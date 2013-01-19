@@ -33,9 +33,7 @@ public :
 	ColourPicker2() : Window(),  _currentColour(RGB(0xFF, 0x00, 0x00)), _pColourPopup(NULL), _isEnabled(true) {};
     ~ColourPicker2(){};
 	virtual void init(HINSTANCE hInst, HWND parent);
-	virtual void destroy() {
-		DestroyWindow(_hSelf);
-	};
+	virtual void destroy();
     void setColour(COLORREF c) {
         _currentColour = c;
         //drawSelf();
