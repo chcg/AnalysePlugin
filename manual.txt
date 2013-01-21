@@ -1,4 +1,4 @@
-AnalysePlugin for NotePad++                                                DE 2012-04
+AnalysePlugin for NotePad++                                                DE 2013-01
 
 This Plugin will help you to search for more than one search pattern at a time. 
 

@@ -56,7 +56,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>.\DockingFeature;.\;.\scintilla\include;.\PowerEditor\src;.\PowerEditor\src\MISC\Common;.\PowerEditor\src\MISC\PluginsManager;.\PowerEditor\src\MISC\SysMsg;.\PowerEditor\src\ScitillaComponent;.\PowerEditor\src\TinyXml;.\PowerEditor\src\TinyXml\tinyXmlA;.\PowerEditor\src\WinControls;.\PowerEditor\src\WinControls\ColourPicker;.\PowerEditor\src\WinControls\ContextMenu;.\PowerEditor\src\WinControls\DockingWnd;.\PowerEditor\src\WinControls\ImageListSet;.\PowerEditor\src\WinControls\shortcut;.\PowerEditor\src\WinControls\StaticDialog;.\PowerEditor\src\WinControls\TabBar;.\PowerEditor\src\WinControls\ToolBar;.\PowerEditor\src\WinControls\AboutDlg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__STDC_WANT_SECURE_LIB__;_UNICODE;UNICODE;CONFIG_DIALOG;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;__STDC_WANT_SECURE_LIB__;_UNICODE;UNICODE;CONFIG_DIALOG;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -92,7 +92,7 @@
     <ClCompile>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <AdditionalIncludeDirectories>.\DockingFeature;.\;.\scintilla\include;.\PowerEditor\src;.\PowerEditor\src\MISC\Common;.\PowerEditor\src\MISC\PluginsManager;.\PowerEditor\src\MISC\SysMsg;.\PowerEditor\src\ScitillaComponent;.\PowerEditor\src\TinyXml;.\PowerEditor\src\TinyXml\tinyXmlA;.\PowerEditor\src\WinControls;.\PowerEditor\src\WinControls\ColourPicker;.\PowerEditor\src\WinControls\ContextMenu;.\PowerEditor\src\WinControls\DockingWnd;.\PowerEditor\src\WinControls\ImageListSet;.\PowerEditor\src\WinControls\shortcut;.\PowerEditor\src\WinControls\StaticDialog;.\PowerEditor\src\WinControls\TabBar;.\PowerEditor\src\WinControls\ToolBar;.\PowerEditor\src\WinControls\AboutDlg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__STDC_WANT_SECURE_LIB__=1;_UNICODE;UNICODE;CONFIG_DIALOG;WIN32;NDEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;__STDC_WANT_SECURE_LIB__=1;_UNICODE;UNICODE;CONFIG_DIALOG;WIN32;NDEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>

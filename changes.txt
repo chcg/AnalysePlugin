@@ -1,3 +1,6 @@
+Changes since 1.8
+ - sync with additional files from NPP 6.2.3
+ - add feature coloring the pattern list 
 Changes since 1.7
  - add additional files from NPP 5.9.6.2
  - bug fix search working also on sub view
