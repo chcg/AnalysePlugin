@@ -751,7 +751,7 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
       (WPARAM)text.size(), 
       (LPARAM)text.c_str());
 #endif
-   while (targetStart != -1) // something has been found
+   while (targetStart >= 0) // something has been found
    {	
       if(_findDlg.getPleaseWaitCanceled()) {
          // please wait dialog indicates stopping
@@ -795,6 +795,11 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
          (LPARAM)text.c_str());
 #endif
    } // while
+   if(targetStart == -2) {
+      _findDlg.activatePleaseWait(false);
+      generic_string serr = TEXT("Error in pattern [") + pattern.getSearchText() + TEXT("]");
+      ::MessageBox(getCurrentHScintilla(scnActiveHandle), TEXT("Invalid regular expression") ,serr.c_str() , MB_ICONERROR | MB_OK);
+   }
    result.setDirty(false); // once through we mark the list as ready
    if(nbProcessed == 0) {
       DBG0("doFindPattern() didn't find anything.");
