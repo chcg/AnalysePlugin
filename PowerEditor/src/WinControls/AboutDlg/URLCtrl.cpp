@@ -1,22 +1,31 @@
 #pragma warning (disable : 4244 4312)
-/*
-this file is part of notepad++
-Copyright (C)2003 Don HO <donho@altern.org>
+// This file is part of Notepad++ project
+// Copyright (C)2003 Don HO <don.h@free.fr>
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either
+// version 2 of the License, or (at your option) any later version.
+//
+// Note that the GPL places important restrictions on "derived works", yet
+// it does not provide a detailed definition of that term.  To avoid      
+// misunderstandings, we consider an application to constitute a          
+// "derivative work" for the purpose of this license if it does any of the
+// following:                                                             
+// 1. Integrates source code from Notepad++.
+// 2. Integrates/includes/aggregates Notepad++ into a proprietary executable
+//    installer, such as those produced by InstallShield.
+// 3. Links to a library or executes a program that does any of the above.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-*/
 
 #include "precompiledHeaders.h"
 #include "URLCtrl.h"
@@ -158,6 +167,8 @@ void URLCtrl::create(HWND itemHandle, TCHAR * link, COLORREF linkColor)
 	// associate the URL structure with the static control
     ::SetWindowLongPtr(itemHandle, GWLP_USERDATA, (LONG_PTR)this);
 
+	// save hwnd
+	_hSelf = itemHandle;
 }
 void URLCtrl::create(HWND itemHandle, int cmd, HWND msgDest)
 {
@@ -175,6 +186,9 @@ void URLCtrl::create(HWND itemHandle, int cmd, HWND msgDest)
 
 	// associate the URL structure with the static control
     ::SetWindowLongPtr(itemHandle, GWLP_USERDATA, (LONG_PTR)this);
+
+	// save hwnd
+	_hSelf = itemHandle;
 }
 
 void URLCtrl::destroy()
@@ -183,6 +197,32 @@ void URLCtrl::destroy()
             ::DeleteObject(_hfUnderlined);
         if(_hCursor)
             ::DestroyCursor(_hCursor);
+}
+void URLCtrl::action()
+{
+	if (_cmdID)
+	{
+		::SendMessage(_msgDest?_msgDest:_hParent, WM_COMMAND, _cmdID, 0);
+	}
+	else
+	{
+		_linkColor = _visitedColor;
+    			
+		::InvalidateRect(_hSelf, 0, 0);
+		::UpdateWindow(_hSelf);
+
+		// Open a browser
+		if(_URL != TEXT(""))
+		{
+			::ShellExecute(NULL, TEXT("open"), _URL.c_str(), NULL, NULL, SW_SHOWNORMAL);
+		}
+		else
+		{
+			TCHAR szWinText[MAX_PATH];
+			::GetWindowText(_hSelf, szWinText, MAX_PATH);
+			::ShellExecute(NULL, TEXT("open"), szWinText, NULL, NULL, SW_SHOWNORMAL);
+		}
+	}
 }
 
 LRESULT URLCtrl::runProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
@@ -270,33 +310,27 @@ LRESULT URLCtrl::runProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
 		    if(_clicking)
 		    {
 			    _clicking = false;
-				if (_cmdID)
-				{
-					::SendMessage(_msgDest?_msgDest:_hParent, WM_COMMAND, _cmdID, 0);
-				}
-				else
-				{
-			    _linkColor = _visitedColor;
-    			
-                ::InvalidateRect(hwnd, 0, 0);
-                ::UpdateWindow(hwnd);
 
-			    // Open a browser
-			    if(_URL != TEXT(""))
-			    {
-                    ::ShellExecute(NULL, TEXT("open"), _URL.c_str(), NULL, NULL, SW_SHOWNORMAL);
-			    }
-			    else
-			    {
-                    TCHAR szWinText[MAX_PATH];
-                    ::GetWindowText(hwnd, szWinText, MAX_PATH);
-                    ::ShellExecute(NULL, TEXT("open"), szWinText, NULL, NULL, SW_SHOWNORMAL);
-			    }
-				}
+				action();
 		    }
 
 		    break;
-    		
+		
+		//Support using space to activate this object
+		case WM_KEYDOWN:
+			if(wParam == VK_SPACE)
+				_clicking = true;
+			break;
+
+		case WM_KEYUP:
+			if(wParam == VK_SPACE && _clicking)
+			{
+				_clicking = false;
+
+				action();
+			}
+			break;
+
 	    // A standard static control returns HTTRANSPARENT here, which
 	    // prevents us from receiving any mouse messages. So, return
 	    // HTCLIENT instead.

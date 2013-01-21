@@ -1,29 +1,40 @@
-//this file is part of notepad++
-//Copyright (C)2003 Don HO <donho@altern.org>
+// This file is part of Notepad++ project
+// Copyright (C)2003 Don HO <don.h@free.fr>
 //
-//This program is free software; you can redistribute it and/or
-//modify it under the terms of the GNU General Public License
-//as published by the Free Software Foundation; either
-//version 2 of the License, or (at your option) any later version.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either
+// version 2 of the License, or (at your option) any later version.
 //
-//This program is distributed in the hope that it will be useful,
-//but WITHOUT ANY WARRANTY; without even the implied warranty of
-//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//GNU General Public License for more details.
+// Note that the GPL places important restrictions on "derived works", yet
+// it does not provide a detailed definition of that term.  To avoid      
+// misunderstandings, we consider an application to constitute a          
+// "derivative work" for the purpose of this license if it does any of the
+// following:                                                             
+// 1. Integrates source code from Notepad++.
+// 2. Integrates/includes/aggregates Notepad++ into a proprietary executable
+//    installer, such as those produced by InstallShield.
+// 3. Links to a library or executes a program that does any of the above.
 //
-//You should have received a copy of the GNU General Public License
-//along with this program; if not, write to the Free Software
-//Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
 
 #ifndef RESOURCE_H
 #define RESOURCE_H
 
-#define NOTEPAD_PLUS_VERSION TEXT("Notepad++ v5.9.8")
+#define NOTEPAD_PLUS_VERSION TEXT("Notepad++ v6.2.3")
 
 // should be X.Y : ie. if VERSION_DIGITALVALUE == 4, 7, 1, 0 , then X = 4, Y = 71 
 // ex : #define VERSION_VALUE TEXT("5.63\0")
-#define VERSION_VALUE TEXT("5.98\0")
-#define VERSION_DIGITALVALUE 5, 9, 8, 0
+#define VERSION_VALUE TEXT("6.23\0")
+#define VERSION_DIGITALVALUE 6, 2, 3, 0
 
 #ifdef UNICODE
 #define UNICODE_ANSI_MODE TEXT("(UNICODE)")
@@ -311,6 +322,14 @@
 
 //See ProjectPanel_rc.h
 //#define	IDD_PROJECTPANEL      3100
+//#define	IDD_FILERELOCALIZER_DIALOG  3200
+
+//See documentMap_rc.h
+//#define	IDD_DOCUMENTMAP      3300
+
+//See functionListPanel_rc.h
+//#define	IDD_FUNCLIST_PANEL   3400
+
 
 // See regExtDlg.h
 //#define	IDD_REGEXT 4000
@@ -358,6 +377,8 @@
 	#define	NPPM_INTERNAL_SCINTILLAFINFEROPENALL 	(NOTEPADPLUS_USER_INTERNAL + 34)
 	#define	NPPM_INTERNAL_RECENTFILELIST_UPDATE 	(NOTEPADPLUS_USER_INTERNAL + 35)
 	#define	NPPM_INTERNAL_RECENTFILELIST_SWITCH 	(NOTEPADPLUS_USER_INTERNAL + 36)
+	#define	NPPM_INTERNAL_GETSCINTEDTVIEW       	(NOTEPADPLUS_USER_INTERNAL + 37)
+	#define NPPM_INTERNAL_SETDOCMAPCHECK			(NOTEPADPLUS_USER_INTERNAL + 38)
 
 	//wParam: 0
 	//lParam: document new index

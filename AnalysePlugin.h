@@ -82,7 +82,7 @@ public:
       _findDlg.setParent(this);
       _findResult.setParent(this);
 
-      mVersionString = TEXT("Analyse Plugin V1.8 ");
+      mVersionString = TEXT("Analyse Plugin V1.9 ");
       mVersionString += TEXT("Rev. ");
       mVersionString += SVNRevInfo;
       mVersionString += TEXT(" ");
