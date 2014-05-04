@@ -34,18 +34,67 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "chardefines.h"
 #include <commctrl.h>// For ListView control APIs
 #include <commdlg.h>// For fileopen dialog.
+#define MDBG_COMP "FDmain:" 
+#include "myDebug.h"
 
 // vars for deferred research
 #define IDT_ANALYSEPLG_TIMER 9882
 int FindDlg::_ModifiedMode = 0;
 HWND FindDlg::_ModifiedHwnd = 0;
 
-void FindDlg::setFileName(const TCHAR* str) {
-   (void)generic_strncpy(szFile, str, COUNTCHAR(szFile));
-   szFile[COUNTCHAR(szFile)-1]=0;
+void FindDlg::setFileName(const generic_string& str) {
+   _FileName = str;
 }
-void FindDlg::doSearch() 
-{
+
+void FindDlg::setConfigFileName(const generic_string str) {
+   for(size_t i = 0; i < _lastConfigFiles.size(); ++i) {
+      if (_lastConfigFiles[i] == str) {
+         _lastConfigFiles.erase(_lastConfigFiles.begin() + i);
+         --i; // reduce because one less in the list
+      }
+   }
+   _lastConfigFiles.insert(_lastConfigFiles.begin(), str);
+   ::GetFileTitle(str.c_str(), _ConfigFileName, COUNTCHAR(_ConfigFileName));
+   while (_lastConfigFiles.size() > _maxConfigFiles) {
+      _lastConfigFiles.pop_back();
+   }
+   //_ConfigFileName[COUNTCHAR(_ConfigFileName)-1]=0;
+   ::SendMessage(_hParent, NPPM_DMMUPDATEDISPINFO, 0, (LPARAM)_hSelf);
+}
+
+bool FindDlg::loadConfigFile(const TCHAR* file, bool bAppend, bool bLoadNew) {
+   FindConfigDoc doc(file); 
+   if(doc.readPatternList(mResultList, bAppend, bLoadNew)) {
+      refillTable();
+      _pParent->updateSearchPatterns();
+      return true;
+   }
+   return false;
+}
+bool FindDlg::saveConfigFile(const TCHAR* file) {
+      FindConfigDoc doc(file);
+      return doc.writePatternList(mResultList);
+}
+void FindDlg::setNumOfCfgFiles(unsigned u) {
+   if (u > 0) {
+      _maxConfigFiles = u;
+      while (u < _lastConfigFiles.size()) {
+         _lastConfigFiles.pop_back();
+      }
+   }
+}
+
+void FindDlg::setNumOfCfgFilesStr(const generic_string& str) {
+   unsigned u = generic_atoi(str.c_str());
+   if (u > 0) {
+      _maxConfigFiles = u;
+      while (u < _lastConfigFiles.size()) {
+         _lastConfigFiles.pop_back();
+      }
+   }
+}
+
+void FindDlg::doSearch() {
    DBG0("IDC_DO_SEARCH");
    // make sure last edited config values are tsored into the patterns
    if(mTableView.getRowCount() < 1) {
@@ -90,12 +139,17 @@ void FindDlg::doSearch()
    ::SetFocus(_pParent->getCurrentHScintilla(scnActiveHandle));
 }
 
-BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
-{
+BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) {
    static bool bDoTrace = false; // make break point and set to true to activate trace
    if(bDoTrace) {
       DBG3("FindDlg::run_dlgProc(0x%08x, 0x%08x, 0x%08x)", message, wParam, lParam);
    }
+   if (message == WM_COMMAND) {
+      if (wParam == IDC_SHOW_ADDCTXDLG) {
+         int i = 0;
+      }
+   }
+
    switch (message) 
    {
    case IDC_DO_CHECK_CONF: 
@@ -112,6 +166,8 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
             _pBgColour->setColour(mDefPat.getBgColorNum());
             _pBgColour->redraw();
          }
+         // specialty to shortcut transfer...
+         setNumOfCfgFiles(wParam);
          break;
       }
    case WM_COMMAND : 
@@ -155,7 +211,54 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
                DBG0("IDC_BUT_LOAD");
                // load the file from open dialog
                // instantiate xml doc
-               if(doLoadConfigFile()) {
+               HWND hButton = ::GetDlgItem(_hSelf, IDC_BUT_LOAD);
+               POINT pt = getLeftTopPoint(hButton);
+               ::ClientToScreen(_hSelf, &pt);
+               ContextMenu contextmenu;
+               std::vector<MenuItemUnit> tmp;
+               tmp.push_back(MenuItemUnit(IDC_CTXCFG_LOADNEW, TEXT("Load file...")));
+               tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
+               tmp.push_back(MenuItemUnit(IDC_CTXCFG_LOADBEG, TEXT("Prepend file...")));
+               tmp.push_back(MenuItemUnit(IDC_CTXCFG_LOADEND, TEXT("Append file...")));
+               if(_lastConfigFiles.size()) {
+                  tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
+                  for(size_t i = 0; i < _lastConfigFiles.size(); ++i) {
+                     TCHAR name[MAX_PATH];
+                     ::GetFileTitle(_lastConfigFiles[i].c_str(), name, COUNTCHAR(name));
+                     tmp.push_back(MenuItemUnit(IDC_CTXCFG_LOADX_0 + i, name));
+                  }
+                  tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
+                  tmp.push_back(MenuItemUnit(IDC_CTXCFG_LOADRESET, TEXT("Reset this list")));
+               }
+               contextmenu.create(_hSelf, tmp);
+               contextmenu.display(pt);
+               return TRUE; 
+            }
+         // case IDC_CTXCFG_LOADX_0 .. IDC_CTXCFG_LOADX_E is handled in default case!
+         case IDC_CTXCFG_LOADRESET:
+            {
+               _lastConfigFiles.clear();
+               return TRUE;
+            }
+         case IDC_CTXCFG_LOADNEW:
+            {
+               if(doLoadConfigFile(true, true)) {
+                  refillTable();
+                  _pParent->updateSearchPatterns();
+               } 
+               return TRUE;
+            }
+         case IDC_CTXCFG_LOADBEG:
+            {
+               if(doLoadConfigFile(false, false)) {
+                  refillTable();
+                  _pParent->updateSearchPatterns();
+               } 
+               return TRUE;
+            }
+         case IDC_CTXCFG_LOADEND:
+            {
+               if(doLoadConfigFile(true, false)) {
                   refillTable();
                   _pParent->updateSearchPatterns();
                } 
@@ -180,7 +283,7 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
             {
                DBG0("IDC_BUT_ADD");
                int selectedRow = mTableView.getSelectedRow();
-               int i = mTableView.instertAfterRow();
+               int i = mTableView.insertAfterRow();
                if (i != -1) {
                   mResultList.insertAfter(mResultList.getPatternId(selectedRow), mDefPat);
                   mTableView.setSelectedRow(i); 
@@ -200,7 +303,7 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
                DBG0("IDC_BUT_UPD");
                int i = -2;
                if((mTableView.getSelectedRow()==-1)&&(mTableView.getRowCount()==0)) {
-                  i = mTableView.instertRow(); // ist immer 0
+                  i = mTableView.insertRow(); // ist immer 0
                   if (i != -1) {
                      mResultList.insert(mResultList.getPatternId(i), mDefPat);
                      mTableView.setSelectedRow(i); 
@@ -304,6 +407,16 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
             }
          default :
             {
+               if(wParam >= IDC_CTXCFG_LOADX_0 && wParam < IDC_CTXCFG_LOADX_E) {
+                  // context menu to load special config files
+                  int i = wParam - IDC_CTXCFG_LOADX_0;
+                  if (i < (int)_lastConfigFiles.size()) {
+                     setConfigFileName(_lastConfigFiles[i]); // will by this remove this instance and add it at pos 0
+                     loadConfigFile(_lastConfigFiles[0].c_str()); // so we take it from there
+                  }
+                  return TRUE;
+               }
+               // color picker messages
                switch (HIWORD(wParam))
                {
                case CPN_COLOURPICKED:	
@@ -426,9 +539,14 @@ void FindDlg::refillTable() {
    updateDockingDlg();
 }
 
-bool FindDlg::doLoadConfigFile(){
+bool FindDlg::doLoadConfigFile(bool bAppend, bool bLoadNew) {
    OPENFILENAME ofn;       // common dialog box structure
    // Initialize OPENFILENAME
+   TCHAR szFile[MAX_PATH]=TEXT("");       // buffer for file name
+   if (_lastConfigFiles.size()) {
+      (void)generic_strncpy(szFile, _lastConfigFiles[0].c_str(), COUNTCHAR(szFile));
+      szFile[COUNTCHAR(szFile)-1]=0;
+   }
    ZeroMemory(&ofn, sizeof(ofn));
    ofn.lStructSize = sizeof(ofn);
    ofn.hwndOwner = _hSelf;
@@ -444,19 +562,18 @@ bool FindDlg::doLoadConfigFile(){
    if (GetOpenFileName(&ofn)==TRUE) 
    {   
       // happens because of pointer in ofn      strncpy(szFile, ofn.lpstrFile, MAX_PATH);
-      FindConfigDoc doc(ofn.lpstrFile);
-#ifdef FEATURE_HEADLINE     
-      addFileNameTitle(doc.getHeadline().c_str());
-#endif
-      return doc.readPatternList(mResultList);
+	   setConfigFileName(ofn.lpstrFile);
+      return loadConfigFile(ofn.lpstrFile, bAppend, bLoadNew);
    }
    return false;
 }
 
 bool FindDlg::doStoreConfigFile(){
    OPENFILENAME ofn;       // common dialog box structure
-   static TCHAR szFile[MAX_PATH]=TEXT("");       // buffer for file name
-
+   TCHAR szFile[MAX_PATH]=TEXT("");       // buffer for file name
+   (void)generic_strncpy(szFile, getszConfigFileName(), COUNTCHAR(szFile));
+   szFile[COUNTCHAR(szFile)-1]=0;
+   
    // Initialize OPENFILENAME
    ZeroMemory(&ofn, sizeof(ofn));
    ofn.lStructSize = sizeof(ofn);
@@ -484,23 +601,17 @@ bool FindDlg::doStoreConfigFile(){
                // doit only if place enough
                generic_strncpy(&ofn.lpstrFile[l], TEXT(".xml"),5); // bcause of \0
             } else {
-               DBGW1("doStoreConfigFile() path was too long couldn't add ext! %s", ofn.lpstrFile);
+               DBG1("doStoreConfigFile() path was too long couldn't add ext! %s", ofn.lpstrFile);
             }
          }
       }
-      generic_strncpy(szFile, ofn.lpstrFile, MAX_PATH);
-      FindConfigDoc doc(ofn.lpstrFile);
-#ifdef FEATURE_HEADLINE
-      // TODO headline addFileNameTitle(
-      doc.setHeadline(TEXT("TODO add headline"));
-#endif
-      return doc.writePatternList(mResultList);
+      setConfigFileName(ofn.lpstrFile);
+      return saveConfigFile(ofn.lpstrFile);
    }
    return false;
 }
 
-BOOL FindDlg::notify(SCNotification *notification)
-{
+BOOL FindDlg::notify(SCNotification *notification) {
    BOOL ret = 0; // true if message processed
    if(notification == 0) return ret;
 
@@ -615,7 +726,7 @@ BOOL FindDlg::notify(SCNotification *notification)
                case CDDS_ITEMPOSTERASE:cp1="CDDS_ITEMPOSTERASE"; break;
                default:cp1="default"; break; 
             };
-            DBG3("NM_CUSTOMDRAW for item %d : %s | %s", (int)pItem->nmcd.dwItemSpec, cp1, cp);
+            DBGA3("NM_CUSTOMDRAW for item %d : %s | %s", (int)pItem->nmcd.dwItemSpec, cp1, cp);
          } else { // if handle correct
             //DBG0("NM_CUSTOMDRAW for different element");
          }
@@ -687,21 +798,22 @@ BOOL FindDlg::notify(SCNotification *notification)
 
 void FindDlg::setSearchHistory(const TCHAR* hist) {
    setCmbHistory(mCmbSearchText, hist, 2);
-   mCmbSearchText.addText2Combo(L"", false); 
+   //mCmbSearchText.addText2Combo(TEXT(""), false); 
+   mCmbSearchText.clearSelection();
 }
 //void FindDlg::setSearchHistory(const char* hist, int charSize) {
 //   setCmbHistory(mCmbSearchText, hist, charSize);
 //}
 void FindDlg::setCommentHistory(const TCHAR* hist) {
    setCmbHistory(mCmbComment, hist, 2);
-   mCmbComment.addText2Combo(L"", false); // add empty line to put first comment to empty as default
+   //mCmbComment.addText2Combo(TEXT(""), false); // add empty line to put first comment to empty as default
+   mCmbComment.clearSelection();
 }
 //void FindDlg::setCommentHistory(const char* hist, int charSize) {
 //   setCmbHistory(mCmbComment, hist, charSize);
-//   mCmbComment.addText2Combo(L"", false); // add empty line to put first comment to empty as default
+//   mCmbComment.addText2Combo(TEXT(""), false); // add empty line to put first comment to empty as default
 //}
-void FindDlg::setCmbHistory(tclComboBoxCtrl& thisCmb, const TCHAR* hist, int charSize) 
-{
+void FindDlg::setCmbHistory(tclComboBoxCtrl& thisCmb, const TCHAR* hist, int charSize) {
    if(hist==0) return;
    TCHAR szPart[MAX_CHAR_HISTORY];
    if(charSize == 1) {
@@ -713,8 +825,10 @@ void FindDlg::setCmbHistory(tclComboBoxCtrl& thisCmb, const TCHAR* hist, int cha
       int j = (int)generic_strlen(wHist)+1; 
       j = (j>MAX_CHAR_HISTORY)?MAX_CHAR_HISTORY:j;
       for(int i=0; i<j; ++i) {szPart[i] = (TCHAR)wHist[i];}
-   } else return;
-   szPart[sizeof(szPart)-1] =0;
+   } else {
+      return;
+   }
+   szPart[_countof(szPart)-1] =0;
    TCHAR* pcEnd=szPart+generic_strlen(szPart);
    TCHAR* pc=szPart;
    while(pc<pcEnd) {
@@ -733,12 +847,13 @@ void FindDlg::setCmbHistory(tclComboBoxCtrl& thisCmb, const TCHAR* hist, int cha
       }
       ++pc;
    }
-   TCHAR* szToken = generic_strtok(szPart, L"\x01");
+   TCHAR* szToken = generic_strtok(szPart, TEXT("\x01"));
    while(szToken) {
-      thisCmb.addText2Combo(szToken, false);
-      szToken = generic_strtok(NULL, L"\x01"); // next token
+      thisCmb.addText2Combo(szToken, false, false);
+      szToken = generic_strtok(NULL, TEXT("\x01")); // next token
    }
 }
+
 void FindDlg::getSearchHistory(generic_string& str) const {
    str = mCmbSearchText.getComboTextList(false);
 }
@@ -750,6 +865,7 @@ void FindDlg::getCommentHistory(generic_string& str) const {
 generic_string FindDlg::getSearchHistory() const {
    return mCmbSearchText.getComboTextList(false);
 }
+
 generic_string FindDlg::getCommentHistory() const {
    return mCmbComment.getComboTextList(false);
 }
@@ -792,8 +908,8 @@ void FindDlg::setDefaultOptions(const TCHAR* options, int charSize) {
          szPart[i] = wOptions[i];
       }
    } else return;
-   szPart[sizeof(szPart)-1] =0;
-   TCHAR* szToken = generic_strtok(szPart, L",");
+   szPart[_countof(szPart)-1] =0;
+   TCHAR* szToken = generic_strtok(szPart, TEXT(","));
    int num = 0;
    while(szToken) {
       switch(num) {
@@ -815,7 +931,7 @@ void FindDlg::setDefaultOptions(const TCHAR* options, int charSize) {
             mDefPat.setBgColorStr(szToken); break;
          default:;
       };
-      szToken = generic_strtok(NULL, L","); // next token
+      szToken = generic_strtok(NULL, TEXT(",")); // next token
       ++num;
    } // while
    setDialogData(mDefPat);
@@ -858,7 +974,7 @@ generic_string FindDlg::getDefaultOptions() const {
 
 void FindDlg::doToggleToSearch() {
    if(mTableView.getSelectedRow()>=0) {
-      bool bDoSearch = !(mTableView.getDoSearchStr() == L"X");
+      bool bDoSearch = !(mTableView.getDoSearchStr() == TEXT("X"));
       ::SendDlgItemMessage(_hSelf, IDC_CHK_DO_SEARCH, BM_SETCHECK, bDoSearch?BST_CHECKED:BST_UNCHECKED, 0);
       doCopyDialogToLine();
    }
@@ -866,10 +982,10 @@ void FindDlg::doToggleToSearch() {
 
 void FindDlg::doCopyLineToDialog() {
    if(mTableView.getSelectedRow()>=0) {
-      bool bDoSearch = (mTableView.getDoSearchStr() == L"X");
-      bool bHide = (mTableView.getHideStr() == L"X");
-      bool bWord = (mTableView.getWholeWordStr() == L"X");
-      bool bCase = (mTableView.getMatchCaseStr() == L"X");
+      bool bDoSearch = (mTableView.getDoSearchStr() == TEXT("X"));
+      bool bHide = (mTableView.getHideStr() == TEXT("X"));
+      bool bWord = (mTableView.getWholeWordStr() == TEXT("X"));
+      bool bCase = (mTableView.getMatchCaseStr() == TEXT("X"));
       ::SendDlgItemMessage(_hSelf, IDC_CHK_DO_SEARCH, BM_SETCHECK, bDoSearch?BST_CHECKED:BST_UNCHECKED, 0);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_SETCHECK, bWord?BST_CHECKED:BST_UNCHECKED, 0);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_SETCHECK, bCase?BST_CHECKED:BST_UNCHECKED, 0);
@@ -879,9 +995,9 @@ void FindDlg::doCopyLineToDialog() {
       mCmbSearchType.addText2Combo(mTableView.getSearchTypeStr().c_str(), false);
       mCmbSelType.addText2Combo(mTableView.getSelectStr().c_str(), false);
 #ifdef RESULT_STYLING
-      bool bBold = (mTableView.getBoldStr() == L"X");
-      bool bUnder = (mTableView.getUnderlinedStr() == L"X");
-      bool bItalic = (mTableView.getItalicStr() == L"X");
+      bool bBold = (mTableView.getBoldStr() == TEXT("X"));
+      bool bUnder = (mTableView.getUnderlinedStr() == TEXT("X"));
+      bool bItalic = (mTableView.getItalicStr() == TEXT("X"));
       ::SendDlgItemMessage(_hSelf, IDC_CHK_BOLD, BM_SETCHECK, bBold?BST_CHECKED:BST_UNCHECKED, 0);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_UNDERLINED, BM_SETCHECK, bUnder?BST_CHECKED:BST_UNCHECKED, 0);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_ITALIC, BM_SETCHECK, bItalic?BST_CHECKED:BST_UNCHECKED, 0);
@@ -956,10 +1072,10 @@ bool FindDlg::isPatternEqual() {
 #endif
 
       bool b = true;
-      b &= (p.getDoSearch() == (mTableView.getDoSearchStr() == L"X"));
-      b &= (p.getIsHideText() == (mTableView.getHideStr() == L"X"));
-      b &= (p.getIsWholeWord() == (mTableView.getWholeWordStr() == L"X"));
-      b &= (p.getIsMatchCase() == (mTableView.getMatchCaseStr() == L"X"));
+      b &= (p.getDoSearch() == (mTableView.getDoSearchStr() == TEXT("X")));
+      b &= (p.getIsHideText() == (mTableView.getHideStr() == TEXT("X")));
+      b &= (p.getIsWholeWord() == (mTableView.getWholeWordStr() == TEXT("X")));
+      b &= (p.getIsMatchCase() == (mTableView.getMatchCaseStr() == TEXT("X")));
       b &= (p.getSearchText() == mTableView.getSearchTextStr());
       b &= (p.getComment() == mTableView.getCommentStr());
       b &= (p.getSearchTypeStr() == mTableView.getSearchTypeStr());
@@ -971,6 +1087,12 @@ bool FindDlg::isPatternEqual() {
       return false;
    }
 }
+
+void FindDlg::addTextPattern(const TCHAR* pzsText) {
+   mCmbSearchText.addText2Combo(pzsText, false);
+   ::SendMessage(getHSelf(), WM_COMMAND, IDC_BUT_ADD, (LPARAM)0);
+}
+
 //void FindDlg::init(HINSTANCE hInst, HWND parent){
 void FindDlg::init(HINSTANCE hInst, NppData nppData){
    DockingDlgInterface::init(hInst, nppData._nppHandle);
@@ -990,7 +1112,7 @@ void FindDlg::create(tTbData * data, bool isRTL){
    data->hIconTab = ::LoadIcon(getHinst(), MAKEINTRESOURCE(IDI_ANALYSE));
 
    // additional info
-   data->pszAddInfo = TEXT("Analyse Plugin");
+   data->pszAddInfo = _ConfigFileName;
 
    // supported features by plugin
    data->uMask	= (DWS_DF_CONT_RIGHT | DWS_PARAMSALL);
@@ -1133,20 +1255,22 @@ void FindDlg::activatePleaseWait(bool isEnable) {
       _pPlsWait->activate(isEnable);
    }
 }
+
 void FindDlg::setPleaseWaitRange(int iMin, int iMax) {
    if(_pPlsWait) {
       _pPlsWait->setProgressRange(iMin, iMax);
    }
 }
+
 void FindDlg::setPleaseWaitProgress(int iCurr) {
    if(_pPlsWait) {
       _pPlsWait->setProgressPos(iCurr);
    }
 }
+
 bool FindDlg::getPleaseWaitCanceled() {
    if(_pPlsWait) {
       return _pPlsWait->getCanceled();
    }
    return false;
 }
-

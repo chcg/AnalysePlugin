@@ -24,9 +24,10 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "tclFindResultDoc.h"
 #include <algorithm>
-#include "myDebug.h"
 #include "tclResult.h"
 #include <assert.h>
+#define MDBG_COMP "FRDoc:" 
+#include "myDebug.h"
 
 /**
 * insert the line into the result window if not already in.

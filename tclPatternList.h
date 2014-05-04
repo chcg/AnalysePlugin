@@ -89,6 +89,11 @@ public:
    */
    virtual void moveResult(tPatId oldPattId, tPatId newPattId);
 
+   /**
+   * calculate the max width of all comments
+   */
+   virtual unsigned getCommentWidth() const;
+
    const_iterator begin() const {
       return mlmPattern.begin();
    }

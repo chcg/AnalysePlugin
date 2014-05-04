@@ -21,47 +21,43 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
 #include "precompiledHeaders.h"
 
-#include "HelpDialog.h"
+#include "AddCtxDlg.h"
 #include "PluginInterface.h"
 #include "resource.h"
 #include <windows.h>
-#define MDBG_COMP "HlpDlg:" 
+#define MDBG_COMP "AddCtxDlg:" 
 #include "myDebug.h"
 
-void HelpDlg::doDialog(int FuncCmdId)
-{
-    if (!isCreated())
-        create(IDD_ANALYSE_HELP_DLG);
-	_cmdId = FuncCmdId;
+#define COMMAND_SNIPPET TEXT("<Item FolderName=\"AnalysePlugin\" PluginEntryName=\"AnalysePlugin\" PluginCommandItemName=\"Add selection as patterns\" />\r\n")
 
+void AddCtxDlg::init(HINSTANCE hInst, NppData nppData)
+{
+   _nppData = nppData;
+   Window::init(hInst, nppData._nppHandle);
+}
+
+void AddCtxDlg::doDialog()
+{
+   if (!isCreated()) {
+        create(IDD_ADDCTX_DIALOG);
+   }
    goToCenter();
 }
 
 
-BOOL CALLBACK HelpDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
+BOOL CALLBACK AddCtxDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
 {
 	switch (Message) 
    {
    case WM_INITDIALOG :
       {
-         ::SendDlgItemMessage(_hSelf, IDC_EMAIL_LINK, WM_SETTEXT, 0, (LPARAM)EMAIL_LINK);
-         _emailLink.init(_hInst, _hSelf);
-         _emailLink.create(::GetDlgItem(_hSelf, IDC_EMAIL_LINK), EMAIL_LINK);
-
-         ::SendDlgItemMessage(_hSelf, IDC_NPP_PLUGINS_URL, WM_SETTEXT, 0, (LPARAM)NPP_PLUGINS_URL);
-         _urlNppPlugins.init(_hInst, _hSelf);
-         _urlNppPlugins.create(::GetDlgItem(_hSelf, IDC_NPP_PLUGINS_URL), NPP_PLUGINS_URL);
-
-         ::SendDlgItemMessage(_hSelf, IDC_VERSION_STRING, WM_SETTEXT, 0, (LPARAM)mVersionString.c_str());
-         ::SendDlgItemMessage(_hSelf, IDC_AUTHOR_NAME, WM_SETTEXT, 0,  (LPARAM)AUTHOR_NAME);
-         ::SendDlgItemMessage(_hSelf, IDC_DIALOG_DESCRIPTION, WM_SETTEXT, 0,  (LPARAM)DIALOG_DESCRIPTION);
+         ::SendDlgItemMessage(_hSelf, IDC_EDT_COPYTEXT, WM_SETTEXT, 0,  (LPARAM)COMMAND_SNIPPET);
          
          resizeWindow(); 
          return TRUE;
       }
    case WM_CLOSE :
       {
-         ::SendMessage(_hParent, NPPM_SETMENUITEMCHECK, (WPARAM)_cmdId, (LPARAM)false);
          break;
       }
    case WM_COMMAND : 
@@ -70,7 +66,6 @@ BOOL CALLBACK HelpDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
          {
          case IDOK :
          case IDCANCEL :
-            ::SendMessage(_hParent, NPPM_SETMENUITEMCHECK, (WPARAM)_cmdId, (LPARAM)false);
             display(FALSE);
             return TRUE;
 
@@ -88,14 +83,11 @@ BOOL CALLBACK HelpDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
 	return FALSE;
 }
 
-void HelpDlg::resizeWindow() {
-   RECT rcDlg, rcText, rcOk;
+void AddCtxDlg::resizeWindow() {
+   RECT rcDlg, rcText;
    getClientRect(rcDlg);
-   HWND hOk = ::GetDlgItem(_hSelf, IDOK);
-   HWND hText = ::GetDlgItem(_hSelf,IDC_DIALOG_DESCRIPTION);
+   HWND hText = ::GetDlgItem(_hSelf,IDC_EDT_COPYTEXT);
    ::GetClientRect(hText, &rcText);
-   ::GetClientRect(hOk, &rcOk);
-   POINT pOk = getLeftTopPoint(hOk);
    POINT pText = getLeftTopPoint(hText);
    int dWidth = rcDlg.right-rcDlg.left-20; // for border
    int dTextHeight = rcDlg.bottom-rcDlg.top-pText.y-10; // for border
@@ -103,11 +95,11 @@ void HelpDlg::resizeWindow() {
       if(dTextHeight>=0){
          ::MoveWindow(hText, pText.x, pText.y, dWidth, dTextHeight, TRUE);
       }
-      ::MoveWindow(hOk, pOk.x, pOk.y, dWidth, rcOk.bottom, TRUE);
       redraw();
    }
 }
-BOOL CALLBACK HelpDlg::run_dlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
+
+BOOL CALLBACK AddCtxDlg::run_dlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
 {
    return run_dlgProc(Message, wParam, lParam);
 }

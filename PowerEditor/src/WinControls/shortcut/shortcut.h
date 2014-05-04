@@ -137,7 +137,7 @@ public:
 	};
 
 	virtual int doDialog() {
-		return (int)::DialogBoxParam(_hInst, MAKEINTRESOURCE(IDD_SHORTCUT_DLG), _hParent,  (DLGPROC)dlgProc, (LPARAM)this);
+		return (int)::DialogBoxParam(_hInst, MAKEINTRESOURCE(IDD_SHORTCUT_DLG), _hParent,  (DLGPROC)dlgProc, (LPARAM)this); //mattes
     };
 
 	virtual bool isValid() const { //valid should only be used in cases where the shortcut isEnabled().
@@ -230,7 +230,7 @@ public:
 	generic_string toString(int index) const;
 
 	int doDialog() {
-		return (int)::DialogBoxParam(_hInst, MAKEINTRESOURCE(IDD_SHORTCUTSCINT_DLG), _hParent,  (DLGPROC)dlgProc, (LPARAM)this);
+		return (int)::DialogBoxParam(_hInst, MAKEINTRESOURCE(IDD_SHORTCUTSCINT_DLG), _hParent,  (DLGPROC)dlgProc, (LPARAM)this); //mattes
     };
 
 	//only compares the internal KeyCombos, nothing else
@@ -245,7 +245,7 @@ public:
 				(a._keyCombos[i]._isAlt		== b._keyCombos[i]._isAlt) && 
 				(a._keyCombos[i]._isShift	== b._keyCombos[i]._isShift) && 
 				(a._keyCombos[i]._key		== b._keyCombos[i]._key);
-			i++;
+			++i;
 		}
 		return equal;
 	};

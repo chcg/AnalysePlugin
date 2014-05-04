@@ -28,49 +28,50 @@ tclPattern implements information stored to execute one search on
 //#define RGB(r,g,b) ((unsigned long)(((BYTE)(r)|((WORD)((BYTE)(g))<<8))|(((DWORD)(BYTE)(b))<<16)))
 
 const TCHAR*  tclPattern::transSearchType[max_searchType] = {
-   L"normal",
-   L"escaped",
-   L"regex"
+   TEXT("normal"),
+   TEXT("escaped"),
+   TEXT("regex"),
+   TEXT("rgx_dotnewln")
 };
 const TCHAR*  tclPattern::transSelectionType[max_selectionType] = {
-   L"text",
-   L"line"
+   TEXT("text"),
+   TEXT("line")
 };
 const TCHAR*  tclPattern::transColorName[max_color] = {
-   L"black",             //RGB(0,       0,    0)},
-   L"red",               //RGB(0xFF,    0,    0)},
-   L"darkRed",           //RGB(0x80,    0,    0)},
-   L"deepPurple",        //RGB(0x87, 0x13, 0x97)},
-   L"darkBlue",          //RGB(0,       0, 0x80)},
-   L"darkGreen",         //RGB(0,    0x80,    0)},
+   TEXT("black"),             //RGB(0,       0,    0)},
+   TEXT("red"),               //RGB(0xFF,    0,    0)},
+   TEXT("darkRed"),           //RGB(0x80,    0,    0)},
+   TEXT("deepPurple"),        //RGB(0x87, 0x13, 0x97)},
+   TEXT("darkBlue"),          //RGB(0,       0, 0x80)},
+   TEXT("darkGreen"),         //RGB(0,    0x80,    0)},
 
-   L"darkGrey",          //RGB(64,     64,   64)},
-   L"liteRed",           //RGB(0xFF, 0x40, 0x40)},
-   L"brown",             //RGB(128,    64,    0)},
-   L"purple",            //RGB(0x80, 0x00, 0xFF)},
-   L"blue",              //RGB(0,       0, 0xFF)},
-   L"blueGreen",         //RGB(0,    0x80, 0x80)},
+   TEXT("darkGrey"),          //RGB(64,     64,   64)},
+   TEXT("liteRed"),           //RGB(0xFF, 0x40, 0x40)},
+   TEXT("brown"),             //RGB(128,    64,    0)},
+   TEXT("purple"),            //RGB(0x80, 0x00, 0xFF)},
+   TEXT("blue"),              //RGB(0,       0, 0xFF)},
+   TEXT("blueGreen"),         //RGB(0,    0x80, 0x80)},
 
-   L"grey",              //RGB(128,   128,  128)},
-   L"orange",            //RGB(0xFF, 0x80, 0x00)},
-   L"beige",             //RGB(192,   128,   64)   RGB(0xFD, 0xF8, 0xE3)},
-   L"pink",              //RGB(0xFF, 0x00, 0xFF)}  RGB(0xE7, 0xD8, 0xE9)},
-   L"liteBlue",          //6CA8E0 RGB(0xA6, 0xCA, 0xF0)}, 
-   L"green",             //RGB(0,    0xBE,    0)},
+   TEXT("grey"),              //RGB(128,   128,  128)},
+   TEXT("orange"),            //RGB(0xFF, 0x80, 0x00)},
+   TEXT("beige"),             //RGB(192,   128,   64)   RGB(0xFD, 0xF8, 0xE3)},
+   TEXT("pink"),              //RGB(0xFF, 0x00, 0xFF)}  RGB(0xE7, 0xD8, 0xE9)},
+   TEXT("liteBlue"),          //6CA8E0 RGB(0xA6, 0xCA, 0xF0)}, 
+   TEXT("green"),             //RGB(0,    0xBE,    0)},
 
-   L"liteGrey",          //RGB(192,   192,  192)},
-   L"darkYellow",        //RGB(0xFF, 0xC0,    0)},
-   L"liteBeige",         //RGB(0xDB, 0xB7, 0x93)   RGB(0xFE, 0xFC, 0xF5)},
-   L"litePink",          //RGB(FF, 99, CC)   extLiteBlueRGB(0xF9, 0xF4, 0xFF)   RGB(0xF2, 0xF4, 0xFF)},
-   L"cyan",              //RGB(0,    0xFF, 0xFF)},
-   L"liteGreen",         //RGB(0,    0xFF,    0)},
+   TEXT("liteGrey"),          //RGB(192,   192,  192)},
+   TEXT("darkYellow"),        //RGB(0xFF, 0xC0,    0)},
+   TEXT("liteBeige"),         //RGB(0xDB, 0xB7, 0x93)   RGB(0xFE, 0xFC, 0xF5)},
+   TEXT("litePink"),          //RGB(FF, 99, CC)   extLiteBlueRGB(0xF9, 0xF4, 0xFF)   RGB(0xF2, 0xF4, 0xFF)},
+   TEXT("cyan"),              //RGB(0,    0xFF, 0xFF)},
+   TEXT("liteGreen"),         //RGB(0,    0xFF,    0)},
 
-   L"white",             //RGB(0xFF, 0xFF, 0xFF)},
-   L"yellow",            //RGB(0xFF, 0xFF,    0)},
-   L"offWhite",          //RGB(0xFF, 0xFB, 0xF0)},
-   L"veryLitePurple",     //RGB(0xE7, 0xD8, 0xE9)   RGB(192,   128,   64)},
-   L"veryLiteBlue",      //RGB(0xC4, 0xF9, 0xFD)},
-   L"veryLiteGrey"       //RGB(224,   224,  224)},
+   TEXT("white"),             //RGB(0xFF, 0xFF, 0xFF)},
+   TEXT("yellow"),            //RGB(0xFF, 0xFF,    0)},
+   TEXT("offWhite"),          //RGB(0xFF, 0xFB, 0xF0)},
+   TEXT("veryLitePurple"),     //RGB(0xE7, 0xD8, 0xE9)   RGB(192,   128,   64)},
+   TEXT("veryLiteBlue"),      //RGB(0xC4, 0xF9, 0xFD)},
+   TEXT("veryLiteGrey")       //RGB(224,   224,  224)},
 };
 const unsigned long tclPattern::transColorNum[max_color] = {
    RGB(0,       0,    0),//"black",             
@@ -129,8 +130,8 @@ const unsigned long tclPattern::transColorNum[max_color] = {
 //}; 
 
 const TCHAR*  tclPattern::transBool[2] = {
-   L"false",
-   L"true" // == 1
+   TEXT("false"),
+   TEXT("true") // == 1
 };
 
 // ########################################################

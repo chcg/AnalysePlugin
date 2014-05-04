@@ -24,7 +24,12 @@ class tclPatternList contains a vector of tclPatterns
 
 #include "tclPatternList.h"
 #include "tclPattern.h"
+#define MDBG_COMP "PatLst:" 
 #include "myDebug.h"
+
+// this value is used for the initial, first entry
+// it is intentionally high as inserting in front cause ID/2 values before
+#define PAT_INIT_ID 1000 
 
 tclPattern tclPatternList::mDefault = tclPattern();
 
@@ -68,7 +73,7 @@ unsigned tclPatternList::getPatternIndex(tPatId id) const {
 }
 
 tPatId tclPatternList::push_back(const tclPattern& pattern) {
-   tPatId id = 0;
+   tPatId id = PAT_INIT_ID;
    if(mlsPatIds.size()>0) {
       tPatId last = *mlsPatIds.rbegin();
       id = tPatId(int(last) + 1);
@@ -162,6 +167,16 @@ bool tclPatternList::setPattern(tPatId i, const tclPattern& pattern){
       mlsPatIds.insert(i);
       return false;
    }
+}
+
+unsigned tclPatternList::getCommentWidth() const {
+   tlmPatternList::const_iterator it = mlmPattern.begin();
+   unsigned max = 0;
+   for (;it != mlmPattern.end();++it) {
+      unsigned s = it->second.getComment().size();
+      max = (max<s)?s:max;
+   }
+   return max;
 }
 
 void tclPatternList::remove(tPatId i){

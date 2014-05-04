@@ -26,7 +26,6 @@ in the find config dock window
 
 #include <windows.h>
 #include <string>
-#include "myDebug.h"
 
 class tclPatternList;
 class tclPattern;
@@ -43,6 +42,9 @@ struct tstPatternConfTab {
 class tclTableview {
 public:
    enum teColumnNums {
+#ifdef COL_NUMBERING
+      TBLVIEW_COL_NUM,
+#endif
       TBLVIEW_COL_DO_SEARCH,    
       TBLVIEW_COL_SEARCH_TEXT,
    #ifdef RESULT_COLORING
@@ -95,6 +97,9 @@ public:
    generic_string getHideStr() const ;
    generic_string getCommentStr() const ;
    generic_string getDoSearchStr() const ;
+#ifdef COL_NUMBERING
+   generic_string getItemNumStr() const ;
+#endif
 
 #ifdef RESULT_STYLING
    generic_string getBoldStr() const ;
@@ -114,8 +119,8 @@ public:
    }
 
    void setRowItems(const tclPattern& pattern);
-   int instertRow();
-   int instertAfterRow();
+   int insertRow();
+   int insertAfterRow();
    void removeRow(int row);
    void removeAll();
 

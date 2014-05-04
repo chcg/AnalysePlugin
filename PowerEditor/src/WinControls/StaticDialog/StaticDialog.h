@@ -32,6 +32,7 @@
 #ifndef NOTEPAD_PLUS_MSGS_H
 #include "Notepad_plus_msgs.h"
 #endif //NOTEPAD_PLUS_MSGS_H
+#include "Window.h" //mattes
 
 typedef HRESULT (WINAPI * ETDTProc) (HWND, DWORD);
 
@@ -71,11 +72,18 @@ public :
 
 	void display(bool toShow = true) const;
 
-	POINT getLeftTopPoint(HWND hwnd/*, POINT & p*/) const {
+	POINT getLeftTopPoint(HWND hwnd/*, POINT & p*/) const { //mattes begin
+	   return getTopPoint(hwnd);
+   } //mattes end
+	
+	POINT getTopPoint(HWND hwnd, bool isLeft = true) const {
 		RECT rc;
 		::GetWindowRect(hwnd, &rc);
 		POINT p;
-		p.x = rc.left;
+		if (isLeft)
+			p.x = rc.left;
+		else
+			p.x = rc.right;
 		p.y = rc.top;
 		::ScreenToClient(_hSelf, &p);
 		return p;

@@ -32,7 +32,10 @@ in the find config dock window
 
 // use teColumnNums to address the columns
 const tstPatternConfTab tclTableview::gPatternConfTab[tclTableview::TBLVIEW_COL_MAX] = {
-    {TEXT("Active"), 15 } 
+#ifdef COL_NUMBERING
+    {TEXT("#"), 20 },
+#endif
+    {TEXT("Active"), 20 } 
    ,{TEXT("Search"), 100}
 #ifdef RESULT_COLORING
    ,{TEXT("Color"),  40 }
@@ -48,7 +51,7 @@ const tstPatternConfTab tclTableview::gPatternConfTab[tclTableview::TBLVIEW_COL_
    ,{TEXT("Italic"), 20 }
    ,{TEXT("Underl."),20 }
 #endif
-   ,{TEXT("Comment"),100 }
+   ,{TEXT("Comment"),200 }
 };
 
 generic_string tclTableview::getCell(int item, int column) const {
@@ -81,7 +84,7 @@ void tclTableview::refillTable(tclPatternList& pl) {
       updateRow(item, rp);
    }
 }
-int tclTableview::instertRow(){
+int tclTableview::insertRow(){
    if(mhList==0) {
       return -1; // not initialized
    }
@@ -95,7 +98,7 @@ int tclTableview::instertRow(){
    return ListView_InsertItem(mhList, &lvi);
 }
 
-int tclTableview::instertAfterRow(){
+int tclTableview::insertAfterRow(){
    if(mhList==0) {
       return -1; // not initialized
    }
@@ -113,18 +116,22 @@ int tclTableview::instertAfterRow(){
 
 void tclTableview::updateRow(int item, const tclPattern& rp) {
    updateRowColor(item, rp);
-   updateCell(item, TBLVIEW_COL_DO_SEARCH, rp.getDoSearch()?L"X":L"");
+#ifdef COL_NUMBERING
+   TCHAR num[10];
+   updateCell(item, TBLVIEW_COL_NUM, generic_itoa(item, num, 10));
+#endif
+   updateCell(item, TBLVIEW_COL_DO_SEARCH, rp.getDoSearch()?TEXT("X"):TEXT(""));
    updateCell(item, TBLVIEW_COL_SEARCH_TEXT, rp.getSearchText());
    updateCell(item, TBLVIEW_COL_SEARCH_TYPE, rp.getSearchTypeStr());
-   updateCell(item, TBLVIEW_COL_MATCHCASE, rp.getIsMatchCase()?L"X":L"");
-   updateCell(item, TBLVIEW_COL_WHOLEWORD, rp.getIsWholeWord()?L"X":L"");
+   updateCell(item, TBLVIEW_COL_MATCHCASE, rp.getIsMatchCase()?TEXT("X"):TEXT(""));
+   updateCell(item, TBLVIEW_COL_WHOLEWORD, rp.getIsWholeWord()?TEXT("X"):TEXT(""));
    updateCell(item, TBLVIEW_COL_SELECT, rp.getSelectionTypeStr());
-   updateCell(item, TBLVIEW_COL_HIDE, rp.getIsHideText()?L"X":L"");
+   updateCell(item, TBLVIEW_COL_HIDE, rp.getIsHideText()?TEXT("X"):TEXT(""));
    updateCell(item, TBLVIEW_COL_COMMENT, rp.getComment());
 #ifdef RESULT_STYLING
-   updateCell(item, TBLVIEW_COL_BOLD, rp.getIsBold()?L"X":L"");
-   updateCell(item, TBLVIEW_COL_ITALIC, rp.getIsItalic()?L"X":L"");
-   updateCell(item, TBLVIEW_COL_UNDERLINED, rp.getIsUnderlined()?L"X":L"");
+   updateCell(item, TBLVIEW_COL_BOLD, rp.getIsBold()?TEXT("X"):TEXT(""));
+   updateCell(item, TBLVIEW_COL_ITALIC, rp.getIsItalic()?TEXT("X"):TEXT(""));
+   updateCell(item, TBLVIEW_COL_UNDERLINED, rp.getIsUnderlined()?TEXT("X"):TEXT(""));
 #endif
 #ifdef RESULT_COLORING
    updateCell(item, TBLVIEW_COL_COLOR, rp.getColorStr());
@@ -174,6 +181,9 @@ void tclTableview::create(){
    }
 }
 
+#ifdef COL_NUMBERING
+generic_string tclTableview::getItemNumStr() const { return getItem(TBLVIEW_COL_NUM);}
+#endif
 generic_string tclTableview::getDoSearchStr() const { return getItem(TBLVIEW_COL_DO_SEARCH);}
 generic_string tclTableview::getSearchTextStr() const { return getItem(TBLVIEW_COL_SEARCH_TEXT);}
 generic_string tclTableview::getSearchTypeStr() const {return getItem(TBLVIEW_COL_SEARCH_TYPE);}

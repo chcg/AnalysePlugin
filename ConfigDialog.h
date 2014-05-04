@@ -31,6 +31,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "tclComboBoxCtrl.h"
 #include "tclPattern.h"
 #include "ColourPicker2.h"
+#include "AddCtxDlg.h"
 
 typedef std::set<generic_string> tlsString;
 
@@ -56,6 +57,8 @@ public:
       ,_pBgColour(0)
       ,mOnAutoUpdate(0)
       ,mUseBookmark(1)
+      ,mDisplayLineNo(1)
+      ,mNumOfCfgFiles(4)
    {}
       //, mFontSize(8) {}
 
@@ -78,6 +81,13 @@ public:
    int getUseBookmark() const {
       return mUseBookmark;
    }
+   
+   int getDisplayLineNo() const {
+      return mDisplayLineNo;
+   }
+   void setDisplayLineNo(int iOn) {
+      mDisplayLineNo = iOn;
+   }
 
    void setOnEnterAction(teOnEnterAction i) {
       mOnEnterAction = i;
@@ -92,11 +102,14 @@ public:
 
    void setFontText(const generic_string& str);
    const generic_string& getFontText() const;
+   
    void setFontSize(unsigned s);
    void setFontSizeStr(const generic_string& s);
    unsigned getFontSize() const;
    generic_string getFontSizeStr() const;
-   
+
+   const generic_string getNumOfCfgFilesStr() const;
+   void setNumOfCfgFilesStr(const generic_string& str);
 
    void setDialogData(const tclPattern& p);
    // returns true if pattern was set.
@@ -128,9 +141,10 @@ protected :
    MyPlugin* _pParent;
    int _cmdId;
 
-   tclComboBoxCtrl mCmbSearchText;
+   //tclComboBoxCtrl mCmbSearchText;
    tclComboBoxCtrl mCmbSearchType;
    tclComboBoxCtrl mCmbSelType;
+   tclComboBoxCtrl mCmbNumOfCfgFiles;
 #ifdef RESULT_COLORING
    tclComboBoxCtrl mCmbColor;
 #endif
@@ -150,6 +164,10 @@ protected :
    ColourPicker2* _pBgColour;
    int mOnAutoUpdate;
    int mUseBookmark;
+   int mDisplayLineNo;
+   int mNumOfCfgFiles;
+   AddCtxDlg _addCtxDlg;
+
 };
 
 

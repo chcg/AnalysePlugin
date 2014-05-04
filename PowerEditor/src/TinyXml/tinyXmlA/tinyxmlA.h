@@ -36,6 +36,7 @@ distribution.
 #if defined( _DEBUG ) && !defined( DEBUG )
 #define DEBUG
 #endif
+#include <assert.h> //mattes
 
 #if defined( DEBUG ) && defined( _MSC_VER )
 #include <windows.h>

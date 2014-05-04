@@ -24,7 +24,6 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include <set>
 #include <vector>
 #include <string>
-#include "myDebug.h"
 #include "MyPlugin.h"
 #include "tclPosInfo.h"
 

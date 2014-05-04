@@ -26,6 +26,9 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "tclFindResultDoc.h"
 #include "chardefines.h"
 #include "PleaseWaitDlg.h"
+#define MDBG_COMP "APmain:" 
+#include "myDebug.h"
+#include "boostregexsearch.h"
 
 AnalysePlugin g_plugin;
 
@@ -37,10 +40,14 @@ const TCHAR AnalysePlugin::KEYCOMMENTHISTORY[] = TEXT("commentHistory");
 const TCHAR AnalysePlugin::KEYDEFAULTOPTIONS[] = TEXT("defaultOptions");
 const TCHAR AnalysePlugin::KEYONAUTOUPDATE[] = TEXT("onAutoUpdate");
 const TCHAR AnalysePlugin::KEYUSEBOOKMARK[] = TEXT("useBookmark");
+const TCHAR AnalysePlugin::KEYDISPLAYLINENO[] = TEXT("displayLineNo");
 const TCHAR AnalysePlugin::KEYONENTERACTION[] = TEXT("onEnterAction");
 const TCHAR AnalysePlugin::KEYLASTFILENAME[] = TEXT("lastFile");
 const TCHAR AnalysePlugin::KEYFONTNAME[] = TEXT("resultFontName");
 const TCHAR AnalysePlugin::KEYFONTSIZE[] = TEXT("resultFontSize");
+const TCHAR AnalysePlugin::KEYMAXNUMOFCFGFILES[] = TEXT("maxNumOfConfigFiles");
+const TCHAR AnalysePlugin::KEYLASTSRCHCFGFILE[] = TEXT("lastSearchConfigFile");
+const TCHAR AnalysePlugin::KEYNUMOFLASTCFGFILES[] = TEXT("numberOfLastConfigFiles");
 const TCHAR AnalysePlugin::SECTIONNAME[] = TEXT("Analyse Plugin");
 const TCHAR AnalysePlugin::LOCALCONFFILE[] = TEXT("doLocalConf.xml");
 const TCHAR AnalysePlugin::ANALYSE_INIFILE[] = TEXT("AnalysePlugin.ini");
@@ -84,6 +91,10 @@ extern "C" __declspec(dllexport) LRESULT messageProc(UINT Message, WPARAM wParam
 void MenuAnalyseToggle () {
    g_plugin.toggleShowFindDlg();
 }
+void MenuAddSelectionToPatterns () {
+   g_plugin.addSelectionToPatterns();
+}
+
 void MenuShowHelpDialog () {
    g_plugin.showHelpDialog();
 }
@@ -105,15 +116,18 @@ BOOL AnalysePlugin::dllmain(HANDLE hModule,
          // init all to zero
          memset(funcItem, 0, sizeof(funcItem));
          funcItem[SHOWFINDDLG]._pFunc = MenuAnalyseToggle;
-         funcItem[SHOWHELPDLG]._pFunc = MenuShowHelpDialog;
+         funcItem[ADDSELTOPATT]._pFunc = MenuAddSelectionToPatterns;
 #ifdef CONFIG_DIALOG
          funcItem[SHOWCNFGDLG]._pFunc = MenuShowConfigDialog;
 #endif
+         funcItem[SHOWHELPDLG]._pFunc = MenuShowHelpDialog;
+
          ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_DIAG, funcItem[SHOWFINDDLG]._itemName, nbChar);
-         ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_HELP, funcItem[SHOWHELPDLG]._itemName, nbChar);
+         ::LoadString((HINSTANCE)_hModule, IDS_ADDSELTOPATT, funcItem[ADDSELTOPATT]._itemName, nbChar);
 #ifdef CONFIG_DIALOG
          ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_CONFIG, funcItem[SHOWCNFGDLG]._itemName, nbChar);
 #endif
+         ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_HELP, funcItem[SHOWHELPDLG]._itemName, nbChar);
          // Shortcut :
          // Following code makes the first command
          // bind to the shortcut Ctrl-Alt-F
@@ -170,21 +184,25 @@ void AnalysePlugin::loadSettings()
    if (isLocal) 
    {
       generic_strncpy(iniFilePath, nppPath, MAX_PATH);
+      generic_strncpy(xmlFilePath, nppPath, MAX_PATH);
       PathAppend(iniFilePath, TEXT("plugins\\config\\AnalysePlugin.ini"));
+      PathAppend(xmlFilePath, TEXT("plugins\\config\\AnalysePlugin.xml"));
    }
    else 
    {
       ITEMIDLIST *pidl;
       SHGetSpecialFolderLocation(NULL, CSIDL_APPDATA, &pidl);
       SHGetPathFromIDList(pidl, iniFilePath);
+      generic_strncpy(xmlFilePath, iniFilePath, MAX_PATH);
       PathAppend(iniFilePath, TEXT("NotePad++\\plugins\\config\\AnalysePlugin.ini"));
+      PathAppend(xmlFilePath, TEXT("NotePad++\\plugins\\config\\AnalysePlugin.xml"));
    }
    TCHAR tmp[MAX_CHAR_CELL];
    gbPluginVisible = (0 != ::GetPrivateProfileInt(SECTIONNAME, KEYNAME, 0, iniFilePath));
    funcItem[SHOWFINDDLG]._init2Check = gbPluginVisible;  
    // the information is inverted here because ShowFindDialog() will invert it again
    ::GetPrivateProfileString(SECTIONNAME, KEYLASTFILENAME, TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
-   mSearchPatternFileName = tmp;
+   setSearchFileName(tmp);
    ::GetPrivateProfileString(SECTIONNAME, KEYSEARCHHISTORY, TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
    mSearchHistory = tmp;
    ::GetPrivateProfileString(SECTIONNAME, KEYCOMMENTHISTORY, TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
@@ -194,6 +212,9 @@ void AnalysePlugin::loadSettings()
    ::GetPrivateProfileString(SECTIONNAME, KEYUSEBOOKMARK, TEXT("1"), tmp, COUNTCHAR(tmp), iniFilePath);
    _configDlg.setUseBookmark(generic_atoi(tmp));
    _findResult.setUseBookmark(generic_atoi(tmp));
+   ::GetPrivateProfileString(SECTIONNAME, KEYDISPLAYLINENO, TEXT("1"), tmp, COUNTCHAR(tmp), iniFilePath);
+   _configDlg.setDisplayLineNo(generic_atoi(tmp));
+   _findResult.setDisplayLineNo(generic_atoi(tmp));
    ::GetPrivateProfileString(SECTIONNAME, KEYONAUTOUPDATE, TEXT("0"), tmp, COUNTCHAR(tmp), iniFilePath);
    _configDlg.setOnAutoUpdate(generic_atoi(tmp));
    ::GetPrivateProfileString(SECTIONNAME, KEYONENTERACTION, TEXT("0"), tmp, COUNTCHAR(tmp), iniFilePath);
@@ -202,6 +223,30 @@ void AnalysePlugin::loadSettings()
    _configDlg.setFontText(generic_string(tmp));
    ::GetPrivateProfileString(SECTIONNAME, KEYFONTSIZE, TEXT("8"), tmp, COUNTCHAR(tmp), iniFilePath);
    _configDlg.setFontSize(generic_atoi(tmp));
+   ::GetPrivateProfileString(SECTIONNAME, KEYMAXNUMOFCFGFILES, TEXT("4"), tmp, COUNTCHAR(tmp), iniFilePath);
+   _configDlg.setNumOfCfgFilesStr(tmp);  
+   _findDlg.setNumOfCfgFilesStr(tmp);
+   int maxConfigFilesNum = generic_atoi(tmp);
+   ::GetPrivateProfileString(SECTIONNAME, KEYNUMOFLASTCFGFILES, TEXT("0"), tmp, COUNTCHAR(tmp), iniFilePath);
+   int i = generic_atoi(tmp);
+   i = (i > maxConfigFilesNum) ? maxConfigFilesNum : i;
+   for(--i; i > 0 ; --i) {
+      TCHAR num[10];
+      generic_string key = generic_string(KEYLASTSRCHCFGFILE) + generic_itoa(i, num, 10);
+      ::GetPrivateProfileString(SECTIONNAME, key.c_str() , TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
+      if(generic_strlen(tmp)){
+         _findDlg.setConfigFileName(tmp);
+      }
+   }
+   ::GetPrivateProfileString(SECTIONNAME, KEYLASTSRCHCFGFILE, TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
+   if(generic_strlen(tmp)){
+      _findDlg.setConfigFileName(tmp);
+   }
+   // next is done after dialog is created
+   //if(PathFileExists(xmlFilePath) == TRUE) {
+   //   // load the patterns from last run
+   //   _findDlg.loadConfigFile(xmlFilePath);
+   //}
 }
 
 void AnalysePlugin::saveSettings() {
@@ -210,13 +255,15 @@ void AnalysePlugin::saveSettings() {
    _findDlg.getCommentHistory(mCommentHistory);
    _findDlg.getDefaultOptions(mDefaultOptions);
    ::WritePrivateProfileString(SECTIONNAME, KEYNAME, (funcItem[SHOWFINDDLG]._init2Check?TEXT("1"):TEXT("0")), iniFilePath);
-   ::WritePrivateProfileString(SECTIONNAME, KEYLASTFILENAME, _findDlg.getFileName(), iniFilePath);
+   ::WritePrivateProfileString(SECTIONNAME, KEYLASTFILENAME, _findDlg.getFileName().c_str(), iniFilePath);
    ::WritePrivateProfileString(SECTIONNAME, KEYSEARCHHISTORY, mSearchHistory.c_str(), iniFilePath);
    ::WritePrivateProfileString(SECTIONNAME, KEYCOMMENTHISTORY, mCommentHistory.c_str(), iniFilePath);
    ::WritePrivateProfileString(SECTIONNAME, KEYDEFAULTOPTIONS, mDefaultOptions.c_str(), iniFilePath);
    TCHAR tmp[10];
    generic_itoa(_configDlg.getUseBookmark(), tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYUSEBOOKMARK, tmp, iniFilePath);
+   generic_itoa(_configDlg.getDisplayLineNo(), tmp, 10);
+   ::WritePrivateProfileString(SECTIONNAME, KEYDISPLAYLINENO, tmp, iniFilePath);
    generic_itoa(_configDlg.getOnAutoUpdate(), tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYONAUTOUPDATE, tmp, iniFilePath);
    generic_itoa((int)_configDlg.getOnEnterAction(), tmp, 10);
@@ -225,6 +272,21 @@ void AnalysePlugin::saveSettings() {
    ::WritePrivateProfileString(SECTIONNAME, KEYFONTNAME, cp, iniFilePath);
    generic_itoa(_configDlg.getFontSize(), tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYFONTSIZE, tmp, iniFilePath);
+   ::WritePrivateProfileString(SECTIONNAME, KEYMAXNUMOFCFGFILES, _configDlg.getNumOfCfgFilesStr().c_str(), iniFilePath);   
+   size_t maxFiles = _findDlg.getLastConfigFiles().size();
+   generic_itoa(maxFiles, tmp, 10);
+   ::WritePrivateProfileString(SECTIONNAME, KEYNUMOFLASTCFGFILES, tmp, iniFilePath);
+   // write the first anyway 
+   ::WritePrivateProfileString(SECTIONNAME, KEYLASTSRCHCFGFILE, ((maxFiles)?(_findDlg.getLastConfigFiles().at(0).c_str()):TEXT("")), iniFilePath);
+   for(size_t i = 1; i < maxFiles; ++i) {
+      TCHAR num[10];
+      generic_string key = generic_string(KEYLASTSRCHCFGFILE) + generic_itoa(i, num, 10);
+      ::WritePrivateProfileString(SECTIONNAME, key.c_str() , _findDlg.getLastConfigFiles().at(i).c_str(), iniFilePath);
+   }
+   if(xmlFilePath) {
+      // store current settings in my self xml
+      _findDlg.saveConfigFile(xmlFilePath);
+   }
 }
 
 void AnalysePlugin::showMargin(int witchMarge, bool willBeShown) {
@@ -272,15 +334,16 @@ void AnalysePlugin::displaySectionCentered(int posStart, int posEnd, bool isDown
    //Make sure the caret is visible, scroll horizontally (this will also fix wrapping problems)
    execute(scnActiveHandle, SCI_GOTOPOS, posStart);
    execute(scnActiveHandle, SCI_GOTOPOS, posEnd);
-   //execute(scnActiveHandle, SCI_SETSEL, start, posEnd);	
-   //execute(scnActiveHandle, SCI_SETCURRENTPOS, posEnd);
    execute(scnActiveHandle, SCI_SETANCHOR, posStart);	
 }
 
 void AnalysePlugin::setSearchFileName(const generic_string& file) {
-   if(_findDlg.getFileName() != file) {
-      _findDlg.setFileName(file.c_str());
-      _findResult.clear();
+   
+   if(mLastSearchedFileName != file) {
+      mLastSearchedFileName = file;
+      _findDlg.setFileName(file);
+      _findResult.setFileName(file);
+      //don't do it here because window is not init() _findResult.clear();
    }
 }
 
@@ -291,6 +354,7 @@ void AnalysePlugin::removeUnusedResultLines(tPatId pattId, const tclResult& oldR
 
 void AnalysePlugin::clearResult() 
 {
+   setSearchFileName(TEXT(""));
    _findResult.clear();
 }
 
@@ -305,7 +369,6 @@ void AnalysePlugin::moveResult(tPatId oldPattId, tPatId newPattId)
 }
 
 bool AnalysePlugin::bCheckLastFileNameSame(generic_string& file) {
-   //static TCHAR lastFileName[MAX_PATH] = "";
    TCHAR newFilename[MAX_PATH] = TEXT("");
    TCHAR newDirname[MAX_PATH] = TEXT("");
    execute(nppHandle, NPPM_GETFILENAME, COUNTCHAR(newFilename), (LPARAM)newFilename);
@@ -338,7 +401,7 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList)
    generic_string currentfile;
    if (!bCheckLastFileNameSame(currentfile)){
       // not same file in editor. Remove content from results
-      mLastSearchedFileName = currentfile;
+      setSearchFileName(currentfile);
       bReSearch = true;
    }
    // check if we have the correct linenumcolumnsize
@@ -375,6 +438,7 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList)
    // activate progress controls
    _findDlg.setPleaseWaitRange(0, resultList.size());
    _findDlg.activatePleaseWait();
+   unsigned commentWidth = resultList.getCommentWidth();
 
    // for all patterns in the list test if result is dirty
    tclResultList::iterator iResult = resultList.begin();
@@ -401,6 +465,12 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList)
          tclResult::tlvPosInfo::const_iterator it = result.getPositions().begin();
          int erasedLen = 0;
          int lcount = (int)execute(scnActiveHandle, SCI_GETLINECOUNT);
+         unsigned cp = (unsigned)execute(scnActiveHandle, SCI_GETCODEPAGE); // TODO hier sollte die CP vom result window genutzt werden
+         WcharMbcsConvertor* wmc = WcharMbcsConvertor::getInstance();
+         std::string comment;
+         if (wmc) {
+            comment = wmc->wchar2char(pattern.getComment().c_str(), cp);
+         }
          for (;it!=result.getPositions().end();++it) {
             if(it->line >= lcount) {
                DBG4("doSearch() ERROR line is out of range! possible %d, line %d, start %d, end %d.",
@@ -423,7 +493,7 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList)
                _line[lineLength] = 0x0D;
                _line[lineLength+1] = 0x0A;
                _line[lineLength+2] = '\0';
-               _findResult.setLineText(it->line, _line);
+               _findResult.setLineText(it->line, _line, comment, commentWidth);
             } else {
                // line is already in search result
                DBG0("doSearch() line is already in search result");
@@ -442,7 +512,6 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList)
       }
 
       _findResult.updateDockingDlg();
-
       // we could store the the search range to the result too so that we  
       //    later can check whether update of search is required when text
       //    becomes appended
@@ -456,6 +525,9 @@ teOnEnterAction AnalysePlugin::getOnEnterAction() const {
 }
 int AnalysePlugin::getUseBookmark() const {
    return _configDlg.getUseBookmark();
+}
+int AnalysePlugin::getDisplayLineNo() const {
+   return _configDlg.getDisplayLineNo();
 }
 
 const generic_string& AnalysePlugin::getResultFontName() const {
@@ -471,7 +543,6 @@ void AnalysePlugin::beNotified(SCNotification *notification)
    if(notification==0) return;
 
    //DBG2("beNotified() 0x%04x \t %d", notification->nmhdr.code, notification->nmhdr.code);
-
    switch (notification->nmhdr.code) 
    {
    case NPPN_FILEBEFORELOAD:
@@ -484,7 +555,7 @@ void AnalysePlugin::beNotified(SCNotification *notification)
    case SCN_SAVEPOINTREACHED:DBG0("beNotified() SCN_SAVEPOINTREACHED");break;
    case NPPN_FILEBEFOREOPEN:DBG0("beNotified() NPPN_FILEBEFOREOPEN");break;
    case NPPN_FILEOPENED:DBG0("beNotified() NPPN_FILEOPENED");break;
-   case NPPN_BUFFERACTIVATED:DBG0("beNotified() NPPN_BUFFERACTIVATED");break;
+   case NPPN_BUFFERACTIVATED:DBG1("beNotified() NPPN_BUFFERACTIVATED BufferID = %d", notification->nmhdr.idFrom);break;
    case SCN_UPDATEUI:
       {
          if(_bIgnoreBufferModify) {
@@ -567,7 +638,6 @@ void AnalysePlugin::beNotified(SCNotification *notification)
 
 			::SendMessage(nppData._nppHandle, NPPM_SETMENUITEMCHECK, funcItem[SHOWFINDDLG]._cmdID, (LPARAM)gbPluginVisible);
          showFindDlg();
-//         _findResult.updateWindowData(_configDlg.getFontText(), _configDlg.getFontSize());
          ::SetFocus(nppData._scintillaMainHandle);
          break;
       }
@@ -663,7 +733,7 @@ generic_string AnalysePlugin::convertExtendedToString(const generic_string& quer
 bool AnalysePlugin::readBase(const generic_string& str, int curPos, int * value, int base, int size) {
 	int i = 0, temp = 0;
 	*value = 0;
-	TCHAR max = '0' + (TCHAR)base - 1;
+	TCHAR mx = '0' + (TCHAR)base - 1;
 	TCHAR current;
 	while(i < size) {
 		current = str[i];
@@ -675,7 +745,7 @@ bool AnalysePlugin::readBase(const generic_string& str, int curPos, int * value,
 		else if (current > '9')
 			return false;
 
-		if (current >= '0' && current <= max) {
+		if (current >= '0' && current <= mx) {
 			temp *= base;
 			temp += (current - '0');
 		} else {
@@ -712,6 +782,9 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
    if(pattern.getSearchType()== tclPattern::regex) {
       flags |= (SCFIND_REGEXP|SCFIND_POSIX);
       text = pattern.getSearchText(); // text to be searched
+   } else if(pattern.getSearchType()== tclPattern::rgx_dotnewln) {
+      flags |= (SCFIND_REGEXP|SCFIND_POSIX|SCFIND_REGEXP_DOTMATCHESNL);
+      text = pattern.getSearchText(); // text to be searched
    } else if(pattern.getSearchType()== tclPattern::escaped) {
       text = convertExtendedToString(pattern.getSearchText());
    } else {
@@ -720,7 +793,23 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
    
    flags |= pattern.getIsMatchCase()?SCFIND_MATCHCASE:0;
    flags |= pattern.getIsWholeWord()?SCFIND_WHOLEWORD:0;
-
+   flags |= SCFIND_REGEXP_EMPTYMATCH_ALL | SCFIND_REGEXP_SKIPCRLFASONE;
+#ifdef TAGGED_MARKUP
+   bool bTagged = false;
+   if((flags & SCFIND_REGEXP) != 0) 
+   {
+      // before doing expencive GETTAG we check if required
+      const char* pcBraket = strstr(text2FindA, "(");
+      if (pcBraket) {
+         if (pcBraket > text2FindA) {
+            // braket being excaped?
+            bTagged = (*(--pcBraket) != '\\');
+         } else {
+            bTagged = true;
+         }
+      }
+   }
+#endif
    //Initial range for searching
    execute(scnActiveHandle, SCI_SETTARGETSTART, startRange);
    execute(scnActiveHandle, SCI_SETTARGETEND, endRange);
@@ -768,7 +857,55 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
          break;
       }
       int foundTextLen = targetEnd - targetStart;
-
+#ifdef TAGGED_MARKUP
+      // TODO startRange = targetStart + foundTextLen ;	//search from result onwards
+      //if((flags & SCFIND_REGEXP) != 0) 
+      {
+         // before doing expencive GETTAG we check if required
+         //bool bTagged = false;
+         //const char* pcBraket = strstr(text2FindA, "(");
+         //if (pcBraket) {
+         //   if (pcBraket > text2FindA) {
+         //      // braket being excaped?
+         //      bTagged = (*(--pcBraket) != '\\');
+         //   } else {
+         //      bTagged = true;
+         //   }
+         //}
+         if(bTagged) {
+            char* pacTag = new char[foundTextLen+1];
+            char* pacText = 0; 
+            int j = -1;
+            int k = 0;
+            for(int i = 1; j != 0 && i < 11; ++i) {
+               j = (int)execute(scnActiveHandle, SCI_GETTAG, i, (LPARAM)pacTag);
+               if(j != 0) {
+                  DBGA3("doFindPattern() regex found tag %d return %d text '%s'", i, j, pacTag);
+                  pacText = new char[foundTextLen+1];
+                  pacText[0]=0;
+                  if(k == 0) {
+                     // do it once per searched tag
+                     k = (int)execute(scnActiveHandle, SCI_GETTEXT, foundTextLen+1, (LPARAM)pacText);
+                     DBGA2("doFindPattern() regex found text return %d text '%s'", k, pacText);
+                     if (k == 0) {
+                        DBG0("doFindPattern() ERROR selection is zero!");
+                        k =  -1;
+                     }
+                  }
+                  char* pc = strstr(pacText, pacTag);
+                  int m = pc-pacText;
+                  DBG1("doFindPattern() tag begin pos %d", m);
+                  if (m > 0) {
+                     targetStart += m;
+                     targetEnd = targetStart + j;
+                  }
+               }
+            }
+            delete[] pacTag;
+            delete[] pacText;
+         }
+      }
+#endif // TAGGED_MARKUP
       int lineNumberStart = (int)execute(scnActiveHandle, SCI_LINEFROMPOSITION, targetStart);
       int lineNumberEnd = (int)execute(scnActiveHandle, SCI_LINEFROMPOSITION, targetEnd);
       int lineCount = lineNumberEnd - lineNumberStart;
@@ -821,7 +958,6 @@ void AnalysePlugin::doStyleFormating(HWND hCurrentEditView, int startPos, int en
 
 void AnalysePlugin::toggleShowFindDlg () 
 {
-   //MessageBox(NULL, (funcItem[SHOWFINDDLG]._init2Check?"true":"false"), "toggle from", 0);
    funcItem[SHOWFINDDLG]._init2Check = !funcItem[SHOWFINDDLG]._init2Check;
    showFindDlg();
 }
@@ -884,34 +1020,12 @@ void AnalysePlugin::showFindDlg ()
       if (!_findDlg.isCreated())
       {
          _findDlg.create(&data);
-         // use actual selected file as basis for loading config file
-         if (mSearchPatternFileName.size()>0) {
-            unsigned pos = (unsigned)mSearchPatternFileName.find_last_of('\\');
-            if ( pos == 0 ) {
-               pos = (unsigned)mSearchPatternFileName.find_last_of('/');
-            }
-            if( pos > 0 ) {
-               generic_string s = mSearchPatternFileName.substr(0, pos+1); // we want to have the slash too
-               s += TEXT("*.xml");
-               _findDlg.setFileName(s.c_str());
-            }else {
-               _findDlg.setFileName(mSearchPatternFileName.c_str());
-            }
-         }
-      
          ::SendMessage(nppData._nppHandle, NPPM_DMMREGASDCKDLG, 0, (LPARAM)&data);
-         
-         //_findDlg.getWindowRect(rect);
-         //_findDlg.updateDockingDlg
-         //rect.right = 900;
-         //::MoveWindow(_findDlg.getHSelf(), 0, 0, 100, 100, true);
       }
       if (!_findResult.isCreated())
       {
          ZeroMemory(&data, sizeof(data));
          _findResult.create(&data);
-         //::GetWindowRect(_findDlg.getHSelf(), &rect);
-         //::MoveWindow(_findDlg.getHSelf(), 0, 0, 100, 100, true);
          ::SendMessage(nppData._nppHandle, NPPM_DMMREGASDCKDLG, 0, (LPARAM)&data);
          DBG0("showFindDlg() result window initEdit()");
          // set the diag 
@@ -923,6 +1037,10 @@ void AnalysePlugin::showFindDlg ()
          _configDlg.setDialogData(_findDlg.getDefaultPattern());
          _findResult.initEdit(_findDlg.getDefaultPattern()); // here findresult first time exists
          _findResult.updateWindowData(_configDlg.getFontText(), _configDlg.getFontSize());
+         if(PathFileExists(xmlFilePath) == TRUE) {
+            // load the patterns from last run
+            _findDlg.loadConfigFile(xmlFilePath);
+         }
       }
 
       // Always show, unless npp is not ready yet
@@ -953,6 +1071,35 @@ LRESULT AnalysePlugin::messageProc(UINT Message, WPARAM wParam, LPARAM lParam)
    }
    */
    return TRUE;
+}
+
+void AnalysePlugin::addSelectionToPatterns() {
+   int textLength = execute(scnActiveHandle, SCI_GETSELTEXT);
+   if (textLength == 0) {
+      ::MessageBox(getCurrentHScintilla(scnActiveHandle), TEXT("Please select a text or text block to be tken as patterns."), TEXT("AnalysePlugin Selection to Patterns"), MB_OK);
+      return;
+   } 
+   char* pc = new char[textLength];
+   execute(scnActiveHandle, SCI_GETSELTEXT, 0, (LPARAM)pc);
+	
+   WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
+	unsigned int cp = (unsigned int)execute(scnActiveHandle, SCI_GETCODEPAGE); 
+#ifdef UNICODE
+   WCHAR* selText = const_cast<WCHAR*>(wmc->char2wchar(pc, cp));
+#else
+   char * selText = pc;
+#endif
+   TCHAR* szToken = generic_strtok(selText, TEXT("\n"));
+   while (szToken) {
+      if (szToken[generic_strlen(szToken)-1] == TCHAR('\r')) {
+         szToken[generic_strlen(szToken)-1] = 0;
+      }
+      if (generic_strlen(szToken)) {
+         _findDlg.addTextPattern(szToken);
+      }
+      szToken = generic_strtok(NULL, TEXT("\n"));
+   }
+   delete[] pc;
 }
 
 #ifdef UNICODE

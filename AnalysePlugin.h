@@ -23,7 +23,6 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "Notepad_plus_msgs.h"
 #include "versioninfo.inc"
 #include <shlobj.h>
-#include "myDebug.h"
 
 // outscourced demo functions
 //#include "CDemoFunction.h"
@@ -49,6 +48,9 @@ typedef void *WindowID;
 // list of functions provided to notepad++
 enum tePluginFuncId {
    SHOWFINDDLG,
+   SEP1,
+   ADDSELTOPATT,
+   SEP2,
 #ifdef CONFIG_DIALOG
    SHOWCNFGDLG,
 #endif
@@ -82,7 +84,7 @@ public:
       _findDlg.setParent(this);
       _findResult.setParent(this);
 
-      mVersionString = TEXT("Analyse Plugin V1.9 ");
+      mVersionString = TEXT("Analyse Plugin V1.10 ");
       mVersionString += TEXT("Rev. ");
       mVersionString += SVNRevInfo;
       mVersionString += TEXT(" ");
@@ -108,7 +110,7 @@ public:
    void toggleShowFindDlg();
    void showHelpDialog();
    void showConfigDialog();
-
+   void addSelectionToPatterns();
    bool isVisible() const {
       return _findDlg.isVisible();
    }
@@ -160,6 +162,7 @@ public:
    virtual const generic_string& getResultFontName() const;
    virtual unsigned getResultFontSize() const;
    virtual int getUseBookmark() const;
+   virtual int getDisplayLineNo() const;
 
    LRESULT messageProc(UINT Message, WPARAM wParam, LPARAM lParam);
 
@@ -249,16 +252,21 @@ protected:
    static const TCHAR KEYCOMMENTHISTORY[];
    static const TCHAR KEYDEFAULTOPTIONS[];
    static const TCHAR KEYUSEBOOKMARK[];
+   static const TCHAR KEYDISPLAYLINENO[];
    static const TCHAR KEYONAUTOUPDATE[];
    static const TCHAR KEYONENTERACTION[];
    static const TCHAR KEYLASTFILENAME[];
    static const TCHAR KEYFONTNAME[];
    static const TCHAR KEYFONTSIZE[];
+   static const TCHAR KEYMAXNUMOFCFGFILES[];
+   static const TCHAR KEYLASTSRCHCFGFILE[];
+   static const TCHAR KEYNUMOFLASTCFGFILES[];
    static const TCHAR SECTIONNAME[];
    static const TCHAR LOCALCONFFILE[];
    static const TCHAR ANALYSE_INIFILE[];
 
    TCHAR iniFilePath[MAX_PATH];
+   TCHAR xmlFilePath[MAX_PATH];
    TCHAR _szPluginFileName[MAX_PATH];
 
    /** handles of notpepad++ */

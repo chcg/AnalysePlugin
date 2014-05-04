@@ -27,6 +27,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include <string.h>
 #include <windows.h>
 #include "ScintillaSearchView.h"
+#define MDBG_COMP "SSView:" 
 #include "myDebug.h"
 
 #ifdef UNICODE
@@ -433,7 +434,7 @@ bool ScintillaSearchView::prepareRtfClip(char *pGlobalText, int iClipLength, cha
          if(iClipLength <= 0) { assert(0); return false; }
          strcpy(pDest, RTF_COLNUM);
          pDest += strlen(RTF_COLNUM);
-         itoa(transStylePos[style], styleNum, 10);
+         _itoa(transStylePos[style], styleNum, 10);
          iClipLength -= (int)strlen(styleNum);
          if(iClipLength <= 0) { assert(0); return false; }
          strcpy(pDest, styleNum);
@@ -484,6 +485,18 @@ bool ScintillaSearchView::prepareRtfClip(char *pGlobalText, int iClipLength, cha
    return true;
 }
 
+std::vector<MenuItemUnit> ScintillaSearchView::getContextMenu() const {
+   std::vector<MenuItemUnit> tmp;
+   //example tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
+   tmp.push_back(MenuItemUnit(FNDRESDLG_SCINTILLAFINFER_COPY, TEXT("Copy")));
+   tmp.push_back(MenuItemUnit(FNDRESDLG_SCINTILLAFINFER_SELECTALL, TEXT("Select All")));
+   tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
+   tmp.push_back(MenuItemUnit(FNDRESDLG_SCINTILLAFINFER_SEARCH, TEXT("Find... [Ctrl+F]")));
+   tmp.push_back(MenuItemUnit(FNDRESDLG_SCINTILLAFINFER_SAVEFILE, TEXT("Save to file...")));
+   tmp.push_back(MenuItemUnit(FNDRESDLG_SCINTILLAFINFER_SAVE_CLR, TEXT("Reset save file")));
+   return tmp;
+}
+
 LRESULT ScintillaSearchView::scintillaNew_Proc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
 {
 	switch (Message)
@@ -500,8 +513,10 @@ LRESULT ScintillaSearchView::scintillaNew_Proc(HWND hwnd, UINT Message, WPARAM w
                execute(SCI_SELECTALL);
                break;
             case FNDRESDLG_SCINTILLAFINFER_SEARCH:
+            case FNDRESDLG_SCINTILLAFINFER_SAVEFILE:
+            case FNDRESDLG_SCINTILLAFINFER_SAVE_CLR:
                // deferre to parent window
-               ::SendMessage(_hParent, WM_COMMAND, FNDRESDLG_SCINTILLAFINFER_SEARCH, (LPARAM)0);
+               ::SendMessage(_hParent, WM_COMMAND, wParam, (LPARAM)0);
                break;
             default:
                break;
@@ -526,13 +541,7 @@ LRESULT ScintillaSearchView::scintillaNew_Proc(HWND hwnd, UINT Message, WPARAM w
 //			ContextMenu(pt);
 
          ContextMenu scintillaContextmenu;
-         std::vector<MenuItemUnit> tmp;
-         //example tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
-         tmp.push_back(MenuItemUnit(FNDRESDLG_SCINTILLAFINFER_COPY, TEXT("Copy")));
-         tmp.push_back(MenuItemUnit(FNDRESDLG_SCINTILLAFINFER_SELECTALL, TEXT("Select All")));
-         tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
-         tmp.push_back(MenuItemUnit(FNDRESDLG_SCINTILLAFINFER_SEARCH, TEXT("Find... [Ctrl+F]")));
-         scintillaContextmenu.create(_hSelf, tmp);
+         scintillaContextmenu.create(_hSelf, getContextMenu());
          scintillaContextmenu.display(pt);
          
      //    bool writable = !(bool)execute(SCI_GETREADONLY);
@@ -743,6 +752,32 @@ void ScintillaSearchView::styleChange() {
 	restyleBuffer();
 }
 
+void ScintillaSearchView::updateLineNumberWidth(bool lineNumbersShown) 
+{
+   if (lineNumbersShown)
+   {
+      int linesVisible = (int) execute(SCI_LINESONSCREEN);
+      if (linesVisible)
+      {
+         int iNumLines = (int) execute(SCI_GETLINECOUNT);
+         int iLineNumColSize = (iNumLines<10)?1:
+            (iNumLines<100)?2:
+            (iNumLines<1000)?3:
+            (iNumLines<10000)?4:
+            (iNumLines<100000)?5:
+            (iNumLines<1000000)?6:
+            (iNumLines<10000000)?7:
+            (iNumLines<100000000)?8:
+            (iNumLines<1000000000)?9:10;
+
+         int pixelWidth = int(4 + (iLineNumColSize * execute(SCI_TEXTWIDTH, STYLE_LINENUMBER, (LPARAM)"8")));
+         DBG2("updateLineNumberWidth() iLineNumColSize=%d, pixelWidth=%d", iLineNumColSize, pixelWidth);
+         execute(SCI_SETMARGINWIDTHN, _SC_MARGE_LINENUMBER, pixelWidth);
+      }
+   } else {
+      execute(SCI_SETMARGINWIDTHN, _SC_MARGE_LINENUMBER, 0);
+   }
+}
 
 void ScintillaSearchView::collapse(int level2Collapse, bool mode)
 {

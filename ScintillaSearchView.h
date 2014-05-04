@@ -32,7 +32,6 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 //#include "SysMsg.h"
 //#include "UserDefineDialog.h"
 #include "resource.h"
-#include "myDebug.h"
 
 #define RTF_COLTAG_RED "\n\\red" // red
 #define RTF_COLTAG_GREEN "\\green" // green
@@ -50,7 +49,9 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define FNDRESDLG_SCINTILLAFINFER_SELECTALL (16)
 
 #define FNDRESDLG_BASE (WM_USER + 0100)
-#define FNDRESDLG_SCINTILLAFINFER_SEARCH (FNDRESDLG_BASE + 1)
+#define FNDRESDLG_SCINTILLAFINFER_SEARCH   (FNDRESDLG_BASE + 1)
+#define FNDRESDLG_SCINTILLAFINFER_SAVEFILE (FNDRESDLG_BASE + 2)
+#define FNDRESDLG_SCINTILLAFINFER_SAVE_CLR (FNDRESDLG_BASE + 3)
 
 
 #ifndef WM_MOUSEWHEEL
@@ -522,32 +523,7 @@ public:
 	//Buffer * getCurrentBuffer() { return _currentBuffer; };
 	void styleChange();
 
-	void updateLineNumberWidth(bool lineNumbersShown) {
-		if (lineNumbersShown)
-		{
-			int linesVisible = (int) execute(SCI_LINESONSCREEN);
-			if (linesVisible)
-			{
-            int iNumLines = (int) execute(SCI_GETLINECOUNT);
-            int iLineNumColSize = (iNumLines<10)?1:
-                                  (iNumLines<100)?2:
-                                  (iNumLines<1000)?3:
-                                  (iNumLines<10000)?4:
-                                  (iNumLines<100000)?5:
-                                  (iNumLines<1000000)?6:
-                                  (iNumLines<10000000)?7:
-                                  (iNumLines<100000000)?8:
-                                  (iNumLines<1000000000)?9:10;
-
-				int pixelWidth = int(4 + (iLineNumColSize * execute(SCI_TEXTWIDTH, STYLE_LINENUMBER, (LPARAM)"8")));
-            DBG2("updateLineNumberWidth() iLineNumColSize=%d, pixelWidth=%d", iLineNumColSize, pixelWidth);
-				execute(SCI_SETMARGINWIDTHN, _SC_MARGE_LINENUMBER, pixelWidth);
-			}
-      } else {
-         execute(SCI_SETMARGINWIDTHN, _SC_MARGE_LINENUMBER, 0);
-      }
-	};
-
+	void updateLineNumberWidth(bool lineNumbersShown);
 
 	void hideLines();
 
@@ -579,6 +555,7 @@ public:
 	void setLexer(int lexerID, LangType langType, int whichList);
    void setRtfColorTable(const char* pColortbl);
    bool doRichTextCopy();
+   std::vector<MenuItemUnit> getContextMenu() const;
 
 protected:
    static const int transStylePos[MY_STYLE_MASK+1];

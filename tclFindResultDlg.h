@@ -31,11 +31,9 @@ search result string cache
 #include "MyPlugin.h"
 #include "ScintillaSearchView.h"
 #include "tclFindResultDoc.h"
-#include "myDebug.h"
 #include "tclFindResultSearchDlg.h"
 
 #define MY_STYLE_COUNT (MY_STYLE_MASK-8) // 0 and 32-39 are defaults
-//off #define FEATURE_HEADLINE
 
 class tclFindResultDlg : public DockingDlgInterface {
 
@@ -64,18 +62,13 @@ public:
 
    void create(tTbData * data, bool isRTL = false);
    
-
-#ifdef FEATURE_HEADLINE
-   void addFileNameTitle(const TCHAR *fileName); 
-#endif
-
    int insertPosInfo(tPatId patternId, tiLine iResultLine, tclPosInfo pos); 
 
    bool getLineAvail(tiLine foundLine) const ;
 
    const std::string& getLineText(int iResultLine); 
 
-   void setLineText(int iFoundLine, const std::string& text); 
+   void setLineText(int iFoundLine, const std::string& text, const std::string& comment, unsigned commentWidth); 
    
    void moveResult(tPatId oldPattId, tPatId newPattId);
 
@@ -103,6 +96,17 @@ public:
       mUseBookmark = useIt;
    }
 
+   void setDisplayLineNo(int useIt){
+      mDisplayLineNo = useIt;
+   }
+
+   void setFileName(const generic_string& str);
+   
+   void updateHeadline();
+
+   const TCHAR* getszFileName() const {
+      return mSearchFileName.c_str();
+   }
 protected :
    static const int transStyleId[MY_STYLE_COUNT];
    // public version calls internal with correct start and end values
@@ -111,6 +115,8 @@ protected :
    // open search dialog in result window
    void doFindResultSearchDlg();
 
+   // identify the file to which the result shall be stored
+   void doSaveToFile();
    // message call back method
    virtual BOOL CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -127,6 +133,7 @@ protected :
    bool notify(SCNotification *notification);
    
    void setFinderReadOnly(bool isReadOnly); 
+   void saveSearchDoc();
    void setPatternFonts();
 
 protected:
@@ -150,9 +157,13 @@ protected:
 
    tclFindResultSearchDlg mFindResultSearchDlg;
 
+   generic_string mSearchFileName;
+   TCHAR _ResAdditionalInfo[MAX_HEADLINE]; // file name as in edit tab 
    generic_string mFontName;
    unsigned mFontSize;
    int mUseBookmark;
-
+   int mDisplayLineNo;
+   int mDisplayComment;
+   generic_string mSearchResultFile;
 };
 #endif //TCLFINDRESULTDLG_H

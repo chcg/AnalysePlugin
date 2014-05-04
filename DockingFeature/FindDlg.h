@@ -26,12 +26,8 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "resource.h"
 #include <string.h>
-#include "myDebug.h"
 #include "ColourPicker2.h"
 
-//const int MARK_BOOKMARK = 1;
-//const int MARK_HIDELINESBEGIN = 2;
-//const int MARK_HIDELINESEND = 3;
 
 #include <string>
 #include <vector>
@@ -48,7 +44,9 @@ class tclPattern;
 #include "tclTableview.h"
 #include "PleaseWaitDlg.h"
 
-//off #define FEATURE_HEADLINE
+//const int MARK_BOOKMARK = 1;
+//const int MARK_HIDELINESBEGIN = 2;
+//const int MARK_HIDELINESEND = 3;
 
 #define MAX_CHAR_HISTORY 2000
 
@@ -128,8 +126,9 @@ public :
       ,_pFgColour(0)
       ,_pBgColour(0)
       ,_pPlsWait(0)
+      ,_maxConfigFiles(4)
    {
-      memset(szFile, 0, sizeof(szFile));
+      _ConfigFileName[0] = 0;
    }
 
    ~FindDlg()
@@ -161,11 +160,22 @@ public :
       _pParent = parent;
    }
 
-   void setFileName(const TCHAR* str);
+   void setFileName(const generic_string& str);
+   void setConfigFileName(const generic_string str); // intentionally a copy parameter
+
+   bool loadConfigFile(const TCHAR* file, bool bAppend=true, bool bLoadNew=true);
+   bool saveConfigFile(const TCHAR* file);
+
+   void setNumOfCfgFiles(unsigned u);
+   void setNumOfCfgFilesStr(const generic_string& str);
+
    void doSearch();
 
-   const TCHAR* getFileName() const{
-      return szFile;
+   const generic_string& getFileName() const{
+      return _FileName;
+   }
+   const TCHAR* getszConfigFileName() const{
+      return _ConfigFileName;
    }
 
    const tclPattern& getDefaultPattern() const {
@@ -182,20 +192,6 @@ public :
    BOOL notify(SCNotification *notification);
 
    /**
-   * add the filename to the find results window
-   */
-   void addFileNameTitle(const TCHAR *fileName) {
-      generic_string str = TEXT("[");
-      str += fileName;
-      str += TEXT("]\n");
-
-      _pParent->setFinderReadOnly(false);
-      _pParent->execute(scnSecondHandle, SCI_APPENDTEXT, str.length(), (LPARAM)str.c_str());
-      _pParent->setFinderReadOnly(true);
-      _lineCounter++;
-   }
-
-   /**
     * store the patterns into a file 
     * returns true if file was saved
     */
@@ -204,7 +200,7 @@ public :
    /**
     * implementation of the load button 
     */
-   bool doLoadConfigFile();
+   bool doLoadConfigFile(bool bAppend=true, bool bLoadNew=true);
 
    void setSearchHistory(const TCHAR* hist);
    //void setSearchHistory(const char* hist, int charSize=1);
@@ -233,6 +229,7 @@ public :
    void doCopyDialogToLine();
    bool isSearchTextEqual();
    bool isPatternEqual();
+   void addTextPattern(const TCHAR* pzsText);
 
    /** provide access to the pattern list for style informations 
    **/
@@ -264,6 +261,10 @@ public :
    void setPleaseWaitProgress(int iCurr);
    bool getPleaseWaitCanceled();
 
+   const std::vector<generic_string>& getLastConfigFiles() const {
+      return _lastConfigFiles;
+   }
+
 //ScintillaEditView **_ppEditView;    // access to the editor window
 // find result cache
 // actually marked line in result window
@@ -283,17 +284,18 @@ protected:
 
    /** @link dependency */
    /*# FindConfigDoc lnkFindConfigDoc; */
+   #define MAX_HEADLINE 1000
 
    /** @link aggregation */
    tclResultList mResultList;
-
    tclTableview mTableView;
    tclComboBoxCtrl mCmbSearchText;
    tclComboBoxCtrl mCmbSearchType;
    tclComboBoxCtrl mCmbSelType;
    tclComboBoxCtrl mCmbComment;
 //   tclComboBoxCtrl mCmbColor;
-   TCHAR szFile[MAX_PATH];       // buffer for file name
+   generic_string _FileName;        // buffer for file name
+   TCHAR _ConfigFileName[MAX_HEADLINE]; // buffer for config file name
    tclPattern mDefPat;
    //teOnEnterAction mOnEnterAction; // 0 do nothing 1 update 2 add
 
@@ -303,6 +305,8 @@ protected:
    static int _ModifiedMode;
    static HWND _ModifiedHwnd;
    PleaseWaitDlg* _pPlsWait;
+   std::vector<generic_string> _lastConfigFiles;
+   unsigned _maxConfigFiles;
 };
 
 #endif //FIND_DLG_H

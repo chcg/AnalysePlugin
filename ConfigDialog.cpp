@@ -20,6 +20,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
 #include "stdafx.h"
 #include "precompiledHeaders.h"
+#include "menuCmdID.h"
 
 #include "ConfigDialog.h"
 #include "PluginInterface.h"
@@ -27,8 +28,13 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include <windows.h>
 #include "tclPattern.h"
 
+#define MDBG_COMP "CfgDlg:" 
+#include "myDebug.h"
+
 #define FONTSIZELIST_COUNT 11
-const TCHAR * FONTSIZELIST[] = {L"20", L"18", L"16", L"14", L"12", L"11", L"10", L"9", L"8", L"7", L"6" };
+const TCHAR * FONTSIZELIST[] = {TEXT("20"), TEXT("18"), TEXT("16"), TEXT("14"), TEXT("12"), TEXT("11"), TEXT("10"), TEXT("9"), TEXT("8"), TEXT("7"), TEXT("6") };
+#define LISTLENGTHVALS_COUNT 2
+const TCHAR * LISTLENGTHVALS[] = {TEXT("4"), TEXT("10")}; 
 
 using namespace std;
 
@@ -36,6 +42,7 @@ void ConfigDialog::init(HINSTANCE hInst, NppData nppData)
 {
    _nppData = nppData;
    Window::init(hInst, nppData._nppHandle);
+   _addCtxDlg.init(hInst, nppData);
    setFontList(nppData._nppHandle);
 }
 
@@ -77,15 +84,14 @@ void ConfigDialog::doDialog(int FuncCmdId)
       create(IDD_ANALYSE_CONF_DLG);
       mCmbOnEnterAction.init(::GetDlgItem(_hSelf, IDC_CMB_ONENTERACT));
       mCmbSearchType.init(::GetDlgItem(_hSelf, IDC_CMB_SEARCH_TYPE));
-      mCmbSearchText.init(::GetDlgItem(_hSelf, IDC_CMB_SEARCH_TEXT));
+//      mCmbSearchText.init(::GetDlgItem(_hSelf, IDC_CMB_SEARCH_TEXT));
       mCmbSelType.init(::GetDlgItem(_hSelf, IDC_CMB_SELECTION));
 #ifdef RESULT_COLORING
       mCmbColor.init(::GetDlgItem(_hSelf, IDC_CMB_COLOR));
 #endif
       mCmbFontName.init(::GetDlgItem(_hSelf, IDC_CMB_FONTNAME));
       mCmbFontSize.init(::GetDlgItem(_hSelf, IDC_CMB_FONTSIZE));
-      //mCmbFontSize.setupSort();
-
+      mCmbNumOfCfgFiles.init(::GetDlgItem(_hSelf, IDC_CMB_NUMOFCFGFILES));
       // now set defaults
       mCmbOnEnterAction.addInitialText2Combo(max_onEnterAction, transOnEnterAction, false);
       mCmbSearchType.addInitialText2Combo(mDefPat.getDefSearchTypeListSize(), mDefPat.getDefSearchTypeList(), false);
@@ -95,25 +101,33 @@ void ConfigDialog::doDialog(int FuncCmdId)
 #endif
       mCmbFontName.addInitialText2Combo(mlsFontList, false);
       mCmbFontSize.addInitialText2Combo(FONTSIZELIST_COUNT, FONTSIZELIST, false);
-
+      mCmbNumOfCfgFiles.addInitialText2Combo(LISTLENGTHVALS_COUNT, LISTLENGTHVALS, false);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_USEBOOKMARK, BM_SETCHECK, getUseBookmark()?BST_CHECKED:BST_UNCHECKED, 0);
       // now get the stuff from configuration in the dialog 
       ::SendDlgItemMessage(_hSelf, IDC_CHK_AUTOUPDT, BM_SETCHECK, getOnAutoUpdate()?BST_CHECKED:BST_UNCHECKED, 0);
       mCmbOnEnterAction.addText2Combo(getOnEnterActionStr().c_str(), false);
       mCmbSearchType.addText2Combo(mDefPat.getSearchTypeStr().c_str(), false);
       mCmbSelType.addText2Combo(mDefPat.getSelectionTypeStr().c_str(), false);
-      mCmbSearchText.addText2Combo(mDefPat.getSearchText().c_str(), false);
+//      mCmbSearchText.addText2Combo(mDefPat.getSearchText().c_str(), false);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_DO_SEARCH, BM_SETCHECK, mDefPat.getDoSearch()?BST_CHECKED:BST_UNCHECKED, 0);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_HIDE, BM_SETCHECK, mDefPat.getIsHideText()?BST_CHECKED:BST_UNCHECKED, 0);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_SETCHECK, mDefPat.getIsWholeWord()?BST_CHECKED:BST_UNCHECKED, 0);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_SETCHECK, mDefPat.getIsMatchCase()?BST_CHECKED:BST_UNCHECKED, 0);
+      ::SendDlgItemMessage(_hSelf, IDC_CHK_DISPLINENO, BM_SETCHECK, getDisplayLineNo()?BST_CHECKED:BST_UNCHECKED, 0);
+
 #ifdef RESULT_COLORING
 //      mCmbColor.addText2Combo(mDefPat.getColorStr().c_str(), false);
 #endif
-      mCmbFontName.addText2Combo(_pParent->getResultFontName().c_str(), false);
+      const generic_string& s = _pParent->getResultFontName();
+      if (!s.empty()) {
+         mCmbFontName.addText2Combo(s.c_str(), false);
+      }
       TCHAR tmp[10];
       generic_itoa(_pParent->getResultFontSize(),tmp, 10);
       mCmbFontSize.addText2Combo(tmp, false);
+      generic_itoa(mNumOfCfgFiles,tmp, 10);
+      mCmbNumOfCfgFiles.addText2Combo(tmp, false);
+      DBG1("ConfigDialog::dDialog() %s ", mCmbNumOfCfgFiles.getComboTextList(false).c_str());
       _pFgColour = new ColourPicker2;
       _pBgColour = new ColourPicker2;
       _pFgColour->init(_hInst, _hSelf);
@@ -203,6 +217,16 @@ generic_string ConfigDialog::getFontSizeStr() const {
    return generic_string(cp);
 }
 
+const generic_string ConfigDialog::getNumOfCfgFilesStr() const {
+   TCHAR cp[10];
+   generic_itoa(mNumOfCfgFiles, cp, 10);
+   return generic_string(cp);
+}
+
+void ConfigDialog::setNumOfCfgFilesStr(const generic_string& str) {
+   mNumOfCfgFiles = generic_atoi(str.c_str());
+}
+
 void ConfigDialog::setDialogData(const tclPattern& p) {
    // store for returning
    mDefPat = p;
@@ -226,7 +250,6 @@ BOOL CALLBACK ConfigDialog::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lPar
    case WM_INITDIALOG :
       {
          //  ::SendDlgItemMessage(_hSelf, IDC_EMAIL_LINK, WM_SETTEXT, 0, (LPARAM)EMAIL_LINK);
-
          return TRUE;
       }
    case WM_CLOSE :
@@ -240,39 +263,54 @@ BOOL CALLBACK ConfigDialog::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lPar
          switch (wParam)
          {
          case IDOK :
-            ::SendMessage(_hParent, NPPM_SETMENUITEMCHECK, (WPARAM)_cmdId, (LPARAM)false);
-            display(FALSE);
-            setOnAutoUpdate((BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_AUTOUPDT, BM_GETCHECK, 0, 0))?1:0);
-            setUseBookmark((BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_USEBOOKMARK, BM_GETCHECK, 0, 0))?1:0);
-            setOnEnterActionStr(mCmbOnEnterAction.getTextFromCombo(false));
-            setFontText(mCmbFontName.getTextFromCombo(false));
-            setFontSizeStr(mCmbFontSize.getTextFromCombo(false));
-            mDefPat.setSearchTypeStr(mCmbSearchType.getTextFromCombo(false));
-            mDefPat.setSelectionTypeStr(mCmbSelType.getTextFromCombo(false));
-            mDefPat.setDoSearch(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_DO_SEARCH, BM_GETCHECK, 0, 0));
-            mDefPat.setWholeWord(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_GETCHECK, 0, 0));
-            mDefPat.setMatchCase(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_GETCHECK, 0, 0));
-            mDefPat.setHideText(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_HIDE, BM_GETCHECK, 0, 0));
+            {
+               ::SendMessage(_hParent, NPPM_SETMENUITEMCHECK, (WPARAM)_cmdId, (LPARAM)false);
+               display(FALSE);
+               setOnAutoUpdate((BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_AUTOUPDT, BM_GETCHECK, 0, 0))?1:0);
+               setUseBookmark((BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_USEBOOKMARK, BM_GETCHECK, 0, 0))?1:0);
+               setDisplayLineNo((BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_DISPLINENO, BM_GETCHECK, 0, 0))?1:0);
+               setOnEnterActionStr(mCmbOnEnterAction.getTextFromCombo(false));
+               setFontText(mCmbFontName.getTextFromCombo(false));
+               setFontSizeStr(mCmbFontSize.getTextFromCombo(false));
+               setNumOfCfgFilesStr(mCmbNumOfCfgFiles.getTextFromCombo(false));
+               mDefPat.setSearchTypeStr(mCmbSearchType.getTextFromCombo(false));
+               mDefPat.setSelectionTypeStr(mCmbSelType.getTextFromCombo(false));
+               mDefPat.setDoSearch(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_DO_SEARCH, BM_GETCHECK, 0, 0));
+               mDefPat.setWholeWord(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_GETCHECK, 0, 0));
+               mDefPat.setMatchCase(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_GETCHECK, 0, 0));
+               mDefPat.setHideText(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_HIDE, BM_GETCHECK, 0, 0));
 #ifdef RESULT_COLORING
-//            mDefPat.setColorStr(mCmbColor.getTextFromCombo(false));
+               //            mDefPat.setColorStr(mCmbColor.getTextFromCombo(false));
 #endif
-            mDefPat.setColor(mDefPat.convColorNum2Enum(_pFgColour->getColour()));
-            mDefPat.setBgColor(mDefPat.convColorNum2Enum(_pBgColour->getColour()));
+               mDefPat.setColor(mDefPat.convColorNum2Enum(_pFgColour->getColour()));
+               mDefPat.setBgColor(mDefPat.convColorNum2Enum(_pBgColour->getColour()));
 
-            mbOkPressed = true;
-            // inform find dialog that user has pressed ok; findDilog then descides if 
-            // new default data needs to be copied into the find dialog
-            if(_pFindDlg)
-               ::SendMessage(_pFindDlg->getHSelf(), IDC_DO_CHECK_CONF, (WPARAM)0, (LPARAM)&mDefPat);
-            if(_pResultDlg)
-               ::SendMessage(_pResultDlg->getHSelf(), IDC_DO_CHECK_CONF, (WPARAM)0, (LPARAM)&mDefPat);
-            return TRUE;
-         
+               mbOkPressed = true;
+               // inform find dialog that user has pressed ok; findDilog then descides if 
+               // new default data needs to be copied into the find dialog
+               if(_pFindDlg) {
+                  WPARAM uNumOfCfgFiles = generic_atoi(getNumOfCfgFilesStr().c_str());
+                  ::SendMessage(_pFindDlg->getHSelf(), IDC_DO_CHECK_CONF, (WPARAM)uNumOfCfgFiles, (LPARAM)&mDefPat);
+               }
+               if(_pResultDlg) {
+                  ::SendMessage(_pResultDlg->getHSelf(), IDC_DO_CHECK_CONF, (WPARAM)0, (LPARAM)&mDefPat);
+               }
+               return TRUE;
+            }
          case IDCANCEL :
-            ::SendMessage(_hParent, NPPM_SETMENUITEMCHECK, (WPARAM)_cmdId, (LPARAM)false);
-            display(FALSE);
-            mbOkPressed = false;
-            return TRUE;
+            {
+               ::SendMessage(_hParent, NPPM_SETMENUITEMCHECK, (WPARAM)_cmdId, (LPARAM)false);
+               display(FALSE);
+               mbOkPressed = false;
+               return TRUE;
+            }
+         case IDC_BTN_ADDCONTEXT:
+            {
+               ::PostMessage(getHSelf(), WM_CLOSE, 0, (LPARAM)0);
+               ::SendMessage(_hParent, NPPM_MENUCOMMAND, 0, IDM_SETTING_EDITCONTEXTMENU);
+               _addCtxDlg.doDialog();
+               return TRUE;
+            }
 
          default :
             break;
@@ -308,7 +346,10 @@ BOOL CALLBACK ConfigDialog::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lPar
          delete _pBgColour;
          break;
       }
-   }
+   default:;
+   } // switch
+
+
 	return FALSE;
 }
 

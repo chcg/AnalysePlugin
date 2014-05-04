@@ -20,18 +20,37 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #ifndef MYDEBUG_H
 #define MYDEBUG_H
 #if _DEBUG
+// use MDBG_COMP to define a compnent of file identifier which becomes prepended to all output
+#ifndef MDBG_COMP
+#define MDBG_COMP ""
+#endif
+
 #include <crtdbg.h>
-#define DBG0(msg)                               _RPT1(_CRT_WARN, msg##"\t"##__FILE__##"(%d)\n", __LINE__)
-#define DBG1(msg, arg1)                         _RPT2(_CRT_WARN, msg##"\t"##__FILE__##"(%d)\n", arg1, __LINE__)
-#define DBG2(msg, arg1, arg2)                   _RPT3(_CRT_WARN, msg##"\t"##__FILE__##"(%d)\n", arg1, arg2, __LINE__)
-#define DBG3(msg, arg1, arg2, arg3)             _RPT4(_CRT_WARN, msg##"\t"##__FILE__##"(%d)\n", arg1, arg2, arg3, __LINE__)
-#define DBG4(msg, arg1, arg2, arg3, arg4)       _RPT5(_CRT_WARN, msg##"\t"##__FILE__##"(%d)\n", arg1, arg2, arg3, arg4, __LINE__)
+#ifdef UNICODE
+#define DBG0 DBGW0      
+#define DBG1 DBGW1      
+#define DBG2 DBGW2      
+#define DBG3 DBGW3      
+#define DBG4 DBGW4      
+#else
+#define DBG0 DBGA0      
+#define DBG1 DBGA1      
+#define DBG2 DBGA2      
+#define DBG3 DBGA3      
+#define DBG4 DBGA4      
+#endif
+
+#define DBGA0(msg)                               _RPT1(_CRT_WARN, MDBG_COMP##msg##"\t"##__FILE__##"(%d)\n", __LINE__)
+#define DBGA1(msg, arg1)                         _RPT2(_CRT_WARN, MDBG_COMP##msg##"\t"##__FILE__##"(%d)\n", arg1, __LINE__)
+#define DBGA2(msg, arg1, arg2)                   _RPT3(_CRT_WARN, MDBG_COMP##msg##"\t"##__FILE__##"(%d)\n", arg1, arg2, __LINE__)
+#define DBGA3(msg, arg1, arg2, arg3)             _RPT4(_CRT_WARN, MDBG_COMP##msg##"\t"##__FILE__##"(%d)\n", arg1, arg2, arg3, __LINE__)
+#define DBGA4(msg, arg1, arg2, arg3, arg4)       _RPT5(_CRT_WARN, MDBG_COMP##msg##"\t"##__FILE__##"(%d)\n", arg1, arg2, arg3, arg4, __LINE__)
 //#define DBG5(msg, arg1, arg2, arg3, arg4, arg5) _RPT6(_CRT_WARN, msg##__FILE__##"("##__LINE__##")\n", arg1, arg2, arg3, arg4, arg5)
-#define DBGW0(msg)                               _RPTW1(_CRT_WARN, L##msg##L"\t"##TEXT(__FILE__)##L"(%d)\n", __LINE__)
-#define DBGW1(msg, arg1)                         _RPTW2(_CRT_WARN, L##msg##L"\t"##TEXT(__FILE__)##L"(%d)\n", arg1, __LINE__)
-#define DBGW2(msg, arg1, arg2)                   _RPTW3(_CRT_WARN, L##msg##L"\t"##TEXT(__FILE__)##L"(%d)\n", arg1, arg2, __LINE__)
-#define DBGW3(msg, arg1, arg2, arg3)             _RPTW4(_CRT_WARN, L##msg##L"\t"##TEXT(__FILE__)##L"(%d)\n", arg1, arg2, arg3, __LINE__)
-#define DBGW4(msg, arg1, arg2, arg3, arg4)       _RPTW5(_CRT_WARN, L##msg##L"\t"##TEXT(__FILE__)##L"(%d)\n", arg1, arg2, arg3, arg4, __LINE__)
+#define DBGW0(msg)                               _RPTW1(_CRT_WARN, TEXT(MDBG_COMP)##TEXT(##msg##)TEXT("\t")##TEXT(__FILE__)##TEXT("(%d)\n"), __LINE__)
+#define DBGW1(msg, arg1)                         _RPTW2(_CRT_WARN, TEXT(MDBG_COMP)##TEXT(##msg##)TEXT("\t")##TEXT(__FILE__)##TEXT("(%d)\n"), arg1, __LINE__)
+#define DBGW2(msg, arg1, arg2)                   _RPTW3(_CRT_WARN, TEXT(MDBG_COMP)##TEXT(##msg##)TEXT("\t")##TEXT(__FILE__)##TEXT("(%d)\n"), arg1, arg2, __LINE__)
+#define DBGW3(msg, arg1, arg2, arg3)             _RPTW4(_CRT_WARN, TEXT(MDBG_COMP)##TEXT(##msg##)TEXT("\t")##TEXT(__FILE__)##TEXT("(%d)\n"), arg1, arg2, arg3, __LINE__)
+#define DBGW4(msg, arg1, arg2, arg3, arg4)       _RPTW5(_CRT_WARN, TEXT(MDBG_COMP)##TEXT(##msg##)TEXT("\t")##TEXT(__FILE__)##TEXT("(%d)\n"), arg1, arg2, arg3, arg4, __LINE__)
 #else
 #define DBG0(msg)                               
 #define DBG1(msg, arg1)                         
@@ -44,6 +63,11 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define DBGW2(msg, arg1, arg2)                   
 #define DBGW3(msg, arg1, arg2, arg3)             
 #define DBGW4(msg, arg1, arg2, arg3, arg4)       
-#define DBGW5(msg, arg1, arg2, arg3, arg4, arg5) 
+//#define DBGW5(msg, arg1, arg2, arg3, arg4, arg5) 
+#define DBGA0(msg)                         
+#define DBGA1(msg, arg1)                   
+#define DBGA2(msg, arg1, arg2)             
+#define DBGA3(msg, arg1, arg2, arg3)       
+#define DBGA4(msg, arg1, arg2, arg3, arg4) 
 #endif
 #endif

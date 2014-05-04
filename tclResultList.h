@@ -27,7 +27,6 @@ the syncrosiastion between both lists is the index in the vectors
 #include "tclPatternList.h"
 #include "tclResult.h"
 #include "tclPattern.h"
-#include "myDebug.h"
 
 /**
  * Resultlist enhances the patternlist by the results for all different patterns

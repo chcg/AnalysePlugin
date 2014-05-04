@@ -1,4 +1,4 @@
-#pragma warning (disable : 4244 4312)
+#pragma warning (disable : 4244 4312) //mattes
 // This file is part of Notepad++ project
 // Copyright (C)2003 Don HO <don.h@free.fr>
 //
@@ -113,7 +113,7 @@ void StaticDialog::create(int dialogID, bool isRTL, bool msgDestParent)
 	{
 		DWORD err = ::GetLastError();
 		char errMsg[256];
-		sprintf(errMsg, "CreateDialogParam() return NULL.\rGetLastError() == %d", err);
+		sprintf(errMsg, "CreateDialogParam() return NULL.\rGetLastError() == %u", err);
 		::MessageBoxA(NULL, errMsg, "In StaticDialog::create()", MB_OK);
 		return;
 	}
@@ -140,9 +140,9 @@ BOOL CALLBACK StaticDialog::dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPAR
 		default :
 		{
 			StaticDialog *pStaticDlg = reinterpret_cast<StaticDialog *>(::GetWindowLongPtr(hwnd, GWL_USERDATA));
-         if (!pStaticDlg) {
+         if (!pStaticDlg) { //mattes
 				return FALSE;
-         }
+         } //mattes begin
 			BOOL lResult = pStaticDlg->run_dlgProc(message, wParam, lParam);
          if (lResult!= 0){
             // this function transfers the return value around dialogue proc using only bool
@@ -150,7 +150,7 @@ BOOL CALLBACK StaticDialog::dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPAR
             return TRUE;
          }
          return lResult;
-		}
+		} //mattes end
 	}
 }
 
@@ -187,4 +187,4 @@ void StaticDialog::alignWith(HWND handle, HWND handle2Align, PosAlign pos, POINT
     
     ::ScreenToClient(_hSelf, &point);
 }
-#pragma warning (default : 4244 4312)
+#pragma warning (default : 4244 4312) //mattes

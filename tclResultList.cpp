@@ -27,6 +27,8 @@ the syncrosiastion between both lists is the index in the vectors
 #include "tclResultList.h"
 #include "tclResult.h"
 #include <assert.h>
+#define MDBG_COMP "ResLst:" 
+#include "myDebug.h"
 
 void tclResultList::moveResult(tPatId oldPattId, tPatId newPattId) 
 {

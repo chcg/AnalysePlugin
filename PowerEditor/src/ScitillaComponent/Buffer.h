@@ -60,13 +60,6 @@ enum BufferStatusInfo {
 	BufferChangeMask		= 0x3FF		//Mask: covers all changes
 };
 
-struct HeaderLineState {
-	HeaderLineState() : _headerLineNumber(0), _isExpanded(true){};
-	HeaderLineState(int lineNumber, bool isExpanded) : _headerLineNumber(lineNumber), _isExpanded(isExpanded){};
-	int _headerLineNumber;
-	bool _isExpanded;
-};
-
 //const int userLangNameMax = 16;
 const TCHAR UNTITLED_STR[] = TEXT("new ");
 
@@ -78,7 +71,7 @@ public:
 	//void activateBuffer(int index);	
 	void checkFilesystemChanges();
 
-	int getNrBuffers() { return (int)_nrBufs; };
+	int getNrBuffers() { return (int)_nrBufs; }; //mattes
 	int getBufferIndexByID(BufferID id);
 	Buffer * getBufferByIndex(int index);	//generates exception if index is invalid
 	Buffer * getBufferByID(BufferID id) {return (Buffer*)id;}
@@ -102,20 +95,16 @@ public:
 	bool reloadBuffer(BufferID id);
 	bool reloadBufferDeferred(BufferID id);
 	bool saveBuffer(BufferID id, const TCHAR * filename, bool isCopy = false, generic_string * error_msg = NULL);
+	bool backupCurrentBuffer();
+	bool deleteCurrentBufferBackup();
 	bool deleteFile(BufferID id);
 	bool moveFile(BufferID id, const TCHAR * newFilename);
-
 	bool createEmptyFile(const TCHAR * path);
-
 	static FileManager * getInstance() {return _pSelf;};
 	void destroyInstance() { delete _pSelf; };
-
 	void increaseDocNr() {_nextNewNumber++;};
-
 	int getFileNameFromBuffer(BufferID id, TCHAR * fn2copy);
-	
 	int docLength(Buffer * buffer) const;
-
 	int getEOLFormatForm(const char *data) const;
 
 private:
@@ -132,6 +121,8 @@ private:
 	std::vector<Buffer *> _buffers;
 	BufferID _nextBufferID;
 	size_t _nrBufs;
+	int detectCodepage(char* buf, size_t len);
+
 
 	bool loadFileData(Document doc, const TCHAR * filename, Utf8_16_Read * UnicodeConvertor, LangType language, int & encoding, formatType *pFormat = NULL);
 };
@@ -256,8 +247,8 @@ public :
     void setPosition(const Position & pos, ScintillaEditView * identifier);
 	Position & getPosition(ScintillaEditView * identifier);
 
-	void setHeaderLineState(const std::vector<HeaderLineState> & folds, ScintillaEditView * identifier);
-	const std::vector<HeaderLineState> & getHeaderLineState(const ScintillaEditView * identifier) const;
+	void setHeaderLineState(const std::vector<size_t> & folds, ScintillaEditView * identifier);
+	const std::vector<size_t> & getHeaderLineState(const ScintillaEditView * identifier) const;
 
 	bool isUserDefineLangExt() const {
 		return (_userLangExt[0] != '\0');
@@ -329,6 +320,15 @@ public :
 	generic_string getFileTime(fileTimeType ftt);
 
     Lang * getCurrentLang() const;
+	
+	//time_t getBackupModifiedTimeStamp() const {return _backupModifiedTimeStamp;};
+	//void setBackupModifiedTimeStamp(time_t timestamp2Set) {_backupModifiedTimeStamp = timestamp2Set;};
+	bool isModified() const {return _isModified;};
+	void setModifiedStatus(bool isModified) {_isModified = isModified;};
+	generic_string getBackupFileName() const {return _backupFileName;};
+	void setBackupFileName(generic_string fileName) {_backupFileName = fileName;};
+	time_t getLastModifiedTimestamp() const {return _timeStamp;};
+
 private :
 	FileManager * _pManager;
 	bool _canNotify;
@@ -349,13 +349,14 @@ private :
 	//All the vectors must have the same size at all times
 	vector< ScintillaEditView * > _referees;
 	vector< Position > _positions;
-	vector< vector<HeaderLineState> > _foldStates;
+	vector< vector<size_t> > _foldStates;
 
 	//vector< pair<size_t, pair<size_t, bool> > > _linesUndoState;
 
 	//Environment properties
 	DocFileStatus _currentStatus;
 	time_t _timeStamp; // 0 if it's a new doc
+	//time_t _backupModifiedTimeStamp; // 0 if backup file is not created
 	bool _isFileReadOnly;
 	generic_string _fullPathName;
 	TCHAR * _fileName;	//points to filename part in _fullPathName
@@ -363,6 +364,11 @@ private :
 
 	long _recentTag;
 	static long _recentTagCtr;
+
+	// For backup system
+	generic_string _backupFileName; // default: ""
+	bool _isModified; // default: false
+	//bool _deleteBackupNotification; // default: false
 
 	void updateTimeStamp();
 

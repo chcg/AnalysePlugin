@@ -75,6 +75,6 @@
 #include "Window.h"
 #include "StaticDialog.h"
 
-#include "npp_defines.h"
+#include "npp_defines.h" //mattes
 
 #endif PRECOMPILEHEADER_H

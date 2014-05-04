@@ -53,9 +53,9 @@ protected :
     bool  _clicking;
 
     static LRESULT CALLBACK URLCtrlProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam){
-#pragma warning (disable:4312)
+#pragma warning (disable:4312) //mattes
         return ((URLCtrl *)(::GetWindowLongPtr(hwnd, GWL_USERDATA)))->runProc(hwnd, Message, wParam, lParam);
-#pragma warning (default:4312)
+#pragma warning (default:4312) //mattes
     };
     LRESULT runProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam);
 };

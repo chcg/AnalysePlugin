@@ -140,6 +140,8 @@ public:
    virtual unsigned getResultFontSize() const =0;
 
    virtual int getUseBookmark() const = 0;
+   virtual int getDisplayLineNo() const = 0;
+
 };
 #endif //MYPLUGIN_H
 

@@ -46,13 +46,13 @@ ContextMenu::~ContextMenu()
 {
 	if (isCreated())
 	{
-		for (size_t i = 0 ; i < _subMenus.size() ; i++)
+		for (size_t i = 0, len = _subMenus.size(); i < len; ++i)
 			::DestroyMenu(_subMenus[i]);
 		::DestroyMenu(_hMenu);
 	}
 }
 	
-void ContextMenu::create(HWND hParent, const vector<MenuItemUnit> & menuItemArray)
+void ContextMenu::create(HWND hParent, const vector<MenuItemUnit> & menuItemArray, const HMENU mainMenuHandle)
 { 
 	_hParent = hParent;
 	_hMenu = ::CreatePopupMenu();
@@ -61,7 +61,7 @@ void ContextMenu::create(HWND hParent, const vector<MenuItemUnit> & menuItemArra
 	generic_string currentParentFolderStr = TEXT("");
 	int j = 0;
 
-	for (size_t i = 0 ; i < menuItemArray.size() ; i++)
+	for (size_t i = 0, len = menuItemArray.size(); i < len; ++i)
 	{
 		const MenuItemUnit & item = menuItemArray[i];
 		if (item._parentFolderName == TEXT(""))
@@ -107,6 +107,18 @@ void ContextMenu::create(HWND hParent, const vector<MenuItemUnit> & menuItemArra
 		{
 			lastIsSep = true;
 		}
+
+		
+		if (mainMenuHandle)
+		{
+			bool isEnabled = (::GetMenuState(mainMenuHandle, item._cmdID, MF_BYCOMMAND)&(MF_DISABLED|MF_GRAYED)) == 0;
+			bool isChecked = (::GetMenuState(mainMenuHandle, item._cmdID, MF_BYCOMMAND)&(MF_CHECKED)) != 0;
+			if (!isEnabled)
+				enableItem(item._cmdID, isEnabled);
+			if (isChecked)
+				checkItem(item._cmdID, isChecked);
+		}
+
 	}
 }
 	

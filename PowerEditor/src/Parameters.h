@@ -61,11 +61,18 @@
 #include "shortcut.h"
 #endif //SHORTCUTS_H
 
-#ifndef CONTEXTMENU
+#ifndef CONTEXTMENU_H
 #include "ContextMenu.h"
-#endif //CONTEXTMENU
+#endif //CONTEXTMENU_H
+
+#ifndef DPIMANAGER_H
+#include "dpiManager.h"
+#endif //DPIMANAGER_H
+
 
 #include <tchar.h>
+#include <time.h> //mattes
+#include <assert.h> //mattes
 
 class NativeLangSpeaker;
 
@@ -97,6 +104,7 @@ enum UniMode {uni8Bit=0, uniUTF8=1, uni16BE=2, uni16LE=3, uniCookie=4, uni7Bit=5
 enum ChangeDetect {cdDisabled=0, cdEnabled=1, cdAutoUpdate=2, cdGo2end=3, cdAutoUpdateGo2end=4};
 enum BackupFeature {bak_none = 0, bak_simple = 1, bak_verbose = 2};
 enum OpenSaveDirSetting {dir_followCurrent = 0, dir_last = 1, dir_userDef = 2};
+enum MultiInstSetting {monoInst = 0, multiInstOnSession = 1, multiInst = 2};
 
 const int LANG_INDEX_INSTR = 0;
 const int LANG_INDEX_INSTR2 = 1;
@@ -110,6 +118,14 @@ const int COPYDATA_PARAMS = 0;
 const int COPYDATA_FILENAMESA = 1;
 const int COPYDATA_FILENAMESW = 2;
 
+#define PURE_LC_NONE    0
+#define PURE_LC_BOL     1
+#define PURE_LC_WSP     2
+
+#define DECSEP_DOT      0
+#define DECSEP_COMMA    1
+#define DECSEP_BOTH     2
+
 const TCHAR fontSizeStrs[][3] = {TEXT(""), TEXT("5"), TEXT("6"), TEXT("7"), TEXT("8"), TEXT("9"), TEXT("10"), TEXT("11"), TEXT("12"), TEXT("14"), TEXT("16"), TEXT("18"), TEXT("20"), TEXT("22"), TEXT("24"), TEXT("26"), TEXT("28")};
 
 const TCHAR localConfFile[] = TEXT("doLocalConf.xml");
@@ -117,14 +133,8 @@ const TCHAR allowAppDataPluginsFile[] = TEXT("allowAppDataPlugins.xml");
 const TCHAR notepadStyleFile[] = TEXT("asNotepad.xml");
 
 void cutString(const TCHAR *str2cut, vector<generic_string> & patternVect);
-/*
-struct HeaderLineState {
-	HeaderLineState() : _headerLineNumber(0), _isCollapsed(false){};
-	HeaderLineState(int lineNumber, bool isFoldUp) : _headerLineNumber(lineNumber), _isCollapsed(isFoldUp){};
-	int _headerLineNumber;
-	bool _isCollapsed;
-};
-*/
+
+
 struct Position
 { 
 	int _firstVisibleLine;
@@ -137,17 +147,23 @@ struct Position
 };
 
 struct sessionFileInfo : public Position {
-	sessionFileInfo(const TCHAR *fn, const TCHAR *ln, int encoding, Position pos) : _encoding(encoding), Position(pos) {
+	sessionFileInfo(const TCHAR *fn, const TCHAR *ln, int encoding, Position pos, const TCHAR *backupFilePath, int originalFileLastModifTimestamp) : 
+		_encoding(encoding), Position(pos), _originalFileLastModifTimestamp(originalFileLastModifTimestamp) {
 		if (fn) _fileName = fn;
 		if (ln)	_langName = ln;
+		if (backupFilePath) _backupFilePath = backupFilePath;
 	};
 
 	sessionFileInfo(generic_string fn) : _fileName(fn), _encoding(-1){};
 	
 	generic_string _fileName;
 	generic_string	_langName;
-	vector<size_t> marks;
+	vector<size_t> _marks;
+	vector<size_t> _foldStates;
 	int	_encoding;
+
+	generic_string _backupFilePath;
+	time_t _originalFileLastModifTimestamp;
 };
 
 struct Session {
@@ -168,7 +184,6 @@ struct CmdLineParams {
 	bool _isPreLaunch;
 	bool _showLoadingTime;
 	bool _alwaysOnTop;
-
 	int _line2go;
     int _column2go;
 
@@ -178,10 +193,13 @@ struct CmdLineParams {
 	bool isPointValid() {
 		return _isPointXValid && _isPointYValid;
 	};
+	bool _isSessionFile;
+	bool _isRecursive;
 
 	LangType _langType;
+	generic_string _localizationPath;
 	CmdLineParams() : _isNoPlugin(false), _isReadOnly(false), _isNoSession(false), _isNoTab(false),_showLoadingTime(false),\
-        _isPreLaunch(false), _line2go(-1), _column2go(-1), _langType(L_EXTERNAL), _isPointXValid(false), _isPointYValid(false)
+        _isPreLaunch(false), _line2go(-1), _column2go(-1), _langType(L_EXTERNAL), _isPointXValid(false), _isPointYValid(false), _localizationPath(TEXT(""))
     {
         _point.x = 0;
         _point.y = 0;
@@ -237,7 +255,7 @@ struct DockingManagerData {
 	vector<ContainerTabInfo>		_containerTabInfo;
 
 	bool getFloatingRCFrom(int floatCont, RECT & rc) {
-		for (size_t i = 0 ; i < _flaotingWindowInfo.size() ; i++)
+		for (size_t i = 0, fwiLen = _flaotingWindowInfo.size(); i < fwiLen; ++i)
 		{
 			if (_flaotingWindowInfo[i]._cont == floatCont)
       {
@@ -280,7 +298,7 @@ struct Style
 	generic_string *_keywords;
 
 	Style():_styleID(-1), _styleDesc(NULL), _fgColor(COLORREF(STYLE_NOT_USED)), _bgColor(COLORREF(STYLE_NOT_USED)), _colorStyle(COLORSTYLE_ALL),\
-		_fontName(NULL), _fontStyle(STYLE_NOT_USED), _fontSize(STYLE_NOT_USED), _keywordClass(STYLE_NOT_USED), _keywords(NULL){};
+        _fontName(NULL), _fontStyle(FONTSTYLE_NONE), _fontSize(STYLE_NOT_USED), _keywordClass(STYLE_NOT_USED), _keywords(NULL), _nesting(FONTSTYLE_NONE){};
 
 	~Style(){
 		if (_keywords) 
@@ -363,7 +381,7 @@ public:
         if (this != &sa)
         {
             this->_nbStyler = sa._nbStyler;
-            for (int i = 0 ; i < _nbStyler ; i++)
+            for (int i = 0 ; i < _nbStyler ; ++i)
             {
                 this->_styleArray[i] = sa._styleArray[i];
             }
@@ -379,7 +397,7 @@ public:
 		return _styleArray[index];
 	};
 
-    bool hasEnoughSpace() {return (_nbStyler < SCE_USER_STYLE_TOTAL_STYLES);};
+    bool hasEnoughSpace() {return (_nbStyler < SCE_STYLE_ARRAY_SIZE);};
     void addStyler(int styleID, TiXmlNode *styleNode);
 
 	void addStyler(int styleID, const TCHAR *styleName) {
@@ -388,11 +406,11 @@ public:
 		_styleArray[styleID]._styleDesc = styleName;
 		_styleArray[styleID]._fgColor = black;
 		_styleArray[styleID]._bgColor = white;
-		_nbStyler++;
+		++_nbStyler;
 	};
 
     int getStylerIndexByID(int id) {
-        for (int i = 0 ; i < _nbStyler ; i++)
+        for (int i = 0 ; i < _nbStyler ; ++i)
             if (_styleArray[i]._styleID == id)
                 return i;
         return -1;
@@ -401,7 +419,7 @@ public:
     int getStylerIndexByName(const TCHAR *name) const {
 		if (!name)
 			return -1;
-        for (int i = 0 ; i < _nbStyler ; i++)
+        for (int i = 0 ; i < _nbStyler ; ++i)
 			if (!lstrcmp(_styleArray[i]._styleDesc, name))
                 return i;
         return -1;
@@ -463,7 +481,7 @@ public :
         if (this != &lsa)
         {
             this->_nbLexerStyler = lsa._nbLexerStyler;
-            for (int i = 0 ; i < this->_nbLexerStyler ; i++)
+            for (int i = 0 ; i < this->_nbLexerStyler ; ++i)
                 this->_lexerStylerArray[i] = lsa._lexerStylerArray[i];
         }
         return *this;
@@ -481,7 +499,7 @@ public :
 
     LexerStyler * getLexerStylerByName(const TCHAR *lexerName) {
 		if (!lexerName) return NULL;
-        for (int i = 0 ; i < _nbLexerStyler ; i++)
+        for (int i = 0 ; i < _nbLexerStyler ; ++i)
         {
             if (!lstrcmp(_lexerStylerArray[i].getLexerName(), lexerName))
                 return &(_lexerStylerArray[i]);
@@ -669,17 +687,36 @@ private:
     unsigned long _day;
 };
 
+struct MatchedPairConf {
+	vector< pair<char, char> > _matchedPairs;
+	vector< pair<char, char> > _matchedPairsInit; // used only on init
+	bool _doHtmlXmlTag;
+	bool _doParentheses;
+	bool _doBrackets;
+	bool _doCurlyBrackets;
+	bool _doQuotes;
+	bool _doDoubleQuotes;
+
+	MatchedPairConf(): _doHtmlXmlTag(false), _doParentheses(false), _doBrackets(false), _doCurlyBrackets(false),\
+		_doQuotes(false), _doDoubleQuotes(false) {};
+
+	bool hasUserDefinedPairs() const { return _matchedPairs.size() != 0; };
+	bool hasDefaultPairs() const { return _doParentheses||_doBrackets||_doCurlyBrackets||_doQuotes||_doDoubleQuotes||_doHtmlXmlTag; };
+	bool hasAnyPairsPair() const { return hasUserDefinedPairs() || hasDefaultPairs(); };
+};
+
 struct NppGUI
 {
 	NppGUI() : _toolBarStatus(TB_LARGE), _toolbarShow(true), _statusBarShow(true), _menuBarShow(true),\
 		       _tabStatus(TAB_DRAWTOPBAR | TAB_DRAWINACTIVETAB | TAB_DRAGNDROP), _splitterPos(POS_HORIZOTAL),\
 	           _userDefineDlgStatus(UDD_DOCKED), _tabSize(8), _tabReplacedBySpace(false), _fileAutoDetection(cdEnabled), _fileAutoDetectionOriginalValue(_fileAutoDetection),\
 			   _checkHistoryFiles(true) ,_enableSmartHilite(true), _disableSmartHiliteTmp(false), _enableTagsMatchHilite(true), _enableTagAttrsHilite(true), _enableHiliteNonHTMLZone(false),\
-			   _isMaximized(false), _isMinimizedToTray(false), _rememberLastSession(true), _backup(bak_none), _useDir(false), _backupDir(TEXT("")),\
+			   _isMaximized(false), _isMinimizedToTray(false), _rememberLastSession(true), _detectEncoding(true), _backup(bak_none), _useDir(false), _backupDir(TEXT("")),\
 			   _doTaskList(true), _maitainIndent(true), _openSaveDir(dir_followCurrent), _styleMRU(true), _styleURL(0),\
-			   _autocStatus(autoc_none), _autocFromLen(1), _funcParams(false), _definedSessionExt(TEXT("")),\
-			   _doesExistUpdater(false), _caretBlinkRate(250), _caretWidth(1), _enableMultiSelection(false), _shortTitlebar(false), _themeName(TEXT("")), _isLangMenuCompact(false),
-			   _smartHiliteCaseSensitive(false) {
+			   _autocStatus(autoc_both), _autocFromLen(1), _funcParams(false), _definedSessionExt(TEXT("")),\
+			   _doesExistUpdater(false), _caretBlinkRate(250), _caretWidth(1), _enableMultiSelection(false), _shortTitlebar(false), _themeName(TEXT("")), _isLangMenuCompact(false),\
+			   _smartHiliteCaseSensitive(false), _leftmostDelimiter('('), _rightmostDelimiter(')'), _delimiterSelectionOnEntireDocument(false), _multiInstSetting(monoInst),\
+			   _fileSwitcherWithoutExtColumn(false) {
 		_appPos.left = 0;
 		_appPos.top = 0;
 		_appPos.right = 700;
@@ -718,6 +755,7 @@ struct NppGUI
 	bool _isMaximized;
 	bool _isMinimizedToTray;
 	bool _rememberLastSession;
+	bool _detectEncoding;
 	bool _doTaskList;
 	bool _maitainIndent;
 	bool _enableSmartHilite;
@@ -727,6 +765,9 @@ struct NppGUI
 	bool _enableTagAttrsHilite;
 	bool _enableHiliteNonHTMLZone;
 	bool _styleMRU;
+	char _leftmostDelimiter, _rightmostDelimiter;
+	bool _delimiterSelectionOnEntireDocument;
+
 
 	// 0 : do nothing
 	// 1 : don't draw underline
@@ -745,10 +786,11 @@ struct NppGUI
 	generic_string _backupDir;
 	DockingManagerData _dockingData;
 	GlobalOverride _globalOverride;
-	enum AutocStatus{autoc_none, autoc_func, autoc_word};
+	enum AutocStatus{autoc_none, autoc_func, autoc_word, autoc_both};
 	AutocStatus _autocStatus;
 	size_t  _autocFromLen;
 	bool _funcParams;
+	MatchedPairConf _matchedPairConf;
 
 	generic_string _definedSessionExt;
 	
@@ -772,6 +814,8 @@ struct NppGUI
 	TCHAR _defaultDir[MAX_PATH];
 	TCHAR _defaultDirExp[MAX_PATH];	//expanded environment variables
 	generic_string _themeName;
+	MultiInstSetting _multiInstSetting;
+	bool _fileSwitcherWithoutExtColumn;
 };
 
 struct ScintillaViewParams
@@ -779,7 +823,8 @@ struct ScintillaViewParams
 	ScintillaViewParams() : _lineNumberMarginShow(true), _bookMarkMarginShow(true),_borderWidth(2),\
 		                    _folderStyle(FOLDER_STYLE_BOX), _foldMarginShow(true), _indentGuideLineShow(true),\
 	                        _currentLineHilitingShow(true), _wrapSymbolShow(false),  _doWrap(false), _edgeNbColumn(80),\
-							_zoom(0), _zoom2(0), _whiteSpaceShow(false), _eolShow(false), _lineWrapMethod(LINEWRAP_ALIGNED){};
+							_zoom(0), _zoom2(0), _whiteSpaceShow(false), _eolShow(false), _lineWrapMethod(LINEWRAP_ALIGNED),\
+							_disableAdvancedScrolling(false){};
 	bool _lineNumberMarginShow;
 	bool _bookMarkMarginShow;
 	//bool _docChangeStateMarginShow;
@@ -797,6 +842,7 @@ struct ScintillaViewParams
 	bool _whiteSpaceShow;
 	bool _eolShow;
     int _borderWidth;
+	bool _disableAdvancedScrolling;
 };
 
 const int NB_LIST = 20;
@@ -829,12 +875,12 @@ struct Lang
 
     Lang(): _langID(L_TEXT), _langName(TEXT("")), _defaultExtList(NULL), _pCommentLineSymbol(NULL), _pCommentStart(NULL),
             _pCommentEnd(NULL), _isTabReplacedBySpace(false), _tabSize(-1) {
-        for (int i = 0 ; i < NB_LIST ; _langKeyWordList[i] = NULL ,i++);
+        for (int i = 0 ; i < NB_LIST ; _langKeyWordList[i] = NULL, ++i);
     };
 	Lang(LangType langID, const TCHAR *name) : _langID(langID), _langName(name?name:TEXT("")),\
                                                _defaultExtList(NULL), _pCommentLineSymbol(NULL), _pCommentStart(NULL),\
                                                _pCommentEnd(NULL), _isTabReplacedBySpace(false), _tabSize(-1) {
-		for (int i = 0 ; i < NB_LIST ; _langKeyWordList[i] = NULL ,i++);
+		for (int i = 0 ; i < NB_LIST ; _langKeyWordList[i] = NULL, ++i);
 	};
 	~Lang() {};
 	void setDefaultExtList(const TCHAR *extLst){
@@ -902,19 +948,28 @@ public :
 		_ext = TEXT("");
 		_udlVersion = TEXT("");
         _allowFoldOfComments = false;
-		_forceLineCommentsAtBOL = false;
+		_forcePureLC = PURE_LC_NONE;
+        _decimalSeparator = DECSEP_DOT;
 		_foldCompact = false;
+        _isCaseIgnored = false;
 
-		for (int i = 0 ; i < SCE_USER_KWLIST_TOTAL ; i++)
+		for (int i = 0 ; i < SCE_USER_KWLIST_TOTAL ; ++i)
 			*_keywordLists[i] = '\0';
+
+		for (int i = 0 ; i < SCE_USER_TOTAL_KEYWORD_GROUPS ; ++i)
+            _isPrefix[i] = false;
 	};
 	UserLangContainer(const TCHAR *name, const TCHAR *ext, const TCHAR *udlVer) : _name(name), _ext(ext), _udlVersion(udlVer) {
         _allowFoldOfComments = false;
-		_forceLineCommentsAtBOL = false;
+		_forcePureLC = PURE_LC_NONE;
+        _decimalSeparator = DECSEP_DOT;
 		_foldCompact = false;
 
-		for (int j = 0 ; j < SCE_USER_KWLIST_TOTAL ; j++)
-			*_keywordLists[j] = '\0';
+		for (int i = 0 ; i < SCE_USER_KWLIST_TOTAL ; ++i)
+			*_keywordLists[i] = '\0';
+
+		for (int i = 0 ; i < SCE_USER_TOTAL_KEYWORD_GROUPS ; ++i)
+            _isPrefix[i] = false;
 	};
 
 	UserLangContainer & operator=(const UserLangContainer & ulc) {
@@ -926,10 +981,11 @@ public :
 			this->_isCaseIgnored = ulc._isCaseIgnored;
 			this->_styleArray = ulc._styleArray;
 			this->_allowFoldOfComments = ulc._allowFoldOfComments;
-			this->_forceLineCommentsAtBOL = ulc._forceLineCommentsAtBOL;
+			this->_forcePureLC = ulc._forcePureLC;
+			this->_decimalSeparator = ulc._decimalSeparator;
 			this->_foldCompact = ulc._foldCompact;
 			int nbStyler = this->_styleArray.getNbStyler();
-			for (int i = 0 ; i < nbStyler ; i++)
+			for (int i = 0 ; i < nbStyler ; ++i)
 			{
 				Style & st = this->_styleArray.getStyler(i);
 				if (st._bgColor == COLORREF(-1))
@@ -937,8 +993,11 @@ public :
 				if (st._fgColor == COLORREF(-1))
 					st._fgColor = black;
 			}
-			for (int i = 0 ; i < SCE_USER_KWLIST_TOTAL ; i++)
+			for (int i = 0 ; i < SCE_USER_KWLIST_TOTAL ; ++i)
 				lstrcpy(this->_keywordLists[i], ulc._keywordLists[i]);
+
+			for (int i = 0 ; i < SCE_USER_TOTAL_KEYWORD_GROUPS ; ++i)
+                _isPrefix[i] = ulc._isPrefix[i];
 		}
 		return *this;
 	};
@@ -956,12 +1015,13 @@ private:
 
 	//TCHAR _keywordLists[nbKeywodList][max_char];
 	TCHAR _keywordLists[SCE_USER_KWLIST_TOTAL][max_char];
+	bool _isPrefix[SCE_USER_TOTAL_KEYWORD_GROUPS];
 
 	bool _isCaseIgnored;
 	bool _allowFoldOfComments;
-	bool _forceLineCommentsAtBOL;
+	int  _forcePureLC;
+    int _decimalSeparator;
 	bool _foldCompact;
-	bool _isPrefix[SCE_USER_TOTAL_KEYWORD_GROUPS];
 };
 
 #define MAX_EXTERNAL_LEXER_NAME_LEN 16
@@ -1088,7 +1148,7 @@ public :
 	};
 
 	bool themeNameExists(const TCHAR *themeName) {
-		for (size_t i = 0; i < _themeList.size(); i++ )
+		for (size_t i = 0; i < _themeList.size(); ++i )
 		{
 			if (! (getElementFromIndex(i)).first.compare(themeName) ) return true;
 		}
@@ -1132,6 +1192,7 @@ class NppParameters
 public:
     static NppParameters * getInstance() {return _pSelf;};
 	static LangType getLangIDFromStr(const TCHAR *langName);
+	static generic_string getLocPathFromStr(const generic_string & localizationCode);
 	bool load();
 	bool reloadLang();
 	bool reloadStylers(TCHAR *stylePath = NULL);
@@ -1152,7 +1213,7 @@ public:
     };
 
 	Lang * getLangFromID(LangType langID) const {
-		for (int i = 0 ; i < _nbLang ; i++)
+		for (int i = 0 ; i < _nbLang ; ++i)
 		{
 			if ((_langList[i]->_langID == langID) || (!_langList[i]))
 				return _langList[i];
@@ -1170,7 +1231,7 @@ public:
 	LangType getLangFromExt(const TCHAR *ext);
 
 	const TCHAR * getLangExtFromName(const TCHAR *langName) const {
-		for (int i = 0 ; i < _nbLang ; i++)
+		for (int i = 0 ; i < _nbLang ; ++i)
 		{
 			if (_langList[i]->_langName == langName)
 				return _langList[i]->_defaultExtList;
@@ -1179,7 +1240,7 @@ public:
 	};
 
 	const TCHAR * getLangExtFromLangType(LangType langType) const {
-		for (int i = 0 ; i < _nbLang ; i++)
+		for (int i = 0 ; i < _nbLang ; ++i)
 		{
 			if (_langList[i]->_langID == langType)
 				return _langList[i]->_defaultExtList;
@@ -1256,7 +1317,7 @@ public:
 	int getNbUserLang() const {return _nbUserLang;};
 	UserLangContainer & getULCFromIndex(int i) {return *_userLangArray[i];};
 	UserLangContainer * getULCFromName(const TCHAR *userLangName) {
-		for (int i = 0 ; i < _nbUserLang ; i++)
+		for (int i = 0 ; i < _nbUserLang ; ++i)
 			if (!lstrcmp(userLangName, _userLangArray[i]->_name.c_str()))
 				return _userLangArray[i];
 		//qui doit etre jamais passer
@@ -1265,7 +1326,7 @@ public:
 	
 	int getNbExternalLang() const {return _nbExternalLang;};
 	int getExternalLangIndexFromName(const TCHAR *externalLangName) const {
-		for (int i = 0 ; i < _nbExternalLang ; i++)
+		for (int i = 0 ; i < _nbExternalLang ; ++i)
 		{
 			if (!lstrcmp(externalLangName, _externalLangArray[i]->_name))
 				return i;
@@ -1284,12 +1345,11 @@ public:
 	void writeSession(const Session & session, const TCHAR *fileName = NULL);
 	bool writeFindHistory();
 
-
 	bool isExistingUserLangName(const TCHAR *newName) const {
 		if ((!newName) || (!newName[0]))
 			return true;
 
-		for (int i = 0 ; i < _nbUserLang ; i++)
+		for (int i = 0 ; i < _nbUserLang ; ++i)
 		{
 			if (!lstrcmp(_userLangArray[i]->_name.c_str(), newName))
 				return true;
@@ -1301,11 +1361,11 @@ public:
 		if ((!ext) || (!ext[0]))
 			return NULL;
 
-		for (int i = 0 ; i < _nbUserLang ; i++)
+		for (int i = 0 ; i < _nbUserLang ; ++i)
 		{
 			vector<generic_string> extVect;
 			cutString(_userLangArray[i]->_ext.c_str(), extVect);
-			for (size_t j = 0 ; j < extVect.size() ; j++)
+			for (size_t j = 0, len = extVect.size(); j < len; ++j)
 				if (!generic_stricmp(extVect[j].c_str(), ext) || (_tcschr(fullName, '.') && !generic_stricmp(extVect[j].c_str(), fullName)))
 					return _userLangArray[i]->_name.c_str();
 		}
@@ -1319,7 +1379,7 @@ public:
 		if ((!newName) || (!newName[0]))
 			return true;
 
-		for (int i = 0 ; i < _nbExternalLang ; i++)
+		for (int i = 0 ; i < _nbExternalLang ; ++i)
 		{
 			if (!lstrcmp(_externalLangArray[i]->_name, newName))
 				return true;
@@ -1379,6 +1439,7 @@ public:
 
 	vector<MenuItemUnit> & getContextMenuItems() {return _contextMenuItems;};
 	const Session & getSession() const {return _session;};
+
 	bool hasCustomContextMenu() const {return !_contextMenuItems.empty();};
 
 	void setAccelerator(Accelerator *pAccel) {_pAccelerator = pAccel;};
@@ -1401,6 +1462,10 @@ public:
 	};
 
 	void setWorkingDir(const TCHAR * newPath);
+
+	void setStartWithLocFileName(generic_string locPath) {
+		_startWithLocFileName = locPath;
+	}
 
 	bool loadSession(Session & session, const TCHAR *sessionFileName);
 	int langTypeToCommandID(LangType lt) const;
@@ -1441,7 +1506,7 @@ public:
 
     vector<generic_string> & getBlackList() {return _blacklist;};
     bool isInBlackList(TCHAR *fn) {
-        for (size_t i = 0 ; i < _blacklist.size() ; i++)
+        for (size_t i = 0, len = _blacklist.size(); i < len ; ++i)
             if (_blacklist[i] == fn)
                 return true;
         return false;
@@ -1468,6 +1533,8 @@ public:
 	generic_string getUserPath() const {
 		return _userPath;
 	};
+
+	DPIManager _dpiManager;
 
 private:
     NppParameters();
@@ -1537,9 +1604,10 @@ private:
 
 	vector<ScintillaKeyMap> _scintillaKeyCommands;	//scintilla keycommands. Static size
 	vector<int> _scintillaModifiedKeyIndices;		//modified scintilla keys. Indices static, determined by searching for commandId. Needed when saving alterations
-#ifdef UNICODE
+
 	LocalizationSwitcher _localizationSwitcher;
-#endif
+	generic_string _startWithLocFileName;
+
 	ThemeSwitcher _themeSwitcher;
 
 	//vector<generic_string> _noMenuCmdNames;

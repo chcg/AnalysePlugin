@@ -9,6 +9,7 @@
 #define NPP_CATCH_NOP(ex) catch(ex)
 #define NPP_CATCH_ALL catch(...)
 #else
+#pragma warning (disable:4127)
 #define NPP_TRY if (true)
 #define NPP_CATCH(ex) for(ex;false;)
 #define NPP_CATCH_NOP(ex) if(false)

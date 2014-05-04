@@ -197,6 +197,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\AddCtxDlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\AnalysePlugin.cpp"
 				>
 			</File>
@@ -257,6 +261,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\DockingFeature\tclFindResultSearchDlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\tclPattern.cpp"
 				>
 			</File>
@@ -296,6 +304,10 @@
 				RelativePath=".\PowerEditor\src\WinControls\AboutDlg\URLCtrl.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\PowerEditor\src\Utf8_16.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -303,7 +315,15 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\AddCtxDlg.h"
+				>
+			</File>
+			<File
 				RelativePath=".\AnalysePlugin.h"
+				>
+			</File>
+			<File
+				RelativePath=".\scintilla\include\BoostRegexSearch.h"
 				>
 			</File>
 			<File

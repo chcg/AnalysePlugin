@@ -26,8 +26,10 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-#ifndef M30_IDE_COMMUN_H
-#define M30_IDE_COMMUN_H
+#ifndef COMMON_H //mattes
+#define COMMON_H //mattes
+
+#include <vector> //mattes
 
 const bool dirUp = true;
 const bool dirDown = false;
@@ -37,6 +39,9 @@ const bool dirDown = false;
 #define NPP_CP_BIG5               950
 
 #define LINKTRIGGERED WM_USER+555
+
+#define BCKGRD_COLOR (RGB(255,102,102))
+#define TXT_COLOR    (RGB(255,255,255))
 
 #ifdef UNICODE
 	#define NppMainEntry wWinMain
@@ -177,6 +182,8 @@ private:
 #endif
 
 generic_string PathRemoveFileSpec(generic_string & path);
-generic_string PathAppend(generic_string &strDest, const generic_string str2append);
+generic_string PathAppend(generic_string &strDest, const generic_string & str2append);
+COLORREF getCtrlBgColor(HWND hWnd);
+generic_string stringToUpper(generic_string strToConvert);
 
-#endif //M30_IDE_COMMUN_H
+#endif //COMMON_H //mattes

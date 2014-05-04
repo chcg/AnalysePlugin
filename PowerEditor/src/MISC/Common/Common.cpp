@@ -218,9 +218,9 @@ bool isInList(const TCHAR *token, const TCHAR *list) {
 	if ((!token) || (!list))
 		return false;
 	TCHAR word[64];
-	int i = 0;
-	int j = 0;
-	for (; i <= int(lstrlen(list)) ; i++)
+	size_t i = 0;
+	size_t j = 0;
+	for (size_t len = lstrlen(list); i <= len; ++i)
 	{
 		if ((list[i] == ' ')||(list[i] == '\0'))
 		{
@@ -236,7 +236,7 @@ bool isInList(const TCHAR *token, const TCHAR *list) {
 		else 
 		{
 			word[j] = list[i];
-			j++;
+			++j;
 		}
 	}
 	return false;
@@ -248,7 +248,7 @@ generic_string purgeMenuItemString(const TCHAR * menuItemStr, bool keepAmpersand
 	TCHAR cleanedName[64] = TEXT("");
 	size_t j = 0;
 	size_t menuNameLen = lstrlen(menuItemStr);
-	for(size_t k = 0 ; k < menuNameLen ; k++) 
+	for(size_t k = 0 ; k < menuNameLen ; ++k) 
 	{
 		if (menuItemStr[k] == '\t')
 		{
@@ -557,7 +557,7 @@ generic_string PathRemoveFileSpec(generic_string & path)
 	return path;
 }
 
-generic_string PathAppend(generic_string &strDest, const generic_string str2append)
+generic_string PathAppend(generic_string &strDest, const generic_string & str2append)
 {
 	if (strDest == TEXT("") && str2append == TEXT("")) // "" + ""
 	{
@@ -591,3 +591,48 @@ generic_string PathAppend(generic_string &strDest, const generic_string str2appe
 
 	return strDest;
 }
+
+COLORREF getCtrlBgColor(HWND hWnd)
+{
+	COLORREF crRet = CLR_INVALID;
+	if (hWnd && IsWindow(hWnd))
+	{
+		RECT rc;
+		if (GetClientRect(hWnd, &rc))
+		{
+			HDC hDC = GetDC(hWnd);
+			if (hDC)
+			{
+				HDC hdcMem = CreateCompatibleDC(hDC);
+				if (hdcMem)
+				{
+					HBITMAP hBmp = CreateCompatibleBitmap(hDC,
+					rc.right, rc.bottom);
+					if (hBmp)
+					{
+						HGDIOBJ hOld = SelectObject(hdcMem, hBmp);
+						if (hOld)
+						{
+							if (SendMessage(hWnd,	WM_ERASEBKGND, (WPARAM)hdcMem, 0))
+							{
+								crRet = GetPixel(hdcMem, 2, 2); // 0, 0 is usually on the border
+							}
+							SelectObject(hdcMem, hOld);
+						}
+						DeleteObject(hBmp);
+					}
+					DeleteDC(hdcMem);
+				}
+				ReleaseDC(hWnd, hDC);
+			}
+		}
+	}
+	return crRet;
+}
+
+generic_string stringToUpper(generic_string strToConvert)
+{
+    std::transform(strToConvert.begin(), strToConvert.end(), strToConvert.begin(), ::toupper);
+    return strToConvert;
+}
+

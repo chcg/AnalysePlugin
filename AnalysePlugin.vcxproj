@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <ProjectName>AnalysePlugin</ProjectName>
     <ProjectGuid>{7B52D98A-285B-4B3A-BD7B-D551A75438E8}</ProjectGuid>
     <RootNamespace>AnalysePlugin</RootNamespace>
     <Keyword>Win32Proj</Keyword>
@@ -18,12 +19,13 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v110</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <CharacterSet>Unicode</CharacterSet>
-    <CLRSupport>false</CLRSupport>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -40,13 +42,17 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)bin\$(Configuration)\plugins\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
-    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)bin\$(Configuration)\plugins\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
-    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <_ProjectFileVersion>11.0.61030.0</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)bin\$(Configuration)\plugins\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)bin\$(Configuration)\plugins\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
@@ -56,12 +62,11 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>.\DockingFeature;.\;.\scintilla\include;.\PowerEditor\src;.\PowerEditor\src\MISC\Common;.\PowerEditor\src\MISC\PluginsManager;.\PowerEditor\src\MISC\SysMsg;.\PowerEditor\src\ScitillaComponent;.\PowerEditor\src\TinyXml;.\PowerEditor\src\TinyXml\tinyXmlA;.\PowerEditor\src\WinControls;.\PowerEditor\src\WinControls\ColourPicker;.\PowerEditor\src\WinControls\ContextMenu;.\PowerEditor\src\WinControls\DockingWnd;.\PowerEditor\src\WinControls\ImageListSet;.\PowerEditor\src\WinControls\shortcut;.\PowerEditor\src\WinControls\StaticDialog;.\PowerEditor\src\WinControls\TabBar;.\PowerEditor\src\WinControls\ToolBar;.\PowerEditor\src\WinControls\AboutDlg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;__STDC_WANT_SECURE_LIB__;_UNICODE;UNICODE;CONFIG_DIALOG;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__STDC_WANT_SECURE_LIB__=1;_UNICODE;UNICODE;CONFIG_DIALOG;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader />
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
@@ -73,15 +78,11 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(OutDir)AnalysePlugin.pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <DataExecutionPrevention>
-      </DataExecutionPrevention>
       <ImportLibrary>$(OutDir)AnalysePlugin.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command />
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -92,12 +93,11 @@
     <ClCompile>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <AdditionalIncludeDirectories>.\DockingFeature;.\;.\scintilla\include;.\PowerEditor\src;.\PowerEditor\src\MISC\Common;.\PowerEditor\src\MISC\PluginsManager;.\PowerEditor\src\MISC\SysMsg;.\PowerEditor\src\ScitillaComponent;.\PowerEditor\src\TinyXml;.\PowerEditor\src\TinyXml\tinyXmlA;.\PowerEditor\src\WinControls;.\PowerEditor\src\WinControls\ColourPicker;.\PowerEditor\src\WinControls\ContextMenu;.\PowerEditor\src\WinControls\DockingWnd;.\PowerEditor\src\WinControls\ImageListSet;.\PowerEditor\src\WinControls\shortcut;.\PowerEditor\src\WinControls\StaticDialog;.\PowerEditor\src\WinControls\TabBar;.\PowerEditor\src\WinControls\ToolBar;.\PowerEditor\src\WinControls\AboutDlg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;__STDC_WANT_SECURE_LIB__=1;_UNICODE;UNICODE;CONFIG_DIALOG;WIN32;NDEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_UNICODE;_CRT_SECURE_NO_WARNINGS;__STDC_WANT_SECURE_LIB__=1;UNICODE;CONFIG_DIALOG;WIN32;NDEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PrecompiledHeader />
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
     </ClCompile>
     <Link>
       <AdditionalDependencies>shlwapi.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -108,33 +108,32 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <DataExecutionPrevention>
-      </DataExecutionPrevention>
       <ImportLibrary>$(OutDir)AnalysePlugin.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PostBuildEvent>
       <Message>copy to program folders...</Message>
-      <Command>postbuild-copy.bat "$(TargetPath)" "C:\Program Files\NotePad++\plugins" "C:\Programme\NotePad++\plugins" "D:\Programme\NotePad++\plugins"</Command>
+      <Command>postbuild-copy.bat "$(TargetPath)" "C:\Program Files\NotePad++\plugins" "C:\Programme\NotePad++\plugins" "D:\Programme\NotePad++\plugins" "C:\Program Files (x86)\NotePad++\plugins"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AddCtxDlg.cpp" />
     <ClCompile Include="AnalysePlugin.cpp" />
     <ClCompile Include="DockingFeature\ColourPicker2.cpp" />
     <ClCompile Include="DockingFeature\ColourPopup.cpp" />
-    <ClCompile Include="DockingFeature\PleaseWaitDlg.cpp" />
     <ClCompile Include="PowerEditor\src\MISC\Common\Common.cpp" />
     <ClCompile Include="ConfigDialog.cpp" />
+    <ClCompile Include="PowerEditor\src\WinControls\ContextMenu\ContextMenu.cpp" />
     <ClCompile Include="FindConfigDoc.cpp" />
     <ClCompile Include="DockingFeature\FindDlg.cpp" />
     <ClCompile Include="HelpDialog.cpp" />
-    <ClCompile Include="PowerEditor\src\WinControls\ContextMenu\ContextMenu.cpp" />
+    <ClCompile Include="DockingFeature\PleaseWaitDlg.cpp" />
     <ClCompile Include="ScintillaSearchView.cpp" />
     <ClCompile Include="PowerEditor\src\WinControls\StaticDialog\StaticDialog.cpp" />
     <ClCompile Include="DockingFeature\tclComboBoxCtrl.cpp" />
     <ClCompile Include="tclFindResultDlg.cpp" />
     <ClCompile Include="tclFindResultDoc.cpp" />
+    <ClCompile Include="DockingFeature\tclFindResultSearchDlg.cpp" />
     <ClCompile Include="tclPattern.cpp" />
     <ClCompile Include="tclPatternList.cpp" />
     <ClCompile Include="tclResult.cpp" />
@@ -145,13 +144,14 @@
     <ClCompile Include="PowerEditor\src\TinyXml\tinyxmlerror.cpp" />
     <ClCompile Include="PowerEditor\src\TinyXml\tinyxmlparser.cpp" />
     <ClCompile Include="PowerEditor\src\WinControls\AboutDlg\URLCtrl.cpp" />
+    <ClCompile Include="PowerEditor\src\Utf8_16.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AddCtxDlg.h" />
     <ClInclude Include="AnalysePlugin.h" />
+    <ClInclude Include="scintilla\include\BoostRegexSearch.h" />
     <ClInclude Include="DockingFeature\ColourPicker2.h" />
     <ClInclude Include="ConfigDialog.h" />
-    <ClInclude Include="DockingFeature\PleaseWaitDlg.h" />
-    <ClInclude Include="PowerEditor\src\WinControls\ContextMenu\ContextMenu.h" />
     <ClInclude Include="PowerEditor\src\WinControls\DockingWnd\Docking.h" />
     <ClInclude Include="PowerEditor\src\WinControls\DockingWnd\DockingDlgInterface.h" />
     <ClInclude Include="PowerEditor\src\WinControls\DockingWnd\dockingResource.h" />
@@ -161,6 +161,7 @@
     <ClInclude Include="myDebug.h" />
     <ClInclude Include="MyPlugin.h" />
     <ClInclude Include="Notepad_plus_msgs.h" />
+    <ClInclude Include="DockingFeature\PleaseWaitDlg.h" />
     <ClInclude Include="PluginInterface.h" />
     <ClInclude Include="DockingFeature\resource.h" />
     <ClInclude Include="..\scintilla\include\SciLexer.h" />
@@ -183,8 +184,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="versionInfo.tags" />
-    <None Include="icons\analyse.bmp" />
-    <None Include="icons\analyse.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icons\analyse.bmp" />
+    <Image Include="icons\analyse.ico" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DockingFeature\analyse.rc" />

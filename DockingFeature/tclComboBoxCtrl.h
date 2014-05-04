@@ -25,8 +25,8 @@ tclComboBoxCtrl implements the WINAPI handling of a combobox
 #include <windows.h>
 #include <string>
 #include <set>
+#include "common.h"
 
-#include "myDebug.h"
 
 #define MAX_CHAR_CELL 1000 // max chars in a cell including \0
 
@@ -59,7 +59,12 @@ public:
     * adds one text to the combobox and set it into the selection
     * if this text is already in the list it will be selected only
     */
-   void addText2Combo(const TCHAR* txt2add, bool isUTF8);
+   void addText2Combo(const TCHAR* txt2add, bool isUTF8, bool lastAsFirst=true, bool addAlways=true);
+
+   /**
+    * cear the selection
+    */
+   void clearSelection();
 
    /**
     * retrieves the string actually stored in the editor field of the combobox 

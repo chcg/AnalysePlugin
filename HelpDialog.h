@@ -60,6 +60,8 @@ following buttons:\r\n\
 [  v  ]  \tMoves the selected pattern one step down in the list.\r\n\
 [Clear]  \tRemoves all patterns and search result at once.\r\n\
 [Load]   \tAllows loading a list of search patterns from disk.\r\n\
+         \tPrepend / Append allows concatination of patterns to the\r\n\
+         \tcurrent patternlist. Load replaces the current patterns.\r\n\
 [Save]   \tAllows saving a list of search patterns to disk.\r\n\
 [Search] \tStarts the search of all previously changed patterns.\r\n\
          \tIf no pattern exists the actual settings are made to one line\r\n\
@@ -102,6 +104,7 @@ Right mouse click  \tOpens the context menu.\r\n\
  - Result window -\r\n\
 Double click       \tMoves the main window to the corresponding line\r\n\
 Right mouse click  \tOpens the context menu.\r\n\
+Ctx: Save to file  \tBinds the result window to a text file\r\n\
 The find dialog in this window is optimized for the search patterns.\r\n\
 click on one of the currently defined patterns to search for this \r\n\
 individually in the result window.\r\n\
@@ -110,6 +113,8 @@ individually in the result window.\r\n\
 The Analyse Plugin has an additional dialog for setting the config. \
 In this dialog you can adjust the default values used in the find dialog \
 at the startup of NotePad++.\r\n\
+Max lines of config files controls the length of the context menu list \
+in the load button menu\r\n\
 In addition you can decide how the plugin shall react on pressing the \
 search button (or Enter), when the search text has been modified. \
 You may choose of either discard the modified text and 'just search'; in \

@@ -18,40 +18,41 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
-#pragma once
+#ifndef ADDCTXDLG_H
+#define ADDCTXDLG_H
 
-#include "tclPatternList.h"
+#include "StaticDialog.h"
+#include "PluginInterface.h"
 #include "chardefines.h"
 
-
-class TiXmlDocument;
-class TiXmlDocumentA;
-
-/**
-* FindConfigDoc encapsulates the physical format of the search pattern configuration
-* file.  It provides read and write to the document and takes the patternlist
-* as input or output
-*/
-class FindConfigDoc
+class AddCtxDlg : public StaticDialog
 {
+
 public:
-   
-   /**
-    * constructor gets the name of the xml_file to be read. 
-    */
-   FindConfigDoc(const TCHAR * filename);
-   virtual ~FindConfigDoc(void);
+   AddCtxDlg() 
+      : StaticDialog() {};
 
-   /**
-    * read the list from the file and return true if all ok. 
-    */
-   bool readPatternList(tclPatternList& pl, bool bAppend=true, bool bLoadNew=true);
-   bool writePatternList(tclPatternList& pl);
+   void init(HINSTANCE hInst, NppData nppData);
 
-protected:
-   TiXmlDocument* mDoc;
-private:
+   void doDialog();
 
-   /** @link dependency */
-   /*# tclPatternList lnktclPatternList; */
+   virtual void destroy() 
+   {
+      // TODO
+   }
+
+   void resizeWindow();
+
+protected :
+   virtual BOOL CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
+   virtual BOOL CALLBACK run_dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+   /* Handles */
+   NppData	_nppData;
 };
+
+
+
+#endif // ADDCTXDLG_H
+
+

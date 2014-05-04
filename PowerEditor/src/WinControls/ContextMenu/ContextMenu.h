@@ -26,8 +26,8 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-#ifndef CONTEXTMENU
-#define CONTEXTMENU
+#ifndef CONTEXTMENU_H
+#define CONTEXTMENU_H
 
 using namespace std;
 
@@ -46,7 +46,7 @@ public:
 	ContextMenu() : _hParent(NULL), _hMenu(NULL) {};
 	~ContextMenu();
 
-	void create(HWND hParent, const vector<MenuItemUnit> & menuItemArray);
+	void create(HWND hParent, const vector<MenuItemUnit> & menuItemArray, const HMENU mainMenuHandle = NULL);
 	bool isCreated() const {return _hMenu != NULL;};
 	
 	void display(const POINT & p) const {
@@ -73,4 +73,4 @@ private:
 
 };
 
-#endif //CONTEXTMENU
+#endif //CONTEXTMENU_H

@@ -26,25 +26,25 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "tclPattern.h"
 
-#define FNDDOC_XMLNS L"xmlns:xsi"
-#define FNDDOC_XMLNS_VALUE L"http://www.w3.org/2001/XMLSchema-instance" 
-#define FNDDOC_XSD_LOCATION L"xsi:noNamespaceSchemaLocation"
-#define FNDDOC_XSD_LOCATION_VALUE L"./AnalyseDoc.xsd"
-#define FNDDOC_ANALYSE_DOC L"AnalyseDoc"
-#define FNDDOC_HEADLINE L"Headline"  // on even w/o FEATURE_HEADLINE to be able to read the doc
-#define FNDDOC_SEARCH_TEXT L"SearchText"
-#define FNDDOC_SEARCH_TYPE L"searchType"
-#define FNDDOC_DO_SEARCH L"doSearch"
-#define FNDDOC_MATCHCASE L"matchCase" 
-#define FNDDOC_WHOLEWORD L"wholeWord" 
-#define FNDDOC_SELECT L"select"
-#define FNDDOC_HIDE L"hide"
-#define FNDDOC_BOLD L"bold"
-#define FNDDOC_ITALIC L"italic"
-#define FNDDOC_UNDERLINED L"underlined"
-#define FNDDOC_COLOR L"color"
-#define FNDDOC_BGCOLOR L"bgColor"
-#define FNDDOC_COMMENT L"comment"
+#define FNDDOC_XMLNS TEXT("xmlns:xsi")
+#define FNDDOC_XMLNS_VALUE TEXT("http://www.w3.org/2001/XMLSchema-instance") 
+#define FNDDOC_XSD_LOCATION TEXT("xsi:noNamespaceSchemaLocation")
+#define FNDDOC_XSD_LOCATION_VALUE TEXT("./AnalyseDoc.xsd")
+#define FNDDOC_ANALYSE_DOC TEXT("AnalyseDoc")
+#define FNDDOC_HEADLINE TEXT("Headline")  // on even w/o FEATURE_HEADLINE to be able to read the doc
+#define FNDDOC_SEARCH_TEXT TEXT("SearchText")
+#define FNDDOC_SEARCH_TYPE TEXT("searchType")
+#define FNDDOC_DO_SEARCH TEXT("doSearch")
+#define FNDDOC_MATCHCASE TEXT("matchCase") 
+#define FNDDOC_WHOLEWORD TEXT("wholeWord") 
+#define FNDDOC_SELECT TEXT("select")
+#define FNDDOC_HIDE TEXT("hide")
+#define FNDDOC_BOLD TEXT("bold")
+#define FNDDOC_ITALIC TEXT("italic")
+#define FNDDOC_UNDERLINED TEXT("underlined")
+#define FNDDOC_COLOR TEXT("color")
+#define FNDDOC_BGCOLOR TEXT("bgColor")
+#define FNDDOC_COMMENT TEXT("comment")
 
 FindConfigDoc::FindConfigDoc(const TCHAR * filename)
    : mDoc(0)
@@ -64,7 +64,7 @@ FindConfigDoc::~FindConfigDoc(void)
       mDoc = 0;
    }
 }
-bool FindConfigDoc::readPatternList(tclPatternList& pl){
+bool FindConfigDoc::readPatternList(tclPatternList& pl, bool bAppend, bool bLoadNew){
    bool bRes=false;
    if(mDoc) {
 
@@ -81,9 +81,15 @@ bool FindConfigDoc::readPatternList(tclPatternList& pl){
             }
          }
          // continue with patterns
-         node = node->FirstChild(FNDDOC_SEARCH_TEXT);
+         if(bAppend) {
+            node = node->FirstChild(FNDDOC_SEARCH_TEXT);
+         } else {
+            node = node->LastChild(FNDDOC_SEARCH_TEXT);
+         }
       }
-      pl.clear();
+      if (bLoadNew) {
+         pl.clear(); 
+      }
       bRes = true;
       while(node) {
          TiXmlElement* elem = node->ToElement();
@@ -141,9 +147,17 @@ bool FindConfigDoc::readPatternList(tclPatternList& pl){
             if(pc!=0 && *pc!=0) {
                p.setComment(pc);
             }
-            pl.push_back(p);
+            if(bAppend) {
+               pl.push_back(p);
+            } else {
+               pl.insert(pl.begin().getPatId(), p);
+            }
          } // search string available
-         node = elem->NextSibling(FNDDOC_SEARCH_TEXT);
+         if (bAppend) {
+            node = elem->NextSibling(FNDDOC_SEARCH_TEXT);
+         } else {
+            node = elem->PreviousSibling(FNDDOC_SEARCH_TEXT);
+         }
       } // while
    } // mDoc != 0
    return bRes;
@@ -155,7 +169,7 @@ bool FindConfigDoc::writePatternList(tclPatternList& pl){
       return bRes;
    }
    mDoc->Clear();
-   TiXmlNode* n = mDoc->InsertEndChild(TiXmlDeclaration(L"1.0", L"UTF-8", L"")); // <?xml version="1.0" encoding="UTF-8"?>
+   TiXmlNode* n = mDoc->InsertEndChild(TiXmlDeclaration(TEXT("1.0"), TEXT("UTF-8"), TEXT(""))); // <?xml version="1.0" encoding="UTF-8"?>
    n = mDoc->InsertEndChild(TiXmlElement(FNDDOC_ANALYSE_DOC));
    if(n) {
       TiXmlElement* e = n->ToElement(); // must work because we added e just before
