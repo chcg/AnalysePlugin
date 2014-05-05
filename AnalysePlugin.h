@@ -69,6 +69,7 @@ public:
    AnalysePlugin()
       : _nppReady(false)
       , gbPluginVisible(false)
+      , gbResultVisible(true)
       , _markedLine(-1)
       , _Npp(0)
       , _hModule(0)
@@ -248,6 +249,7 @@ protected:
    static const TCHAR PLUGIN_NAME[];
    static const TCHAR ADDITIONALINFO[];
    static const TCHAR KEYNAME[];
+   static const TCHAR KEYSHOWSEARCH[];
    static const TCHAR KEYSEARCHHISTORY[];
    static const TCHAR KEYCOMMENTHISTORY[];
    static const TCHAR KEYDEFAULTOPTIONS[];
@@ -305,6 +307,7 @@ protected:
    /** is true if the closing tag shall be triggered with adding end tag */
 
    bool gbPluginVisible;
+   bool gbResultVisible;
    unsigned _markedLine;
    NppData* _Npp;
    HINSTANCE _hModule;

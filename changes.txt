@@ -1,7 +1,7 @@
 Changes since 1.10
+ - adding feature to separately handle visibility of result window
  - bugfix color setting in config dialog 
  - clean up mCmbColor
-Changes since 1.9
  - change context menu names to Prepend / Append 
  - bugfix headline count with regard to line numbers visibility 
  - adding feature loading current pattern list at startup 
@@ -22,8 +22,8 @@ Changes since 1.9
  - adding assert header as assert() is used 
  - adding COMP name in debug macros 
  - bugfix using _countof instead "/ 1" 
- - moving function definition into DockingFeature/tclFindResultSearchDlg.cpp 
  - adopting the documentation
+Changes since 1.9
  - bugfix for SCI_SEARCHINTARGET problem
  - adding feature coloring in the pattern list
 Changes since 1.8

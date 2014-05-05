@@ -35,6 +35,7 @@ AnalysePlugin g_plugin;
 const TCHAR AnalysePlugin::PLUGIN_NAME[] = TEXT("AnalysePlugin");
 const TCHAR AnalysePlugin::ADDITIONALINFO[] = TEXT("Analyse additional info");
 const TCHAR AnalysePlugin::KEYNAME[] = TEXT("doAnalyse");
+const TCHAR AnalysePlugin::KEYSHOWSEARCH[] = TEXT("showSearch");
 const TCHAR AnalysePlugin::KEYSEARCHHISTORY[] = TEXT("searchHistory");
 const TCHAR AnalysePlugin::KEYCOMMENTHISTORY[] = TEXT("commentHistory");
 const TCHAR AnalysePlugin::KEYDEFAULTOPTIONS[] = TEXT("defaultOptions");
@@ -200,6 +201,7 @@ void AnalysePlugin::loadSettings()
    TCHAR tmp[MAX_CHAR_CELL];
    gbPluginVisible = (0 != ::GetPrivateProfileInt(SECTIONNAME, KEYNAME, 0, iniFilePath));
    funcItem[SHOWFINDDLG]._init2Check = gbPluginVisible;  
+   gbResultVisible = (0 != ::GetPrivateProfileInt(SECTIONNAME, KEYSHOWSEARCH, 1, iniFilePath));
    // the information is inverted here because ShowFindDialog() will invert it again
    ::GetPrivateProfileString(SECTIONNAME, KEYLASTFILENAME, TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
    setSearchFileName(tmp);
@@ -254,7 +256,8 @@ void AnalysePlugin::saveSettings() {
    _findDlg.getSearchHistory(mSearchHistory);
    _findDlg.getCommentHistory(mCommentHistory);
    _findDlg.getDefaultOptions(mDefaultOptions);
-   ::WritePrivateProfileString(SECTIONNAME, KEYNAME, (funcItem[SHOWFINDDLG]._init2Check?TEXT("1"):TEXT("0")), iniFilePath);
+   ::WritePrivateProfileString(SECTIONNAME, KEYNAME, (_findDlg.isVisible()?TEXT("1"):TEXT("0")), iniFilePath);
+   ::WritePrivateProfileString(SECTIONNAME, KEYSHOWSEARCH, (_findResult.isVisible()?TEXT("1"):TEXT("0")), iniFilePath);
    ::WritePrivateProfileString(SECTIONNAME, KEYLASTFILENAME, _findDlg.getFileName().c_str(), iniFilePath);
    ::WritePrivateProfileString(SECTIONNAME, KEYSEARCHHISTORY, mSearchHistory.c_str(), iniFilePath);
    ::WritePrivateProfileString(SECTIONNAME, KEYCOMMENTHISTORY, mCommentHistory.c_str(), iniFilePath);
@@ -959,6 +962,8 @@ void AnalysePlugin::doStyleFormating(HWND hCurrentEditView, int startPos, int en
 void AnalysePlugin::toggleShowFindDlg () 
 {
    funcItem[SHOWFINDDLG]._init2Check = !funcItem[SHOWFINDDLG]._init2Check;
+   gbPluginVisible = funcItem[SHOWFINDDLG]._init2Check;
+   gbResultVisible = gbPluginVisible;
    showFindDlg();
 }
 
@@ -1018,9 +1023,7 @@ HWND AnalysePlugin::getCurrentHScintilla(teNppWindows which) const
 
 void AnalysePlugin::showFindDlg ()
 {
-   bool bVisible = funcItem[SHOWFINDDLG]._init2Check;
-
-   if(_findDlg.isCreated() || bVisible) {
+   if(_findDlg.isCreated() || gbPluginVisible) {
       //MessageBox(NULL, (bVisible?"true":"false"), "bVisible", 0);
       tTbData	data = {0};
       RECT rect={0,0,0,0};
@@ -1050,10 +1053,13 @@ void AnalysePlugin::showFindDlg ()
 
       // Always show, unless npp is not ready yet
       if (_nppReady) {
-         _findResult.display(bVisible);
-         _findDlg.display(bVisible);
+         _findResult.display(gbPluginVisible && gbResultVisible);
+         _findDlg.display(gbPluginVisible);
       }
-      funcItem[SHOWFINDDLG]._init2Check = isVisible();
+      // feed back in case it did'nt work;
+      gbPluginVisible = isVisible();
+      funcItem[SHOWFINDDLG]._init2Check = gbPluginVisible;
+
    }
 }
 
