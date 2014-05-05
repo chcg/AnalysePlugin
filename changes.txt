@@ -1,3 +1,31 @@
+Changes since 1.10
+ - bugfix color setting in config dialog 
+ - clean up mCmbColor
+Changes since 1.9
+ - change context menu names to Prepend / Append 
+ - bugfix headline count with regard to line numbers visibility 
+ - adding feature loading current pattern list at startup 
+ - bugfix remove setting *.xml into wrong file 
+ - some preparations for tagged markup displaying 
+ - removal of old unnecessary HEADLINE sections 
+ - adding feature "add selection to patterns" 
+ - adding feature persistent last config files context menu 
+ - adding configuration to select count of entries in the pattern list context menu 
+ - adding dialog for clip board copy of context menu e...
+ - adding dotmatchnewline in the search type list (even if not functional in NPP)
+ - changing combobox from add string to insert string to keep order always the same 
+ - adding clearSelection() in cmbbox to avoid inserting an empty line 
+ - add displaying of config and search file names in title bars of docking wnds 
+ - rename initial title of config docking wnd 
+ - align sources with Notepad++ v6.5.5 
+ - add displaying of config and search file names in title bars of docking wnds...
+ - adding assert header as assert() is used 
+ - adding COMP name in debug macros 
+ - bugfix using _countof instead "/ 1" 
+ - moving function definition into DockingFeature/tclFindResultSearchDlg.cpp 
+ - adopting the documentation
+ - bugfix for SCI_SEARCHINTARGET problem
+ - adding feature coloring in the pattern list
 Changes since 1.8
  - sync with additional files from NPP 6.2.3
  - add feature coloring the pattern list 

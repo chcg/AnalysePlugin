@@ -1,75 +1,77 @@
-AnalysePlugin for NotePad++                                                DE 2013-01
+AnalysePlugin for NotePad++                                                DE 2014-04
 
 This Plugin will help you to search for more than one search pattern at a time. 
 
-Add the different search patterns to the configuration dialog and press [search]. 
-As result you will find all matching lines in the result window and in the main 
-window matching lines are marked. 
-All patterns can have a different search type e.g. regular expression or normal 
-text same as the find dialog in NotePad++ (see manual in "?")
-Additionally you may want to blend out a sub set of a search pattern. For this 
-you can check the "hide" option which results in hiding of that line or text from the
-search result. The text is still there and clipboard copy will still hold all text. 
-To hint that a line was found once, the line number remains in the result window.
+Add the different search patterns to the configuration dialog and press [search]. As 
+result you will find all matching lines in the result window and in the main window 
+matching lines are marked. 
+All patterns can have a different search type e.g. regular expression or normal text 
+same as the find dialog in NotePad++ (see manual in "?")
+Additionally you may want to blend out a sub set of a search pattern. For this you can 
+check the "hide" option which results in hiding of that line or text from the search 
+result. The text is still there and clipboard copy will still hold all text. To hint 
+that a line was found once, the line number remains in the result window.
 You can also give the different searches colours to better distinguish which line 
 belongs to which pattern. The colouring is done top line first and bottom line last. 
-If a pattern is found twice, the lower pattern defines the colour. 
-You can also give each line a comment e.g. what this pattern helps to find.
-The Anaylse Configuration Dialog handles the list of search patterns. 
-In this dialog you can adjust the different search patterns stacked into 
-with following buttons:
+If a pattern is found twice, the lower pattern defines the colour. You can also give 
+each line a comment e.g. what this pattern helps to find.
+The Anaylse Configuration Dialog handles the list of search patterns. In this dialog 
+you can adjust the different search patterns stacked into with following buttons:
 
 ---- Buttons ---- 
-[Add]       Puts actual setting of the upper part into a new line in the table.
-            If a line was marked in the table the line is added underneath.
-[Update]    Copies the dialog data into the marked line of the table.
-[Delete]    Removes the line actually marked.
-[  ^  ]     Moves the selected pattern one step up in the list.
-[  v  ]     Moves the selected pattern one step down in the list.
-[Clear]     Removes all patterns and search result at once.
-[Load]      Allows loading a list of search patterns from disk.
-[Save]      Allows saving a list of search patterns to disk.
-[Search]    Starts the search of all previously changed patterns.
-            If no pattern exists the actual settings are made to one line
-            of pattern. If only one line exists and actual settings are
-            different, the line is updated before starting the search.
+[Add]    	Puts actual setting of the upper part into a new line in the table.
+         	If a line was marked in the table the line is added underneath.
+[Update] 	Copies the dialog data into the marked line of the table.
+[Delete] 	Removes the line actually marked.
+[  ^  ]  	Moves the selected pattern one step up in the list.
+[  v  ]  	Moves the selected pattern one step down in the list.
+[Clear]  	Removes all patterns and search result at once.
+[Load]   	Allows loading a list of search patterns from disk.
+         	Prepend / Append allows concatination of patterns to the
+         	current patternlist. Load replaces the current patterns.
+[Save]   	Allows saving a list of search patterns to disk.
+[Search] 	Starts the search of all previously changed patterns.
+         	If no pattern exists the actual settings are made to one line
+         	of pattern. If only one line exists and actual settings are
+         	different, the line is updated before starting the search.
 
 ---- Search Options ---- 
-Search Type:   Same as in find dialog; chose the type how to search.
-               Here an interesting feature is that \r\n can be used
-               to search for more than one line! Test it with normal
-               find dialog in the editor and use the option "escaped".
-               All types are the same as in normal NotePad++ find
-               see also the help manual in menu "?" of NotePad++.
-Case:          Same as in find dialog; case sensitive or not.
-Whole Word:    Same as in find dialog; search for whole word or parts
-Do Search:     Allows to temporarily switching off this pattern 
-               (remove from search result).
-Comment:       Useful for info what this pattern helps to find.
+Search Type: 	Same as in find dialog; chose the type how to search.
+	           	Here an interesting feature is that \r\n can be used
+	           	to search for more than one line! Test it with normal
+	           	find dialog in the editor and use the option "escaped".
+	           	All types are the same as in normal NotePad++ find
+	           	see also the help manual in menu "?" of NotePad++.
+Case:        	Same as in find dialog; case sensitive or not.
+Whole Word:  	Same as in find dialog; search for whole word or parts
+Do Search:   	Allows to temporarily switching off this pattern 
+	           	(remove from search result).
+Comment:     	Useful for info what this pattern helps to find.
 
 ---- Visualization Options ---- 
 These options can be updated without activating a re-search
-Hide Text:     If on, the found pattern is removed from result line.
-Colour FG/BG:  The result window text becomes coloured in 
-               foreground and background herewith.
-               If a result text is cached by several patterns, the 
-               colour of the last pattern in list is used.
-               The maximum of maintainable pattern colors is 119!
-               All further patterns will get the default color.
-Selection on:  Decides if found text or the whole line shall be 
-               coloured / hidden.
+Hide Text:   	If on, the found pattern is removed from result line.
+Colour FG/BG:	The result window text becomes coloured in 
+	           	foreground and background herewith.
+	           	If a result text is cached by several patterns, the 
+	           	colour of the last pattern in list is used.
+	           	The maximum of maintainable pattern colors is 119!
+	           	All further patterns will get the default color.
+Selection on:	Decides if found text or the whole line shall be 
+	           	coloured / hidden.
 
----- Mouse Events ----
+---- Mouse Events ---- 
  - Configuration table -
-Left mouse click     Copies the actual data of the clicked line into the 
-                     configuration dialog for editing. click [update] to 
-                     put the changes back to the marked line.
-Double click         Toggles the current line to be searched or not.
-Right mouse click    Opens the context menu.
+Left mouse click   	Copies the actual data of the clicked line into the 
+                   	configuration dialog for editing. click [update] to 
+                   	put the changes back to the marked line.
+Double click       	Toggles the current line to be searched or not.
+Right mouse click  	Opens the context menu.
 
  - Result window -
-Double click         Moves the main window to the corresponding line
-Right mouse click    Opens the context menu.
+Double click       	Moves the main window to the corresponding line
+Right mouse click  	Opens the context menu.
+Ctx: Save to file  	Binds the result window to a text file
 The find dialog in this window is optimized for the search patterns.
 click on one of the currently defined patterns to search for this 
 individually in the result window.
@@ -77,17 +79,18 @@ individually in the result window.
 ---- Analyse Plugin Configuration ---- 
 The Analyse Plugin has an additional dialog for setting the config. In this dialog 
 you can adjust the default values used in the find dialog at the startup of NotePad++.
+Max lines of config files controls the length of the context menu list in the load 
+button menu.
 In addition you can decide how the plugin shall react on pressing the search button 
 (or Enter), when the search text has been modified. You may choose of either discard 
-the modified text and 'just search'; in this case the modified search text will become
+the modified text and 'just search'; in this case the modified search text will become 
 replaced with the text of the actually selected line's search text. 
-If you choose 'update line' than the will be copied into the marked line and searched for. 
+If you choose 'update line' than the will be copied into the marked line and searched 
+for. 
 If your choice is 'add line' the modified search text will be taken as an additional 
-search pattern and is amended to the search list. In this setting changing other options
+search pattern and is amended to the search list. In this setting changing other options 
 will be treated like update line, as normally it does not make sense to search for the 
 same text twice.
-
-Hope you have much more fun to scan your tons of mega bytes long log files.
 
 Best Regards,
 Mattes H. mattesh(at)gmx.net

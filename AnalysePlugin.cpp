@@ -970,6 +970,13 @@ void AnalysePlugin::showHelpDialog() {
 void AnalysePlugin::showConfigDialog() {
 #ifdef CONFIG_DIALOG
    execute(nppHandle, NPPM_SETMENUITEMCHECK, (WPARAM)funcItem[SHOWCNFGDLG]._cmdID, (LPARAM)true);
+   if(!_configDlg.isCreated()) {
+      if(!_findDlg.isCreated()) {
+         // let find dialog decode the ini string as single place
+         _findDlg.setDefaultOptions(mDefaultOptions.c_str());
+         _configDlg.setDefaultPattern(_findDlg.getDefaultPattern()); 
+      }
+   }
    _configDlg.doDialog(funcItem[SHOWCNFGDLG]._cmdID);
 #endif
 }
@@ -1033,8 +1040,6 @@ void AnalysePlugin::showFindDlg ()
          _findDlg.setCommentHistory(mCommentHistory.c_str());
          // let finddialog decode the string from the ini file
          _findDlg.setDefaultOptions(mDefaultOptions.c_str());
-         // afterwards transfer the data to the config dialog
-         _configDlg.setDialogData(_findDlg.getDefaultPattern());
          _findResult.initEdit(_findDlg.getDefaultPattern()); // here findresult first time exists
          _findResult.updateWindowData(_configDlg.getFontText(), _configDlg.getFontSize());
          if(PathFileExists(xmlFilePath) == TRUE) {

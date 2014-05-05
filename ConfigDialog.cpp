@@ -87,7 +87,7 @@ void ConfigDialog::doDialog(int FuncCmdId)
 //      mCmbSearchText.init(::GetDlgItem(_hSelf, IDC_CMB_SEARCH_TEXT));
       mCmbSelType.init(::GetDlgItem(_hSelf, IDC_CMB_SELECTION));
 #ifdef RESULT_COLORING
-      mCmbColor.init(::GetDlgItem(_hSelf, IDC_CMB_COLOR));
+      //mCmbColor.init(::GetDlgItem(_hSelf, IDC_CMB_COLOR));
 #endif
       mCmbFontName.init(::GetDlgItem(_hSelf, IDC_CMB_FONTNAME));
       mCmbFontSize.init(::GetDlgItem(_hSelf, IDC_CMB_FONTSIZE));
@@ -97,7 +97,7 @@ void ConfigDialog::doDialog(int FuncCmdId)
       mCmbSearchType.addInitialText2Combo(mDefPat.getDefSearchTypeListSize(), mDefPat.getDefSearchTypeList(), false);
       mCmbSelType.addInitialText2Combo(mDefPat.getDefSelTypeListSize(), mDefPat.getDefSelTypeList(), false);
 #ifdef RESULT_COLORING
-      mCmbColor.addInitialText2Combo(mDefPat.getDefColorListSize(), mDefPat.getDefColorList(), false);
+      //mCmbColor.addInitialText2Combo(mDefPat.getDefColorListSize(), mDefPat.getDefColorList(), false);
 #endif
       mCmbFontName.addInitialText2Combo(mlsFontList, false);
       mCmbFontSize.addInitialText2Combo(FONTSIZELIST_COUNT, FONTSIZELIST, false);
@@ -117,17 +117,6 @@ void ConfigDialog::doDialog(int FuncCmdId)
 
 #ifdef RESULT_COLORING
 //      mCmbColor.addText2Combo(mDefPat.getColorStr().c_str(), false);
-#endif
-      const generic_string& s = _pParent->getResultFontName();
-      if (!s.empty()) {
-         mCmbFontName.addText2Combo(s.c_str(), false);
-      }
-      TCHAR tmp[10];
-      generic_itoa(_pParent->getResultFontSize(),tmp, 10);
-      mCmbFontSize.addText2Combo(tmp, false);
-      generic_itoa(mNumOfCfgFiles,tmp, 10);
-      mCmbNumOfCfgFiles.addText2Combo(tmp, false);
-      DBG1("ConfigDialog::dDialog() %s ", mCmbNumOfCfgFiles.getComboTextList(false).c_str());
       _pFgColour = new ColourPicker2;
       _pBgColour = new ColourPicker2;
       _pFgColour->init(_hInst, _hSelf);
@@ -147,6 +136,17 @@ void ConfigDialog::doDialog(int FuncCmdId)
       ::MoveWindow((HWND)_pBgColour->getHSelf(), p2.x, p2.y, 12, 12, TRUE);
       _pFgColour->display();
       _pBgColour->display();
+#endif
+      const generic_string& s = _pParent->getResultFontName();
+      if (!s.empty()) {
+         mCmbFontName.addText2Combo(s.c_str(), false);
+      }
+      TCHAR tmp[10];
+      generic_itoa(_pParent->getResultFontSize(),tmp, 10);
+      mCmbFontSize.addText2Combo(tmp, false);
+      generic_itoa(mNumOfCfgFiles,tmp, 10);
+      mCmbNumOfCfgFiles.addText2Combo(tmp, false);
+      DBG1("ConfigDialog::dDialog() %s ", mCmbNumOfCfgFiles.getComboTextList(false).c_str());
    } // isCreated()
 
    ::EnableWindow(_pFgColour->getHSelf(), true);
@@ -227,6 +227,10 @@ void ConfigDialog::setNumOfCfgFilesStr(const generic_string& str) {
    mNumOfCfgFiles = generic_atoi(str.c_str());
 }
 
+void ConfigDialog::setDefaultPattern(const tclPattern& p) {
+   mDefPat = p;
+}
+
 void ConfigDialog::setDialogData(const tclPattern& p) {
    // store for returning
    mDefPat = p;
@@ -239,7 +243,9 @@ void ConfigDialog::setDialogData(const tclPattern& p) {
    ::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_SETCHECK, p.getIsWholeWord()?BST_CHECKED:BST_UNCHECKED, 0);
    ::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_SETCHECK, p.getIsMatchCase()?BST_CHECKED:BST_UNCHECKED, 0);
 #ifdef RESULT_COLORING
-   mCmbColor.addText2Combo(p.getColorStr().c_str(), false);
+   //mCmbColor.addText2Combo(p.getColorStr().c_str(), false);
+   _pFgColour->setColour(p.getColorNum());
+   _pBgColour->setColour(p.getBgColorNum());
 #endif
 }
 
@@ -281,9 +287,9 @@ BOOL CALLBACK ConfigDialog::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lPar
                mDefPat.setHideText(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_HIDE, BM_GETCHECK, 0, 0));
 #ifdef RESULT_COLORING
                //            mDefPat.setColorStr(mCmbColor.getTextFromCombo(false));
-#endif
                mDefPat.setColor(mDefPat.convColorNum2Enum(_pFgColour->getColour()));
                mDefPat.setBgColor(mDefPat.convColorNum2Enum(_pBgColour->getColour()));
+#endif
 
                mbOkPressed = true;
                // inform find dialog that user has pressed ok; findDilog then descides if 

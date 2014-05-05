@@ -110,6 +110,8 @@ public:
 
    const generic_string getNumOfCfgFilesStr() const;
    void setNumOfCfgFilesStr(const generic_string& str);
+   
+   void setDefaultPattern(const tclPattern& p);
 
    void setDialogData(const tclPattern& p);
    // returns true if pattern was set.
@@ -146,7 +148,7 @@ protected :
    tclComboBoxCtrl mCmbSelType;
    tclComboBoxCtrl mCmbNumOfCfgFiles;
 #ifdef RESULT_COLORING
-   tclComboBoxCtrl mCmbColor;
+   // replaced by colorPicker: tclComboBoxCtrl mCmbColor;
 #endif
    tclComboBoxCtrl mCmbOnEnterAction;
    tclPattern mDefPat;

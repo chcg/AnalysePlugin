@@ -276,6 +276,7 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) {
                _pParent->clearResult();
                mResultList.clear();
                mTableView.refillTable(mResultList);
+			   setDialogData(getDefaultPattern());
                _pParent->updateSearchPatterns();
                return TRUE;
             }
@@ -934,11 +935,6 @@ void FindDlg::setDefaultOptions(const TCHAR* options, int charSize) {
       szToken = generic_strtok(NULL, TEXT(",")); // next token
       ++num;
    } // while
-   setDialogData(mDefPat);
-   _pFgColour->setColour(mDefPat.getColorNum());
-   _pFgColour->redraw();
-   _pBgColour->setColour(mDefPat.getBgColorNum());
-   _pBgColour->redraw();
 }
 
 void FindDlg::getDefaultOptions(generic_string& str) {
@@ -1132,8 +1128,6 @@ void FindDlg::create(tTbData * data, bool isRTL){
    mCmbSelType.init(::GetDlgItem(_hSelf, IDC_CMB_SELECTION));
 #ifdef RESULT_COLORING
    //mCmbColor.init(::GetDlgItem(_hSelf, IDC_CMB_COLOR));
-#endif
-   setDialogData(mDefPat);
    _pFgColour = new ColourPicker2;
    _pBgColour = new ColourPicker2;
    _pFgColour->init(_hInst, _hSelf);
@@ -1153,6 +1147,8 @@ void FindDlg::create(tTbData * data, bool isRTL){
    ::MoveWindow((HWND)_pBgColour->getHSelf(), p2.x, p2.y, 12, 12, TRUE);
    _pFgColour->display();
    _pBgColour->display();
+#endif
+   setDialogData(mDefPat);
    
    _pPlsWait = new PleaseWaitDlg(_hSelf);
 
@@ -1175,7 +1171,11 @@ void FindDlg::setDialogData(const tclPattern& p) {
    ::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_SETCHECK, p.getIsWholeWord()?BST_CHECKED:BST_UNCHECKED, 0);
    ::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_SETCHECK, p.getIsMatchCase()?BST_CHECKED:BST_UNCHECKED, 0);
 #ifdef RESULT_COLORING
- //  mCmbColor.addText2Combo(p.getColorStr().c_str(), false);
+   //mCmbColor.addText2Combo(p.getColorStr().c_str(), false);
+	_pFgColour->setColour(p.getColorNum());
+   _pFgColour->redraw();
+	_pBgColour->setColour(p.getBgColorNum());
+   _pBgColour->redraw();
 #endif
 #ifdef RESULT_STYLING
    ::SendDlgItemMessage(_hSelf, IDC_CHK_BOLD, BM_SETCHECK, p.getIsBold()?BST_CHECKED:BST_UNCHECKED, 0);
