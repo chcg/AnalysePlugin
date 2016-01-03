@@ -50,6 +50,7 @@ enum tePluginFuncId {
    SHOWFINDDLG,
    SEP1,
    ADDSELTOPATT,
+   RUNSEARCH,
    SEP2,
 #ifdef CONFIG_DIALOG
    SHOWCNFGDLG,
@@ -112,6 +113,8 @@ public:
    void showHelpDialog();
    void showConfigDialog();
    void addSelectionToPatterns();
+   void runSearch();
+
    bool isVisible() const {
       return _findDlg.isVisible();
    }
@@ -164,6 +167,8 @@ public:
    virtual unsigned getResultFontSize() const;
    virtual int getUseBookmark() const;
    virtual int getDisplayLineNo() const;
+   virtual bool getIsSyncScroll() const;
+   virtual bool getDblClickJumps2EditView() const;
 
    LRESULT messageProc(UINT Message, WPARAM wParam, LPARAM lParam);
 
@@ -233,7 +238,7 @@ protected:
    unsigned getCurrentViewLineNumber()const {
       LRESULT curpos = execute(scnSecondHandle, SCI_GETCURRENTPOS);
       return (unsigned)execute(scnSecondHandle, SCI_LINEFROMPOSITION, curpos);
-	}
+    }
 
 public:
 
@@ -256,6 +261,8 @@ protected:
    static const TCHAR KEYUSEBOOKMARK[];
    static const TCHAR KEYDISPLAYLINENO[];
    static const TCHAR KEYONAUTOUPDATE[];
+   static const TCHAR KEYSYNCEDSCORLL[];
+   static const TCHAR KEYDBLCLKUMP2EDIT[];
    static const TCHAR KEYONENTERACTION[];
    static const TCHAR KEYLASTFILENAME[];
    static const TCHAR KEYFONTNAME[];

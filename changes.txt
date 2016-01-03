@@ -1,4 +1,11 @@
 Changes since 1.10
+ - adding menu entry "Search now" to allow short cut setting for this function
+ - adding feature of synced scrolling between result and search text
+ - sync with NPP files version 6.8.8
+ - splitting Scintilla -SearchView and -EditView for better takeover from NPP
+ - ensure result and main window to go to next found line from current position
+ - updating to Visual Studio 2013
+Changes since 1.10-preview
  - adding feature to separately handle visibility of result window
  - bugfix color setting in config dialog 
  - clean up mCmbColor
@@ -48,4 +55,4 @@ Changes since 1.7
  - bugfix ensuring maximum 119 colors working as expected
  - feature context menu added to pattern list table
  - sync with npp 5.9.8 files
- 
+

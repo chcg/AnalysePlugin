@@ -122,7 +122,12 @@ public:
    const tlpLinePosInfo& getLineAtRes(int resultWinLine) const; 
    
    /** function returns empty line (default CTOR) if not available before */
-   const tclLinePosInfo& getLineAtMain(tiLine foundLine) const; 
+   const tclLinePosInfo& getLineAtMain(tiLine foundLine) const;
+
+   /** returns the next found line number in main window for seeking to it after search has finished
+       In case no more found lines follow after the given line the return is -1 == ERROR.
+   **/
+   tiLine getNextLineNoAtMain(tiLine iFirstLineInView) const;
 
    /** function returns empty line (default CTOR) if not available before */
    bool getLineAtMainAvail(tiLine foundLine) const; 

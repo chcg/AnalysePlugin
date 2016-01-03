@@ -21,7 +21,7 @@ This class implements the handling of the search result window
 it mainly contains the view based on scintilla and maintains parallel stored
 search result string cache
 */
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "precompiledHeaders.h"
 
 #include "FindDlg.h"
@@ -34,6 +34,7 @@ search result string cache
 #include <commdlg.h>// For fileopen dialog.
 #define MDBG_COMP "FRDlg:" 
 #include "myDebug.h"
+#include "resource.h"
 
 #define STYLING_MASK 255
 #define FNDRESDLG_LINE_HEAD ""
@@ -75,6 +76,9 @@ tclFindResultDlg::tclFindResultDlg()
    , mUseBookmark(1)
    , mDisplayLineNo(1)
    , mDisplayComment(0) // TODO check fact that pattern may be a different
+#ifdef FEATURE_RESVIEW_POS_KEEP_AT_SEARCH
+   , mCurrentViewLineNo(0)
+#endif
 {
    _ResAdditionalInfo[0] = 0;
 }
@@ -103,11 +107,11 @@ int tclFindResultDlg::getLineNumColSize() const {
 void tclFindResultDlg::initEdit(const tclPattern& defaultPattern) {
    _scintView.init(_hInst, _hSelf);
    _scintView.display();
-	setFinderReadOnly(true);
+   setFinderReadOnly(true);
    RECT rect;
    getClientRect(rect);
    _scintView.reSizeToWH(rect);
-	//_scintView.execute(SCI_SETCODEPAGE, SC_CP_UTF8);
+   //_scintView.execute(SCI_SETCODEPAGE, SC_CP_UTF8);
    // let window parent (this class) do the styling
    _scintView.execute(SCI_SETLEXER,SCLEX_CONTAINER);
    _scintView.execute(SCI_SETSTYLEBITS, MY_STYLE_BITS); // maximum possible
@@ -222,6 +226,10 @@ bool tclFindResultDlg::getLineAvail(tiLine foundLine) const {
    return mFindResults.getLineAvail(foundLine);
 }
 
+int tclFindResultDlg::getNextFoundLine(int iEditorsLine) const {
+   return (int)mFindResults.getNextLineNoAtMain((tiLine)iEditorsLine);
+}
+
 const std::string& tclFindResultDlg::getLineText(int iResultLine) {
    return mFindResults.getLineText(iResultLine);
 }
@@ -253,7 +261,7 @@ void tclFindResultDlg::setLineText(int iFoundLine, const std::string& text, cons
       s.append(text);
       DBGA3("setLineText() iFoundLine: %d resLine: %d text: \"%s\"", iFoundLine, resLine, s.c_str());
       if(bNewLine) {
-         // adding a newlin into result -> set bookmark in main window
+         // adding a newline into result -> set bookmark in main window
          if(mUseBookmark) {
             _pParent->execute(scnActiveHandle, SCI_MARKERADD, iFoundLine, MARK_BOOKMARK);
          }
@@ -295,9 +303,9 @@ void tclFindResultDlg::setPatternFonts() {
    unsigned iPat = FNDRESDLG_DEFAULT_STYLE;
    const char *fontName;
 #ifdef UNICODE
-	WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
-	unsigned int cp = (unsigned int)_scintView.execute(SCI_GETCODEPAGE); 
-	fontName = wmc->wchar2char(mFontName.c_str(), cp);
+   WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
+   unsigned int cp = (unsigned int)_scintView.execute(SCI_GETCODEPAGE); 
+   fontName = wmc->wchar2char(mFontName.c_str(), cp);
 #else
    fontName = mFontName.c_str();
 #endif
@@ -468,6 +476,45 @@ void tclFindResultDlg::updateHeadline() {
    ::SendMessage(_hParent, NPPM_DMMUPDATEDISPINFO, 0, (LPARAM)_hSelf);
 }
 
+#ifdef FEATURE_RESVIEW_POS_KEEP_AT_SEARCH
+void tclFindResultDlg::saveCurrentViewPos() {
+   mCurrentViewLineNo = (int)_scintView.execute(SCI_GETFIRSTVISIBLELINE);
+   DBG1("tclFindResultDlg::saveCurrentViewPos() VisibleLine %d", mCurrentViewLineNo);
+}
+
+void tclFindResultDlg::restoreCurrentViewPos() {
+   int res = (int)_scintView.execute(SCI_SETFIRSTVISIBLELINE, mCurrentViewLineNo);
+   DBG1("tclFindResultDlg::restoreCurrentViewPos() Setting the line returns %d", res);
+}
+#endif
+
+/** this function expects iThisMainLine to be a line with search result found in it with help of getNextFoundLine() 
+    Special handling! -1 will scroll always to the end of the document.
+**/
+void tclFindResultDlg::setCurrentViewPos(int iThisMainLine) {
+   int iResLine;
+   if (-1 == iThisMainLine) {
+      int len = (int)_scintView.execute(SCI_GETLENGTH);
+      iResLine = (int)_scintView.execute(SCI_LINEFROMPOSITION, len);
+   }
+   else {
+      iResLine = mFindResults.getLineNoAtRes(iThisMainLine);
+   }
+   int res = (int)_scintView.execute(SCI_SETFIRSTVISIBLELINE, iResLine);
+   DBG2("tclFindResultDlg::setCurrentViewPos() Setting the line to %d returns %d", iResLine, res);
+}
+
+void tclFindResultDlg::updateViewScrollState(int iLineInMain, bool bInMain) {
+   static int topLine = 0;
+   if (topLine != iLineInMain){
+      topLine = iLineInMain;
+      if (bInMain) {
+         // text window moves search result
+         int line = getNextFoundLine(topLine);
+         setCurrentViewPos(line);
+      }
+   }
+}
 // public version calls internal with correct start and end values
 void tclFindResultDlg::doStyle(int iFoundLine) {
    int iLineNumber = mFindResults.getLineNoAtRes(iFoundLine);
@@ -480,6 +527,7 @@ void tclFindResultDlg::doStyle(int iFoundLine) {
 void tclFindResultDlg::doFindResultSearchDlg() {
    mFindResultSearchDlg.doDialog();
 }
+
 void tclFindResultDlg::doSaveToFile() {
    OPENFILENAME ofn;       // common dialog box structure
    TCHAR szFile[MAX_PATH]=TEXT("");       // buffer for file name
@@ -593,7 +641,7 @@ BOOL CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM 
          }
          return TRUE;
       }
-	//case WM_RBUTTONDOWN:
+   //case WM_RBUTTONDOWN:
  //     {
  //        int i = 10;
  //     }
@@ -789,7 +837,7 @@ bool tclFindResultDlg::notify(SCNotification *notification)
 
             // get currently marked line in result doc
             int resLineNo = (int)_scintView.execute(SCI_LINEFROMPOSITION, currentPos);
-            if(resLineNo >= _scintView.execute(SCI_GETLINECOUNT)) {
+            if ((resLineNo >= _scintView.execute(SCI_GETLINECOUNT)) || (mFindResults.size() == 0)) {
                // we are out of editable range. don't do anything
                return TRUE;
             }
@@ -812,31 +860,26 @@ bool tclFindResultDlg::notify(SCNotification *notification)
             if(iSuccess == 0) {
                ::MessageBox(0, TEXT("File could not be opened, were this search result comes from. \nRestart search with [Search]"), TEXT("Analyse Plugin - Sorry"), 0);
             } else {
-               _pParent->displaySectionCentered(startMain, startMain);
+               //_pParent->displaySectionCentered(startMain, startMain);
                // we set the current mark here
                setCurrentMarkedLine(lineMain);
+               if (!_pParent->getDblClickJumps2EditView()) {
+                  getFocus();
+               }
             }
 
-            char line[1000]="";
-#ifdef UNICODE
-            wcstombs(line, getszFileName(),1000);
-#else
-            strcpy(line, getszFileName());
-#endif
             DBG3("notify(SCNotification) SCN_DOUBLECLICK to line  %d in %s line in result", 
-               lineMain, line, resLineNo);
-   
+               lineMain, getszFileName(), resLineNo);
+
             ret = true;
 
          } NPP_CATCH_ALL{
             DBG0("notify(SCNotification) ERROR SCN_DOUBLECLICK problem.");
-            //printStr(TEXT("SCN_DOUBLECLICK problem"));
          }
          break;
       }
    case SCN_PAINTED:
    case SCN_MODIFIED:
-   case SCN_UPDATEUI:
    case SCN_SCROLLED:
       break;
    case SCN_CHARADDED:
@@ -847,6 +890,19 @@ bool tclFindResultDlg::notify(SCNotification *notification)
          }
          break;
       }
+   case SCN_UPDATEUI:
+   {
+      if (((notification->updated & SC_UPDATE_V_SCROLL) != 0) && _pParent->getIsSyncScroll()) {
+         int currTopLine = (int)_scintView.execute(SCI_GETFIRSTVISIBLELINE);
+         DBG1("notify() SCN_UPDATEUI: Scrolled to currTopLine=%d", currTopLine);
+         tiLine mainLine = mFindResults.getLineNoAtMain(currTopLine);
+         generic_string currFile;
+         if (_pParent->bCheckLastFileNameSame(currFile)) {
+            _pParent->execute(scnActiveHandle, SCI_GOTOLINE, (WPARAM)mainLine);
+         }
+      }
+      break;
+   }
    default :
       int i = notification->nmhdr.code;
       DBG2("notify() unused notification code %d 0x%x", i, i);
@@ -864,11 +920,11 @@ void tclFindResultDlg::saveSearchDoc() {
       // no saving configured
       return;
    }
-	Utf8_16_Write UnicodeConvertor;
-	UnicodeConvertor.setEncoding(uniUTF8);
+   Utf8_16_Write UnicodeConvertor;
+   UnicodeConvertor.setEncoding(uniUTF8);
    FILE *fp = UnicodeConvertor.fopen(mSearchResultFile.c_str(), TEXT("wb"));
-	if (fp)
-	{
+   if (fp)
+   {
       char* buf = (char*) _scintView.execute(SCI_GETCHARACTERPOINTER); // vs. SCI_GETDOCPOINTER
       int lengthDoc = _scintView.getCurrentDocLen();
       if (lengthDoc && buf) {

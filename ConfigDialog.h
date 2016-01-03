@@ -59,6 +59,7 @@ public:
       ,mUseBookmark(1)
       ,mDisplayLineNo(1)
       ,mNumOfCfgFiles(4)
+      ,mIsSyncScroll(true)
    {}
       //, mFontSize(8) {}
 
@@ -97,6 +98,14 @@ public:
       return mOnEnterAction ;
    }
 
+   void setDblClickJumps2EditView(bool bJump) {
+      mDblClickJumps2EditView = bJump;
+   }
+
+   bool getDblClickJumps2EditView() const {
+      return mDblClickJumps2EditView;
+   }
+
    generic_string getOnEnterActionStr() const ;
    void setOnEnterActionStr(const generic_string& action) ;
 
@@ -129,8 +138,16 @@ public:
       _pResultDlg = pResultDlg;
    }
 
+   bool getIsSyncScroll() const {
+      return mIsSyncScroll;
+   }
+
+   void setIsSyncScroll(bool bIsScroll) {
+      mIsSyncScroll = bIsScroll;
+   }
+
    // used to retrive the different font names from windows
-	static int CALLBACK EnumFontFamExProc(ENUMLOGFONTEX *lpelfe, NEWTEXTMETRICEX *, int, LPARAM lParam) ;
+   static int CALLBACK EnumFontFamExProc(ENUMLOGFONTEX *lpelfe, NEWTEXTMETRICEX *, int, LPARAM lParam) ;
 
 protected :
    virtual BOOL CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
@@ -169,7 +186,8 @@ protected :
    int mDisplayLineNo;
    int mNumOfCfgFiles;
    AddCtxDlg _addCtxDlg;
-
+   bool mIsSyncScroll;
+   bool mDblClickJumps2EditView;
 };
 
 

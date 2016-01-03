@@ -21,7 +21,7 @@ tclResultList contains a list of results but also
 the corresponding patterns used.
 the syncrosiastion between both lists is the index in the vectors
 */
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "precompiledHeaders.h"
 
 #include "tclResultList.h"

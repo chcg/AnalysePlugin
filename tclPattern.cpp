@@ -20,7 +20,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 tclPattern implements information stored to execute one search on
 */
 
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "precompiledHeaders.h"
 #include "tclPattern.h"
 #include <windows.h>

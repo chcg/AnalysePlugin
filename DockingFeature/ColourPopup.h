@@ -33,21 +33,26 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 class ColourPopup : public Window
 {
 public :
-   ColourPopup() : Window(), isColourChooserLaunched(false) {};
-   ColourPopup(COLORREF defaultColor) : Window(), isColourChooserLaunched(false), _colour(defaultColor) {};
-   ~ColourPopup(){};
+   ColourPopup() : Window()/*, isColourChooserLaunched(false)*/ {};
+   ColourPopup(COLORREF defaultColor) : Window(), /*isColourChooserLaunched(false),*/ _colour(defaultColor) {};
+   virtual ~ColourPopup(){}
 
    bool isCreated() const {
       return (_hSelf != NULL);
-   };
+   }
 
    void create(int dialogID);
-
+    
    void doDialog(POINT p) ;
 
    virtual void destroy() {
       ::DestroyWindow(_hSelf);
-   };
+	}
+
+	void setColour(COLORREF c)
+	{
+		_colour = c;
+	}
 
    COLORREF getSelColour(){
       return _colour;
@@ -56,10 +61,10 @@ public :
 private :
    RECT _rc;
    COLORREF _colour;
-   bool isColourChooserLaunched;
+	//bool isColourChooserLaunched = false;
 
-   static BOOL CALLBACK dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-   BOOL CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
+   static INT_PTR CALLBACK dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+   INT_PTR CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
 };
 
 #endif //COLOUR_POPUP_H

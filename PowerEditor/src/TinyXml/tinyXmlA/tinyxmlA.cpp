@@ -22,7 +22,7 @@ must not be misrepresented as being the original software.
 distribution.
 */
 
-#include "precompiledHeaders.h"
+#include "Common.h"
 #include "tinyxmlA.h"
 
 #ifdef TIXMLA_USE_STL
@@ -817,6 +817,18 @@ bool TiXmlDocumentA::SaveFile( const char * filename ) const
 {
 	// The old c stuff lives on...
 	FILE* fp = fopen( filename, "w" );
+	if ( fp )
+	{
+		Print( fp, 0 );
+		fclose( fp );
+		return true;
+	}
+	return false;
+}
+bool TiXmlDocumentA::SaveUnicodeFilePath( const TCHAR* filename ) const
+{
+	// The old c stuff lives on...
+	FILE* fp = generic_fopen( filename, TEXT("w") );
 	if ( fp )
 	{
 		Print( fp, 0 );

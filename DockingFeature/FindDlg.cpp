@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "precompiledHeaders.h"
 #include "resource.h"
 
@@ -95,7 +95,7 @@ void FindDlg::setNumOfCfgFilesStr(const generic_string& str) {
 }
 
 void FindDlg::doSearch() {
-   DBG0("IDC_DO_SEARCH");
+   DBG0("FindDlg::doSearch()");
    // make sure last edited config values are tsored into the patterns
    if(mTableView.getRowCount() < 1) {
       ::SendMessage(getHSelf(), WM_COMMAND, IDC_BUT_UPD, (LPARAM)0);
@@ -135,8 +135,6 @@ void FindDlg::doSearch() {
       mode |= (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT);
       _pParent->execute(scnActiveHandle,SCI_SETMODEVENTMASK, mode);
    }
-   // finally set focus to editor window
-   ::SetFocus(_pParent->getCurrentHScintilla(scnActiveHandle));
 }
 
 BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) {
@@ -197,22 +195,26 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) {
             }
          case IDC_DO_RESEARCH :
             {
+               DBG0("IDC_DO_RESEARCH");
                setAllDirty();
                doSearch();
                return TRUE;
             }
          case IDC_DO_SEARCH :
             {
+               DBG0("IDC_DO_SEARCH");
                doSearch();
+               // finally set focus to editor window
+               ::SetFocus(_pParent->getCurrentHScintilla(scnActiveHandle));
                return TRUE;
-            }
+         }
          case IDC_BUT_LOAD:
             {
                DBG0("IDC_BUT_LOAD");
                // load the file from open dialog
                // instantiate xml doc
                HWND hButton = ::GetDlgItem(_hSelf, IDC_BUT_LOAD);
-               POINT pt = getLeftTopPoint(hButton);
+               POINT pt = getTopPoint(hButton);
                ::ClientToScreen(_hSelf, &pt);
                ContextMenu contextmenu;
                std::vector<MenuItemUnit> tmp;
@@ -276,7 +278,7 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) {
                _pParent->clearResult();
                mResultList.clear();
                mTableView.refillTable(mResultList);
-			   setDialogData(getDefaultPattern());
+               setDialogData(getDefaultPattern());
                _pParent->updateSearchPatterns();
                return TRUE;
             }
@@ -475,9 +477,9 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) {
          HWND hComment = ::GetDlgItem(_hSelf,IDC_CMB_COMMENT);
          ::GetClientRect(hText, &rcText);
          ::GetClientRect(hComment, &rcComment);
-         POINT pTable = getLeftTopPoint(hTable);
-         POINT pText = getLeftTopPoint(hText);
-         POINT pComment = getLeftTopPoint(hComment);
+         POINT pTable = getTopPoint(hTable);
+         POINT pText = getTopPoint(hText);
+         POINT pComment = getTopPoint(hComment);
          int dWidth = rcDlg.right-rcDlg.left;
          int dTableHeight = rcDlg.bottom-rcDlg.top-pTable.y;
          if(dWidth>=0) {
@@ -563,7 +565,7 @@ bool FindDlg::doLoadConfigFile(bool bAppend, bool bLoadNew) {
    if (GetOpenFileName(&ofn)==TRUE) 
    {   
       // happens because of pointer in ofn      strncpy(szFile, ofn.lpstrFile, MAX_PATH);
-	   setConfigFileName(ofn.lpstrFile);
+       setConfigFileName(ofn.lpstrFile);
       return loadConfigFile(ofn.lpstrFile, bAppend, bLoadNew);
    }
    return false;
@@ -1137,8 +1139,8 @@ void FindDlg::create(tTbData * data, bool isRTL){
 
    POINT p1, p2;
 
-   alignWith(::GetDlgItem(_hSelf, IDC_STATIC_COL_FG), _pFgColour->getHSelf(), ALIGNPOS_RIGHT, p1);
-   alignWith(::GetDlgItem(_hSelf, IDC_STATIC_COL_BG), _pBgColour->getHSelf(), ALIGNPOS_RIGHT, p2);
+   alignWith(::GetDlgItem(_hSelf, IDC_STATIC_COL_FG), _pFgColour->getHSelf(), PosAlign::right, p1);
+   alignWith(::GetDlgItem(_hSelf, IDC_STATIC_COL_BG), _pBgColour->getHSelf(), PosAlign::right, p2);
 
    p1.y += 1;
    p2.y += 1;
@@ -1172,9 +1174,9 @@ void FindDlg::setDialogData(const tclPattern& p) {
    ::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_SETCHECK, p.getIsMatchCase()?BST_CHECKED:BST_UNCHECKED, 0);
 #ifdef RESULT_COLORING
    //mCmbColor.addText2Combo(p.getColorStr().c_str(), false);
-	_pFgColour->setColour(p.getColorNum());
+    _pFgColour->setColour(p.getColorNum());
    _pFgColour->redraw();
-	_pBgColour->setColour(p.getBgColorNum());
+    _pBgColour->setColour(p.getBgColorNum());
    _pBgColour->redraw();
 #endif
 #ifdef RESULT_STYLING

@@ -19,7 +19,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 /**
 class tclPatternList contains a vector of tclPatterns
 */
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "precompiledHeaders.h"
 
 #include "tclPatternList.h"

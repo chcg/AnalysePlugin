@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "precompiledHeaders.h"
 
 #include "AddCtxDlg.h"
@@ -28,7 +28,8 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define MDBG_COMP "AddCtxDlg:" 
 #include "myDebug.h"
 
-#define COMMAND_SNIPPET TEXT("<Item FolderName=\"AnalysePlugin\" PluginEntryName=\"AnalysePlugin\" PluginCommandItemName=\"Add selection as patterns\" />\r\n")
+#define COMMAND_SNIPPET TEXT("<Item FolderName=\"AnalysePlugin\" PluginEntryName=\"AnalysePlugin\" PluginCommandItemName=\"Add selection as patterns\" />\r\n\
+<Item FolderName=\"AnalysePlugin\" PluginEntryName=\"AnalysePlugin\" PluginCommandItemName=\"Search now\" />\r\n")
 
 void AddCtxDlg::init(HINSTANCE hInst, NppData nppData)
 {
@@ -47,7 +48,7 @@ void AddCtxDlg::doDialog()
 
 BOOL CALLBACK AddCtxDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
 {
-	switch (Message) 
+   switch (Message) 
    {
    case WM_INITDIALOG :
       {
@@ -80,7 +81,7 @@ BOOL CALLBACK AddCtxDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
          break;
       } // case WM_SIZE
    }
-	return FALSE;
+   return FALSE;
 }
 
 void AddCtxDlg::resizeWindow() {
@@ -88,7 +89,7 @@ void AddCtxDlg::resizeWindow() {
    getClientRect(rcDlg);
    HWND hText = ::GetDlgItem(_hSelf,IDC_EDT_COPYTEXT);
    ::GetClientRect(hText, &rcText);
-   POINT pText = getLeftTopPoint(hText);
+   POINT pText = getTopPoint(hText);
    int dWidth = rcDlg.right-rcDlg.left-20; // for border
    int dTextHeight = rcDlg.bottom-rcDlg.top-pText.y-10; // for border
    if(dWidth>=0) {

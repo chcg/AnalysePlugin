@@ -65,6 +65,7 @@ public:
    int insertPosInfo(tPatId patternId, tiLine iResultLine, tclPosInfo pos); 
 
    bool getLineAvail(tiLine foundLine) const ;
+   int getNextFoundLine(int iEdittorsLine) const;
 
    const std::string& getLineText(int iResultLine); 
 
@@ -107,6 +108,14 @@ public:
    const TCHAR* getszFileName() const {
       return mSearchFileName.c_str();
    }
+#ifdef FEATURE_RESVIEW_POS_KEEP_AT_SEARCH
+   // CurrentViewPos can be modified to avoid moving content in result window
+   void saveCurrentViewPos();
+   void restoreCurrentViewPos();
+#endif
+   void setCurrentViewPos(int iThisMainLine);
+   void updateViewScrollState(int iLineInMain, bool bInMain);
+
 protected :
    static const int transStyleId[MY_STYLE_COUNT];
    // public version calls internal with correct start and end values
@@ -136,7 +145,6 @@ protected :
    void saveSearchDoc();
    void setPatternFonts();
 
-protected:
    MyPlugin* _pParent;
 
    //   ScintillaSearchView **_ppEditView;
@@ -146,7 +154,7 @@ protected:
    ScintillaSearchView _scintView;
    int _markedLine;  // -1 or the line actually marked in the main window
    // InWhat _mode;
-   size_t _lineCounter; // incremented when a line has bee added to the edit window
+   size_t _lineCounter; // incremented when a line has been added to the edit window
 
    // count of chars reserved for line number
    int miLineNumColSize;
@@ -165,5 +173,8 @@ protected:
    int mDisplayLineNo;
    int mDisplayComment;
    generic_string mSearchResultFile;
+#ifdef FEATURE_RESVIEW_POS_KEEP_AT_SEARCH
+   int mCurrentViewLineNo;
+#endif
 };
 #endif //TCLFINDRESULTDLG_H

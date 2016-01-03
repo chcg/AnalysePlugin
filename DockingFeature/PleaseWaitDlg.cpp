@@ -29,11 +29,11 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define APN_MSG_CANCEL_FIND WM_USER + 24
 
 DWORD WINAPI AsyncPleaseWaitFunc(LPVOID phWnd) {
-	MessageBox((HWND)NULL, 
+   MessageBox((HWND)NULL, 
       TEXT("Finding patterns ...\nPress OK to cancel."), 
       TEXT("Analyse Plugin"), MB_OK);
    ::PostMessage(*(HWND*)phWnd, APN_MSG_CANCEL_FIND, 0, 0);
-	return 0;
+   return 0;
 }
 
 PleaseWaitDlg::PleaseWaitDlg(HWND hSelf): _hSelf(hSelf), _hProgress(0), _hCancelThread(0) {

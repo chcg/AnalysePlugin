@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "precompiledHeaders.h"
 #include "ColourPopup.h"
 #include "tclPattern.h"
@@ -44,7 +44,7 @@ void ColourPopup::create(int dialogID)
 
    if (!_hSelf)
    {
-		throw std::runtime_error("ColourPopup::create : CreateDialogParam() function return null");
+      throw std::runtime_error("ColourPopup::create : CreateDialogParam() function return null");
    }
    Window::getClientRect(_rc);
    display();
@@ -60,7 +60,7 @@ void ColourPopup::doDialog(POINT p) {
    ::SetWindowPos(_hSelf, HWND_TOP, p.x-cx, p.y-cy, cx, cy, SWP_SHOWWINDOW);
 }
 
-BOOL CALLBACK ColourPopup::dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
+INT_PTR CALLBACK ColourPopup::dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 {
    switch (message) 
    {
@@ -97,7 +97,7 @@ BOOL CALLBACK ColourPopup::dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARA
    }
 }
 
-BOOL CALLBACK ColourPopup::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK ColourPopup::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
 {
 
    switch (message)
@@ -199,7 +199,7 @@ BOOL CALLBACK ColourPopup::run_dlgProc(UINT message, WPARAM wParam, LPARAM lPara
       {
       case IDOK :
          {
-            isColourChooserLaunched = true;
+					//isColourChooserLaunched = true;
             CHOOSECOLOR cc;                 // common dialog box structure 
             static COLORREF acrCustClr[16] = {
                RGB(0xFF,0xFF,0xFF),RGB(0xFF,0xFF,0xFF),RGB(0xFF,0xFF,0xFF),RGB(0xFF,0xFF,0xFF),\
@@ -250,7 +250,7 @@ BOOL CALLBACK ColourPopup::run_dlgProc(UINT message, WPARAM wParam, LPARAM lPara
    case WM_ACTIVATE :
       {
          if (LOWORD(wParam) == WA_INACTIVE)
-            if (!isColourChooserLaunched)
+				//if (!isColourChooserLaunched)
                ::SendMessage(_hParent, WM_PICKUP_CANCEL, 0, 0);
          return TRUE;
       }

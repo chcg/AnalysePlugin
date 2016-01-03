@@ -37,7 +37,8 @@
 #include "Scintilla.h"
 #endif //SCINTILLA_H
 
-using namespace std;
+#include "StaticDialog.h"
+#include "Common.h"
 
 const size_t nameLenMax = 64;
 
@@ -136,8 +137,9 @@ public:
 		return !(a == b);
 	};
 
-	virtual int doDialog() {
-		return (int)::DialogBoxParam(_hInst, MAKEINTRESOURCE(IDD_SHORTCUT_DLG), _hParent,  (DLGPROC)dlgProc, (LPARAM)this); //mattes
+	virtual INT_PTR doDialog()
+	{
+		return ::DialogBoxParam(_hInst, MAKEINTRESOURCE(IDD_SHORTCUT_DLG), _hParent,  dlgProc, (LPARAM)this);
     };
 
 	virtual bool isValid() const { //valid should only be used in cases where the shortcut isEnabled().
@@ -181,7 +183,7 @@ public:
 
 protected :
 	KeyCombo _keyCombo;
-	virtual BOOL CALLBACK run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam);
+	virtual INT_PTR CALLBACK run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam);
 	bool _canModifyName;
 	TCHAR _name[nameLenMax];		//normal name is plain text (for display purposes)
 	TCHAR _menuName[nameLenMax];	//menu name has ampersands for quick keys
@@ -215,7 +217,7 @@ public:
 	};
 
 	KeyCombo getKeyComboByIndex(int index) const;
-	void ScintillaKeyMap::setKeyComboByIndex(int index, KeyCombo combo);
+	void setKeyComboByIndex(int index, KeyCombo combo);
 	void removeKeyComboByIndex(int index);
 	void clearDups() {
 		if (size > 1)
@@ -229,8 +231,9 @@ public:
 	generic_string toString() const;
 	generic_string toString(int index) const;
 
-	int doDialog() {
-		return (int)::DialogBoxParam(_hInst, MAKEINTRESOURCE(IDD_SHORTCUTSCINT_DLG), _hParent,  (DLGPROC)dlgProc, (LPARAM)this); //mattes
+	INT_PTR doDialog()
+	{
+		return ::DialogBoxParam(_hInst, MAKEINTRESOURCE(IDD_SHORTCUTSCINT_DLG), _hParent,  dlgProc, (LPARAM)this);
     };
 
 	//only compares the internal KeyCombos, nothing else
@@ -257,14 +260,14 @@ public:
 private:
 	unsigned long _scintillaKeyID;
 	int _menuCmdID;
-	vector<KeyCombo> _keyCombos;
+	std::vector<KeyCombo> _keyCombos;
 	size_t size;
 	void applyToCurrentIndex();
 	void validateDialog();
 	void showCurrentSettings();
 	void updateListItem(int index);
 protected :
-	BOOL CALLBACK run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam);
+	INT_PTR CALLBACK run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam);
 };
 
 
@@ -296,7 +299,7 @@ struct recordedMacroStep {
 	void PlayBack(Window* pNotepad, ScintillaEditView *pEditView);
 };
 
-typedef vector<recordedMacroStep> Macro;
+typedef std::vector<recordedMacroStep> Macro;
 
 class MacroShortcut : public CommandShortcut {
 friend class NppParameters;
@@ -342,10 +345,12 @@ private :
 class Accelerator { //Handles accelerator keys for Notepad++ menu, including custom commands
 friend class ShortcutMapper;
 public:
-	Accelerator():_hAccelMenu(NULL), _hMenuParent(NULL), _hAccTable(NULL), _pAccelArray(NULL), _nbAccelItems(0){};
-	~Accelerator(){
+	Accelerator() :_hAccelMenu(NULL), _hMenuParent(NULL), _hAccTable(NULL), _hIncFindAccTab(NULL), _pAccelArray(NULL), _nbAccelItems(0){};
+	~Accelerator() {
 		if (_hAccTable)
 			::DestroyAcceleratorTable(_hAccTable);
+		if (_hIncFindAccTab)
+			::DestroyAcceleratorTable(_hIncFindAccTab);
 		if (_pAccelArray)
 			delete [] _pAccelArray;
 	};
@@ -355,6 +360,7 @@ public:
 		updateShortcuts();
 	};
 	HACCEL getAccTable() const {return _hAccTable;};
+	HACCEL getIncrFindAccTable() const { return _hIncFindAccTab; };
 
 	void updateShortcuts();
 	void updateFullMenu();
@@ -363,27 +369,23 @@ private:
 	HMENU _hAccelMenu;
 	HWND _hMenuParent;
 	HACCEL _hAccTable;
+	HACCEL _hIncFindAccTab;
 	ACCEL *_pAccelArray;
 	int _nbAccelItems;
 
-	void reNew() {
-		if(_hAccTable)
-			::DestroyAcceleratorTable(_hAccTable);
-		_hAccTable = ::CreateAcceleratorTable(_pAccelArray, _nbAccelItems);
-	};
 	void updateMenuItemByCommand(CommandShortcut csc);
 };
 
 class ScintillaAccelerator {	//Handles accelerator keys for scintilla
 public:
 	ScintillaAccelerator() : _nrScintillas(0) {};
-	void init(vector<HWND> * vScintillas, HMENU hMenu, HWND menuParent);
+	void init(std::vector<HWND> * vScintillas, HMENU hMenu, HWND menuParent);
 	void updateKeys();
 	void updateKey(ScintillaKeyMap skmOld, ScintillaKeyMap skm);
 private:
 	HMENU _hAccelMenu;
 	HWND _hMenuParent;
-	vector<HWND> _vScintillas;
+	std::vector<HWND> _vScintillas;
 	int _nrScintillas;
 
 	void updateMenuItemByID(ScintillaKeyMap skm, int id);

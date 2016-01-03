@@ -36,7 +36,6 @@ public :
 	virtual void destroy();
     void setColour(COLORREF c) {
         _currentColour = c;
-        //drawSelf();
     };
 
 	COLORREF getColour() const {return _currentColour;};
@@ -52,7 +51,7 @@ private :
 
     static LRESULT CALLBACK staticWinProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) {
 #pragma warning (disable:4312)
-       return (((ColourPicker2 *)(::GetWindowLongPtr(hwnd, GWL_USERDATA)))->runProc(Message, wParam, lParam));
+       return (((ColourPicker2 *)(::GetWindowLongPtr(hwnd, GWLP_USERDATA)))->runProc(Message, wParam, lParam));
 #pragma warning (default:4312)
     };
 	LRESULT runProc(UINT Message, WPARAM wParam, LPARAM lParam);

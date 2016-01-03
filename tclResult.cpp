@@ -20,7 +20,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 a tclResult is the container for the result of searching for one pattern
 */
 
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "precompiledHeaders.h"
 #include "tclResult.h"
 //#include <algorithm> 

@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "precompiledHeaders.h"
 #include "ColourPicker2.h"
 #include "ColourPopup.h"
@@ -39,7 +39,7 @@ void ColourPicker2::init(HINSTANCE hInst, HWND parent)
       (LPVOID)0);
    if (!_hSelf)
    {
-		throw std::runtime_error("ColourPicker::init : CreateWindowEx() function return null");
+      throw std::runtime_error("ColourPicker::init : CreateWindowEx() function return null");
    }
 
 #pragma warning (disable:4311 4312 4244)
@@ -50,12 +50,12 @@ void ColourPicker2::init(HINSTANCE hInst, HWND parent)
 
 void ColourPicker2::destroy()
 {
-	if (_pColourPopup)
-	{
-		delete _pColourPopup;
-		_pColourPopup = NULL;
-	}
-	::DestroyWindow(_hSelf);
+   if (_pColourPopup)
+   {
+      delete _pColourPopup;
+      _pColourPopup = NULL;
+   }
+   ::DestroyWindow(_hSelf);
 }
 void ColourPicker2::drawBackground(HDC hDC)
 {
@@ -108,8 +108,6 @@ LRESULT ColourPicker2::runProc(UINT Message, WPARAM wParam, LPARAM lParam)
    case WM_LBUTTONDOWN :
    case WM_RBUTTONDOWN :
       {
-         if (!_pColourPopup)
-         {
             RECT rc;
             POINT p;
 
@@ -119,10 +117,18 @@ LRESULT ColourPicker2::runProc(UINT Message, WPARAM wParam, LPARAM lParam)
             p.y = rc.top + rc.bottom;
 
             ::ClientToScreen(_hSelf, &p);
+			if (!_pColourPopup)
+			{
             _pColourPopup = new ColourPopup(_currentColour);
             _pColourPopup->init(_hInst, _hSelf);
             _pColourPopup->doDialog(p);
          }
+			else
+			{
+				_pColourPopup->setColour(_currentColour);
+				_pColourPopup->doDialog(p);
+				_pColourPopup->display(true);
+			}
          return TRUE;
       }
    //case WM_RBUTTONDOWN:
@@ -155,9 +161,7 @@ LRESULT ColourPicker2::runProc(UINT Message, WPARAM wParam, LPARAM lParam)
          _currentColour = (COLORREF)wParam;
          redraw();
 
-         _pColourPopup->destroy();
-         delete _pColourPopup;
-         _pColourPopup = NULL;
+			_pColourPopup->display(false);
          ::SendMessage(_hParent, WM_COMMAND, MAKELONG(0, CPN_COLOURPICKED), (LPARAM)_hSelf);
          return TRUE;
       }
@@ -173,18 +177,11 @@ LRESULT ColourPicker2::runProc(UINT Message, WPARAM wParam, LPARAM lParam)
       }
 
    case WM_PICKUP_CANCEL :
-   case WM_DESTROY :
       {
-         if (_pColourPopup)
-         {
-            _pColourPopup->destroy();
-            delete _pColourPopup;
-            _pColourPopup = NULL;
+			_pColourPopup->display(false);
 
             return TRUE;
          }
-         break;
-      }
 
    default :
       return ::CallWindowProc(_buttonDefaultProc, _hSelf, Message, wParam, lParam);

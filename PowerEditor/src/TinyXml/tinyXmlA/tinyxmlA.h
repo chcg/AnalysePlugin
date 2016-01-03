@@ -27,6 +27,8 @@ distribution.
 #define TINYXMLA_INCLUDED
 
 #ifdef _MSC_VER
+#pragma warning( push )
+#pragma warning( disable : 4458 ) // declaration of 'parameter' hides class member
 #pragma warning( disable : 4530 )
 #pragma warning( disable : 4786 )
 #endif
@@ -36,7 +38,6 @@ distribution.
 #if defined( _DEBUG ) && !defined( DEBUG )
 #define DEBUG
 #endif
-#include <assert.h> //mattes
 
 #if defined( DEBUG ) && defined( _MSC_VER )
 #include <windows.h>
@@ -54,6 +55,12 @@ distribution.
 	#define TIXMLA_STRING	TiXmlStringA
 	#define TIXMLA_OSTREAM	TiXmlOutStreamA
 #endif
+
+#include <stdio.h>
+#include <assert.h>
+#include <string>
+#include <tchar.h>
+#include "Common.h"
 
 class TiXmlDocumentA;
 class TiXmlElementA;
@@ -1005,7 +1012,9 @@ public:
 	/// Save a file using the given filename. Returns true if successful.
 	bool SaveFile( const char * filename ) const;
 
-	bool LoadUnicodeFilePath(const TCHAR* filename);
+	/// Load and Save a file using the given unicode filename. Returns true if successful.
+	bool LoadUnicodeFilePath( const TCHAR* filename );
+	bool SaveUnicodeFilePath( const TCHAR* filename ) const;
 
 	#ifdef TIXMLA_USE_STL
 	bool LoadFile( const std::string& filename )			///< STL std::string version.
@@ -1249,6 +1258,9 @@ private:
 	TiXmlNodeA* node;
 };
 
+#ifdef _MSC_VER
+#pragma warning( pop )
+#endif
 
 #endif
 

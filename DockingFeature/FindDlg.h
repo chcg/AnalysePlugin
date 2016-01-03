@@ -53,8 +53,8 @@ class tclPattern;
 
 #if 0
 struct TargetRange {
-	int targetStart;
-	int targetEnd;
+   int targetStart;
+   int targetEnd;
 };
 
 enum SearchType { 
@@ -67,25 +67,25 @@ enum SearchType {
 struct FindOption {
    FindOption()
       :_isWholeWord(true), _isMatchCase(true), _searchType(FindNormal),
-	   _isWrapAround(true)/*, _whichDirection(DIR_DOWN), _isIncremental(false)*/{}
-	bool _isWholeWord;
-	bool _isMatchCase;
-	bool _isWrapAround;
-	//bool _whichDirection;
-	//bool _isIncremental;
-	SearchType _searchType;
+      _isWrapAround(true)/*, _whichDirection(DIR_DOWN), _isIncremental(false)*/{}
+   bool _isWholeWord;
+   bool _isMatchCase;
+   bool _isWrapAround;
+   //bool _whichDirection;
+   //bool _isIncremental;
+   SearchType _searchType;
 };
 
 //This class contains generic search functions as static functions for easy access
 class Searching {
 public:
-	static int convertExtendedToString(const char * query, char * result, int length);
-	static TargetRange t;
-	static int buildSearchFlags(FindOption * option) {
-		return	(option->_isWholeWord ? SCFIND_WHOLEWORD : 0) |
-				(option->_isMatchCase ? SCFIND_MATCHCASE : 0) |
-				(option->_searchType == FindRegex ? SCFIND_REGEXP|SCFIND_POSIX : 0);
-	};
+   static int convertExtendedToString(const char * query, char * result, int length);
+   static TargetRange t;
+   static int buildSearchFlags(FindOption * option) {
+      return	(option->_isWholeWord ? SCFIND_WHOLEWORD : 0) |
+            (option->_isMatchCase ? SCFIND_MATCHCASE : 0) |
+            (option->_searchType == FindRegex ? SCFIND_REGEXP|SCFIND_POSIX : 0);
+   };
 
 private:
    static bool readBase(const char * string, int * value, int base, int size){

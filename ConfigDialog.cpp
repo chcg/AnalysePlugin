@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "precompiledHeaders.h"
 #include "menuCmdID.h"
 
@@ -48,34 +48,34 @@ void ConfigDialog::init(HINSTANCE hInst, NppData nppData)
 
 void ConfigDialog::setFontList(HWND hWnd)
 {
-	//---------------//
-	// Sys font list //
-	//---------------//
+   //---------------//
+   // Sys font list //
+   //---------------//
 
-	LOGFONT lf;
-	mlsFontList.clear();
+   LOGFONT lf;
+   mlsFontList.clear();
 
-	lf.lfCharSet = DEFAULT_CHARSET;
-	lf.lfFaceName[0]='\0';
-	lf.lfPitchAndFamily = 0;
-	HDC hDC = ::GetDC(hWnd);
+   lf.lfCharSet = DEFAULT_CHARSET;
+   lf.lfFaceName[0]='\0';
+   lf.lfPitchAndFamily = 0;
+   HDC hDC = ::GetDC(hWnd);
 
-	::EnumFontFamiliesEx(hDC, 
-						&lf, 
-						(FONTENUMPROC) EnumFontFamExProc, 
-						(LPARAM) &mlsFontList, 0);
+   ::EnumFontFamiliesEx(hDC, 
+                  &lf, 
+                  (FONTENUMPROC) EnumFontFamExProc, 
+                  (LPARAM) &mlsFontList, 0);
 }
 
 int ConfigDialog::EnumFontFamExProc(ENUMLOGFONTEX *lpelfe, NEWTEXTMETRICEX *, int, LPARAM lParam) {
-	tlsString* pStringSet = reinterpret_cast<tlsString*>(lParam);
-	//We can add the font
-	//Add the face name and not the full name, we do not care about any styles
+   tlsString* pStringSet = reinterpret_cast<tlsString*>(lParam);
+   //We can add the font
+   //Add the face name and not the full name, we do not care about any styles
    TCHAR* pName = (TCHAR*)lpelfe->elfLogFont.lfFaceName;
    
    generic_string str(pName);
    pStringSet->insert(str);
 
-	return 1; // I want to get all fonts
+   return 1; // I want to get all fonts
 };
 
 void ConfigDialog::doDialog(int FuncCmdId)
@@ -114,7 +114,8 @@ void ConfigDialog::doDialog(int FuncCmdId)
       ::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_SETCHECK, mDefPat.getIsWholeWord()?BST_CHECKED:BST_UNCHECKED, 0);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_SETCHECK, mDefPat.getIsMatchCase()?BST_CHECKED:BST_UNCHECKED, 0);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_DISPLINENO, BM_SETCHECK, getDisplayLineNo()?BST_CHECKED:BST_UNCHECKED, 0);
-
+      ::SendDlgItemMessage(_hSelf, IDC_CHK_SYNCSCROLL, BM_SETCHECK, getIsSyncScroll() ? BST_CHECKED : BST_UNCHECKED, 0);
+      ::SendDlgItemMessage(_hSelf, IDC_CHK_JUMP2EDIT, BM_SETCHECK, getDblClickJumps2EditView() ? BST_CHECKED : BST_UNCHECKED, 0);
 #ifdef RESULT_COLORING
 //      mCmbColor.addText2Combo(mDefPat.getColorStr().c_str(), false);
       _pFgColour = new ColourPicker2;
@@ -126,8 +127,8 @@ void ConfigDialog::doDialog(int FuncCmdId)
 
       POINT p1, p2;
 
-      alignWith(::GetDlgItem(_hSelf, IDC_STATIC_COL_FG2), _pFgColour->getHSelf(), ALIGNPOS_RIGHT, p1);
-      alignWith(::GetDlgItem(_hSelf, IDC_STATIC_COL_BG2), _pBgColour->getHSelf(), ALIGNPOS_RIGHT, p2);
+     alignWith(::GetDlgItem(_hSelf, IDC_STATIC_COL_FG2), _pFgColour->getHSelf(), PosAlign::right, p1);
+     alignWith(::GetDlgItem(_hSelf, IDC_STATIC_COL_BG2), _pBgColour->getHSelf(), PosAlign::right, p2);
 
       p1.y += 1;
       p2.y += 1;
@@ -239,7 +240,7 @@ void ConfigDialog::setDialogData(const tclPattern& p) {
    mCmbSearchType.addText2Combo(p.getSearchTypeStr().c_str(), false);
    mCmbSelType.addText2Combo(p.getSelectionTypeStr().c_str(), false);
    ::SendDlgItemMessage(_hSelf, IDC_CHK_DO_SEARCH, BM_SETCHECK, p.getDoSearch()?BST_CHECKED:BST_UNCHECKED, 0);
-	::SendDlgItemMessage(_hSelf, IDC_CHK_HIDE, BM_SETCHECK, p.getIsHideText()?BST_CHECKED:BST_UNCHECKED, 0);
+   ::SendDlgItemMessage(_hSelf, IDC_CHK_HIDE, BM_SETCHECK, p.getIsHideText()?BST_CHECKED:BST_UNCHECKED, 0);
    ::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_SETCHECK, p.getIsWholeWord()?BST_CHECKED:BST_UNCHECKED, 0);
    ::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_SETCHECK, p.getIsMatchCase()?BST_CHECKED:BST_UNCHECKED, 0);
 #ifdef RESULT_COLORING
@@ -251,7 +252,7 @@ void ConfigDialog::setDialogData(const tclPattern& p) {
 
 BOOL CALLBACK ConfigDialog::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
 {
-	switch (Message) 
+   switch (Message) 
    {
    case WM_INITDIALOG :
       {
@@ -290,7 +291,8 @@ BOOL CALLBACK ConfigDialog::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lPar
                mDefPat.setColor(mDefPat.convColorNum2Enum(_pFgColour->getColour()));
                mDefPat.setBgColor(mDefPat.convColorNum2Enum(_pBgColour->getColour()));
 #endif
-
+               setIsSyncScroll(BST_CHECKED == ::SendDlgItemMessage(_hSelf, IDC_CHK_SYNCSCROLL, BM_GETCHECK, 0, 0));
+               setDblClickJumps2EditView(BST_CHECKED == ::SendDlgItemMessage(_hSelf, IDC_CHK_JUMP2EDIT, BM_GETCHECK, 0, 0));
                mbOkPressed = true;
                // inform find dialog that user has pressed ok; findDilog then descides if 
                // new default data needs to be copied into the find dialog
@@ -356,7 +358,7 @@ BOOL CALLBACK ConfigDialog::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lPar
    } // switch
 
 
-	return FALSE;
+   return FALSE;
 }
 
 BOOL CALLBACK ConfigDialog::run_dlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)

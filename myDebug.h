@@ -19,7 +19,10 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 //"myDebug.h"
 #ifndef MYDEBUG_H
 #define MYDEBUG_H
-#if _DEBUG
+#if defined (_DEBUG) && !defined (DISABLE_DEBUG)
+#define DBGDEF(par) par // use this macro to specify code not to be available in release mode
+#define DBGNDEF(par) // use this macro to specify code not to be available in debug mode
+
 // use MDBG_COMP to define a compnent of file identifier which becomes prepended to all output
 #ifndef MDBG_COMP
 #define MDBG_COMP ""
@@ -52,12 +55,14 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define DBGW3(msg, arg1, arg2, arg3)             _RPTW4(_CRT_WARN, TEXT(MDBG_COMP)##TEXT(##msg##)TEXT("\t")##TEXT(__FILE__)##TEXT("(%d)\n"), arg1, arg2, arg3, __LINE__)
 #define DBGW4(msg, arg1, arg2, arg3, arg4)       _RPTW5(_CRT_WARN, TEXT(MDBG_COMP)##TEXT(##msg##)TEXT("\t")##TEXT(__FILE__)##TEXT("(%d)\n"), arg1, arg2, arg3, arg4, __LINE__)
 #else
+#define DBGDEF(par)
+#define DBGNDEF(par) par
 #define DBG0(msg)                               
 #define DBG1(msg, arg1)                         
 #define DBG2(msg, arg1, arg2)                   
 #define DBG3(msg, arg1, arg2, arg3)             
 #define DBG4(msg, arg1, arg2, arg3, arg4)       
-#define DBG5(msg, arg1, arg2, arg3, arg4, arg5) 
+//#define DBG5(msg, arg1, arg2, arg3, arg4, arg5) 
 #define DBGW0(msg)                               
 #define DBGW1(msg, arg1)                         
 #define DBGW2(msg, arg1, arg2)                   

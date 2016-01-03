@@ -289,7 +289,7 @@ BOOL CALLBACK tclFindResultSearchDlg::run_dlgProc(UINT Message, WPARAM wParam, L
          // set button pos
          RECT rc;
          getClientRect(rc);
-         mpPatt = getLeftTopPoint(::GetDlgItem(_hSelf, IDC_LST_PATTERNS));
+         mpPatt = getTopPoint(::GetDlgItem(_hSelf, IDC_LST_PATTERNS));
          RECT rcPatt;
          ::GetClientRect(::GetDlgItem(_hSelf, IDC_LST_PATTERNS), &rcPatt);
          mpPattDist.y = rc.bottom - rcPatt.bottom - mpPatt.y - 4; // 4 for border

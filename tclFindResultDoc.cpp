@@ -19,7 +19,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 /** 
 * implementation of tclFindResultDoc
 */
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "precompiledHeaders.h"
 
 #include "tclFindResultDoc.h"
@@ -136,6 +136,16 @@ const tclLinePosInfo& tclFindResultDoc::getLineAtMain(tiLine foundLine) const {
    } else {
       assert((it!= mLines.end())&&(it->first==foundLine)); // index out of range
       return mDefLineInfo.second;
+   }
+}
+
+tiLine tclFindResultDoc::getNextLineNoAtMain(tiLine iFirstLineInView) const {
+   tlmLinePosInfo::const_iterator it = mLines.lower_bound(iFirstLineInView);
+   if (it != mLines.end()) {
+      return it->first;
+   }
+   else {
+      return (tiLine)-1;
    }
 }
 

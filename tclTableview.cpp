@@ -20,7 +20,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 tclTableview implements the WINAPI functionality for the table of patterns 
 in the find config dock window
 */
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "precompiledHeaders.h"
 #include "resource.h"
 #include "tclTableview.h"

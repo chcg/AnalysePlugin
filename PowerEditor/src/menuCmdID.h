@@ -54,11 +54,14 @@
     #define    IDM_FILE_CLOSEALL_TORIGHT        (IDM_FILE + 18)
     #define    IDM_FILE_OPEN_FOLDER             (IDM_FILE + 19)
     #define    IDM_FILE_OPEN_CMD                (IDM_FILE + 20)
+	#define    IDM_FILE_RESTORELASTCLOSEDFILE   (IDM_FILE + 21)
 // IMPORTANT: If list above is modified, you have to change the following values:
  
 // To be updated if new menu item(s) is (are) added in menu "File"
-    #define    IDM_FILEMENU_LASTONE             IDM_FILE_OPEN_CMD
+	#define    IDM_FILEMENU_LASTONE             IDM_FILE_RESTORELASTCLOSEDFILE
+
 	
+
 // 0 based position of command "Exit" including the bars in the file menu
 // and without counting "Recent files history" items
 
@@ -109,8 +112,14 @@
     #define    IDM_EDIT_REMOVEEMPTYLINESWITHBLANK   (IDM_EDIT + 56)
     #define    IDM_EDIT_BLANKLINEABOVECURRENT       (IDM_EDIT + 57)
     #define    IDM_EDIT_BLANKLINEBELOWCURRENT       (IDM_EDIT + 58)
-    #define    IDM_EDIT_SORTLINES                   (IDM_EDIT + 59)
-    #define    IDM_EDIT_SORTLINESREVERSE            (IDM_EDIT + 60)
+	#define    IDM_EDIT_SORTLINES_LEXICOGRAPHIC_ASCENDING	(IDM_EDIT + 59)
+	#define    IDM_EDIT_SORTLINES_LEXICOGRAPHIC_DESCENDING	(IDM_EDIT + 60)
+	#define    IDM_EDIT_SORTLINES_INTEGER_ASCENDING			(IDM_EDIT + 61)
+	#define    IDM_EDIT_SORTLINES_INTEGER_DESCENDING		(IDM_EDIT + 62)
+	#define    IDM_EDIT_SORTLINES_DECIMALCOMMA_ASCENDING	(IDM_EDIT + 63)
+	#define    IDM_EDIT_SORTLINES_DECIMALCOMMA_DESCENDING	(IDM_EDIT + 64)
+	#define    IDM_EDIT_SORTLINES_DECIMALDOT_ASCENDING		(IDM_EDIT + 65)
+	#define    IDM_EDIT_SORTLINES_DECIMALDOT_DESCENDING		(IDM_EDIT + 66)
 
 // Menu macro
     #define    IDM_MACRO_STARTRECORDINGMACRO        (IDM_EDIT + 18)
@@ -222,6 +231,7 @@
 	#define    IDM_SEARCH_DELETEUNMARKEDLINES  (IDM_SEARCH + 51)
 	#define    IDM_SEARCH_FINDCHARINRANGE      (IDM_SEARCH + 52)
 	#define    IDM_SEARCH_SELECTMATCHINGBRACES (IDM_SEARCH + 53)
+	#define    IDM_SEARCH_MARK                 (IDM_SEARCH + 54)
 	
 #define    IDM_MISC    (IDM + 3500)
 	#define    IDM_FILESWITCHER_FILESCLOSE            (IDM_MISC + 1)
@@ -454,6 +464,7 @@
     #define    IDM_LANG_R                  (IDM_LANG + 54)
     #define    IDM_LANG_JSP                (IDM_LANG + 55)
 	#define    IDM_LANG_COFFEESCRIPT       (IDM_LANG + 56)
+	#define    IDM_LANG_JSON		       (IDM_LANG + 57)
 
     #define    IDM_LANG_EXTERNAL           (IDM_LANG + 65)
     #define    IDM_LANG_EXTERNAL_LIMIT     (IDM_LANG + 79)
@@ -475,6 +486,8 @@
     #define    IDM_HELP             (IDM_ABOUT  + 8)
 	#define    IDM_CONFUPDATERPROXY (IDM_ABOUT  + 9)
 	#define    IDM_CMDLINEARGUMENTS (IDM_ABOUT  + 10)
+	#define    IDM_ONLINESUPPORT    (IDM_ABOUT  + 11)
+	#define    IDM_DEBUGINFO        (IDM_ABOUT  + 12)
 
 
 #define    IDM_SETTING    (IDM + 8000)

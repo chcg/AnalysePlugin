@@ -20,7 +20,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 tclComboBoxCtrl implements the WINAPI handling of a combobox
 */
 
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "precompiledHeaders.h"
 #include "tclComboBoxCtrl.h"
 
@@ -34,18 +34,8 @@ void tclComboBoxCtrl::init(HWND hwnd){
 }
 
 tclComboBoxCtrl::tclComboBoxCtrl()
-   :mhMyCtrl(0), bMustDie9x(false)
+   :mhMyCtrl(0)
 {
-   OSVERSIONINFOEX osvi;
-	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
-	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-	if( !(GetVersionEx ((OSVERSIONINFO *) &osvi)) ){
-		osvi.dwOSVersionInfoSize = sizeof (OSVERSIONINFO);
-		GetVersionEx ( (OSVERSIONINFO *) &osvi); 
-	}
-   if(osvi.dwMajorVersion != 0) {
-      bMustDie9x =  (osvi.dwPlatformId == VER_PLATFORM_WIN32_WINDOWS);
-   }
 }
 
 tclComboBoxCtrl::~tclComboBoxCtrl(){
@@ -54,14 +44,14 @@ tclComboBoxCtrl::~tclComboBoxCtrl(){
 
 void tclComboBoxCtrl::addText2Combo(const TCHAR * txt2add, bool isUTF8, bool lastAsFirst, bool addAlways)
 {   
-	if (!mhMyCtrl) return;
-	if ((txt2add==0)) return; 
-	int i = 0;
+   if (!mhMyCtrl) return;
+   if ((txt2add==0)) return; 
+   int i = 0;
    if(*txt2add==0) {
       DBG1("addText2Combo() adding zero length text! in %d", ::GetDlgCtrlID(mhMyCtrl));
    }
    // add even if empty!  if (!lstrcmp(txt2add, TEXT(""))) return;
-	i = ::SendMessage(mhMyCtrl, CB_FINDSTRINGEXACT, (WPARAM)-1, (LPARAM)txt2add);
+   i = ::SendMessage(mhMyCtrl, CB_FINDSTRINGEXACT, (WPARAM)-1, (LPARAM)txt2add);
    if (addAlways) {
       if (i != CB_ERR) { // found
          ::SendMessage(mhMyCtrl, CB_DELETESTRING, i, 0);
@@ -80,21 +70,21 @@ void tclComboBoxCtrl::addText2Combo(const TCHAR * txt2add, bool isUTF8, bool las
 
 void tclComboBoxCtrl::clearSelection() 
 {   
-	if (!mhMyCtrl) return;
+   if (!mhMyCtrl) return;
    (void)::SendMessage(mhMyCtrl, CB_SETCURSEL, -1, 0);
 }
 
 generic_string tclComboBoxCtrl::getComboTextList(bool isUTF8) const {
-	TCHAR text[MAX_CHAR_CELL];
+   TCHAR text[MAX_CHAR_CELL];
    generic_string s;
 
    int count = (int)::SendMessage(mhMyCtrl, CB_GETCOUNT, 0, 0);
-	int i = 0;
+   int i = 0;
 
    // avoid adding the same string twice
    for ( ; i < count ; i++)
-	{      
-	   ::SendMessage(mhMyCtrl, CB_GETLBTEXT, i, (LPARAM)text);
+   {      
+      ::SendMessage(mhMyCtrl, CB_GETLBTEXT, i, (LPARAM)text);
       generic_string s1(text);
       const TCHAR* pc = s1.c_str();
       while((pc = generic_strchr(pc, '|'))!=0) {
@@ -110,14 +100,14 @@ generic_string tclComboBoxCtrl::getComboTextList(bool isUTF8) const {
       }
       // add string
       s += s1;
-	}
+   }
    return s;
 }
 
 generic_string tclComboBoxCtrl::getTextFromCombo(bool isUnicode) const
 {   
-	TCHAR str[MAX_CHAR_CELL];
-	::SendMessage(mhMyCtrl, WM_GETTEXT, MAX_CHAR_CELL - 1, (LPARAM)str);
+   TCHAR str[MAX_CHAR_CELL];
+   ::SendMessage(mhMyCtrl, WM_GETTEXT, MAX_CHAR_CELL - 1, (LPARAM)str);
    return /*std::*/generic_string(str);
 }
 

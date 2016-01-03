@@ -156,6 +156,14 @@ public:
       mVersionString = ver;
    }
 
+   void setManText(const generic_string& man){
+      mManual = man;
+   }
+
+   void setChangesText(const generic_string& changes){
+      mChanges = changes;
+   }
+
    void resizeWindow();
 
 protected :
@@ -163,6 +171,8 @@ protected :
    virtual BOOL CALLBACK run_dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
    generic_string mVersionString;
+   generic_string mManual;
+   generic_string mChanges;
 
    /* Handles */
    NppData			_nppData;

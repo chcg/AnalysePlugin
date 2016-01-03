@@ -35,9 +35,9 @@ typedef double tPatId;// new id of the pattern applied
 enum teOnEnterAction;
 
 enum teNppWindows {
-	scnMainHandle,
-	scnSecondHandle,
-	nppHandle,
+   scnMainHandle,
+   scnSecondHandle,
+   nppHandle,
    scnActiveHandle // used to take the one being active regardless if main or second
 };
 
@@ -121,6 +121,11 @@ public:
    virtual void setSearchFileName(const generic_string& file) =0;
 
    /**
+   * report if file name changed in meantime
+   */
+   virtual bool bCheckLastFileNameSame(generic_string& file) =0;
+
+   /**
    * function is called as notification that the plugin has been switched off by
    * closing the dock window. The implementation shall make sure that menu and result
    * window are in sync with the config window.
@@ -141,6 +146,8 @@ public:
 
    virtual int getUseBookmark() const = 0;
    virtual int getDisplayLineNo() const = 0;
+   virtual bool getIsSyncScroll() const = 0;
+   virtual bool getDblClickJumps2EditView() const = 0;
 
 };
 #endif //MYPLUGIN_H

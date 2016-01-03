@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "precompiledHeaders.h"
 
 #include "AnalysePlugin.h"
@@ -40,6 +40,8 @@ const TCHAR AnalysePlugin::KEYSEARCHHISTORY[] = TEXT("searchHistory");
 const TCHAR AnalysePlugin::KEYCOMMENTHISTORY[] = TEXT("commentHistory");
 const TCHAR AnalysePlugin::KEYDEFAULTOPTIONS[] = TEXT("defaultOptions");
 const TCHAR AnalysePlugin::KEYONAUTOUPDATE[] = TEXT("onAutoUpdate");
+const TCHAR AnalysePlugin::KEYSYNCEDSCORLL[] = TEXT("syncedScrolling");
+const TCHAR AnalysePlugin::KEYDBLCLKUMP2EDIT[] = TEXT("dblclkJumps2EditView");
 const TCHAR AnalysePlugin::KEYUSEBOOKMARK[] = TEXT("useBookmark");
 const TCHAR AnalysePlugin::KEYDISPLAYLINENO[] = TEXT("displayLineNo");
 const TCHAR AnalysePlugin::KEYONENTERACTION[] = TEXT("onEnterAction");
@@ -95,7 +97,9 @@ void MenuAnalyseToggle () {
 void MenuAddSelectionToPatterns () {
    g_plugin.addSelectionToPatterns();
 }
-
+void MenuRunSearch() {
+   g_plugin.runSearch();
+}
 void MenuShowHelpDialog () {
    g_plugin.showHelpDialog();
 }
@@ -118,6 +122,7 @@ BOOL AnalysePlugin::dllmain(HANDLE hModule,
          memset(funcItem, 0, sizeof(funcItem));
          funcItem[SHOWFINDDLG]._pFunc = MenuAnalyseToggle;
          funcItem[ADDSELTOPATT]._pFunc = MenuAddSelectionToPatterns;
+         funcItem[RUNSEARCH]._pFunc = MenuRunSearch;
 #ifdef CONFIG_DIALOG
          funcItem[SHOWCNFGDLG]._pFunc = MenuShowConfigDialog;
 #endif
@@ -125,6 +130,7 @@ BOOL AnalysePlugin::dllmain(HANDLE hModule,
 
          ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_DIAG, funcItem[SHOWFINDDLG]._itemName, nbChar);
          ::LoadString((HINSTANCE)_hModule, IDS_ADDSELTOPATT, funcItem[ADDSELTOPATT]._itemName, nbChar);
+         ::LoadString((HINSTANCE)_hModule, IDS_RUNSEARCH, funcItem[RUNSEARCH]._itemName, nbChar);
 #ifdef CONFIG_DIALOG
          ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_CONFIG, funcItem[SHOWCNFGDLG]._itemName, nbChar);
 #endif
@@ -219,6 +225,10 @@ void AnalysePlugin::loadSettings()
    _findResult.setDisplayLineNo(generic_atoi(tmp));
    ::GetPrivateProfileString(SECTIONNAME, KEYONAUTOUPDATE, TEXT("0"), tmp, COUNTCHAR(tmp), iniFilePath);
    _configDlg.setOnAutoUpdate(generic_atoi(tmp));
+   ::GetPrivateProfileString(SECTIONNAME, KEYSYNCEDSCORLL, TEXT("1"), tmp, COUNTCHAR(tmp), iniFilePath);
+   _configDlg.setIsSyncScroll(0 != generic_atoi(tmp));
+   ::GetPrivateProfileString(SECTIONNAME, KEYDBLCLKUMP2EDIT, TEXT("1"), tmp, COUNTCHAR(tmp), iniFilePath);
+   _configDlg.setDblClickJumps2EditView(0 != generic_atoi(tmp));
    ::GetPrivateProfileString(SECTIONNAME, KEYONENTERACTION, TEXT("0"), tmp, COUNTCHAR(tmp), iniFilePath);
    _configDlg.setOnEnterAction((teOnEnterAction)generic_atoi(tmp));
    ::GetPrivateProfileString(SECTIONNAME, KEYFONTNAME, TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
@@ -249,6 +259,18 @@ void AnalysePlugin::loadSettings()
    //   // load the patterns from last run
    //   _findDlg.loadConfigFile(xmlFilePath);
    //}
+   HRSRC resourceHandle1 = ::FindResource(_hModule, MAKEINTRESOURCE(IDR_MANUAL), RT_HTML);
+   HGLOBAL dataHandle1 = ::LoadResource(_hModule, resourceHandle1);
+   const char* data1 = (const char*)::LockResource(dataHandle1);
+   generic_string man = string2wstring(data1, CP_ACP);
+   ::FreeResource(dataHandle1);
+   HRSRC resourceHandle2 = ::FindResource(_hModule, MAKEINTRESOURCE(IDR_CHANGES), RT_HTML);
+   HGLOBAL dataHandle2 = ::LoadResource(_hModule, resourceHandle2);
+   const char* data2 = (const char*)::LockResource(dataHandle2);
+   generic_string changes = string2wstring(data2, CP_ACP);
+   ::FreeResource(dataHandle2);
+   _helpDlg.setManText(man);
+   _helpDlg.setChangesText(changes);
 }
 
 void AnalysePlugin::saveSettings() {
@@ -269,6 +291,10 @@ void AnalysePlugin::saveSettings() {
    ::WritePrivateProfileString(SECTIONNAME, KEYDISPLAYLINENO, tmp, iniFilePath);
    generic_itoa(_configDlg.getOnAutoUpdate(), tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYONAUTOUPDATE, tmp, iniFilePath);
+   generic_itoa((_configDlg.getIsSyncScroll()?1:0), tmp, 10);
+   ::WritePrivateProfileString(SECTIONNAME, KEYSYNCEDSCORLL, tmp, iniFilePath);
+   generic_itoa((_configDlg.getDblClickJumps2EditView() ? 1 : 0), tmp, 10);
+   ::WritePrivateProfileString(SECTIONNAME, KEYDBLCLKUMP2EDIT, tmp, iniFilePath);
    generic_itoa((int)_configDlg.getOnEnterAction(), tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYONENTERACTION, tmp, iniFilePath);
    const TCHAR* cp = _configDlg.getFontText().c_str();
@@ -297,7 +323,7 @@ void AnalysePlugin::showMargin(int witchMarge, bool willBeShown) {
    if (witchMarge == ScintillaSearchView::_SC_MARGE_LINENUMBER) {
       int chWidth = (int)execute(scnSecondHandle, SCI_TEXTWIDTH, STYLE_LINENUMBER, (LPARAM)"8");
       // The 4 here allows for spacing: 1 pixel on left and 3 on right.
-      pixelWidth = (willBeShown)?(4 + ScintillaSearchView::_MARGE_LINENUMBER_NB_CHIFFRE * chWidth):0;
+      pixelWidth = (willBeShown)?(4 + ScintillaEditView::_MARGE_LINENUMBER_NB_CHIFFRE * chWidth):0;
    } else {
       pixelWidth = willBeShown?14:0;
    }
@@ -312,11 +338,11 @@ void AnalysePlugin::displaySectionCentered(int posStart, int posEnd, bool isDown
    execute(scnActiveHandle, SCI_SETCURRENTPOS, testPos);
    int currentlineNumberDoc = (int)execute(scnActiveHandle, SCI_LINEFROMPOSITION, testPos);
    int currentlineNumberVis = (int)execute(scnActiveHandle, SCI_VISIBLEFROMDOCLINE, currentlineNumberDoc);
-   execute(scnActiveHandle, SCI_ENSUREVISIBLE, currentlineNumberDoc);	// make sure target line is unfolded
+   execute(scnActiveHandle, SCI_ENSUREVISIBLE, currentlineNumberDoc);   // make sure target line is unfolded
 
-   int firstVisibleLineVis =	(int)execute(scnActiveHandle, SCI_GETFIRSTVISIBLELINE);
-   int linesVisible =			(int)execute(scnActiveHandle, SCI_LINESONSCREEN) - 1;	//-1 for the scrollbar
-   int lastVisibleLineVis =	(int)linesVisible + firstVisibleLineVis;
+   int firstVisibleLineVis = (int)execute(scnActiveHandle, SCI_GETFIRSTVISIBLELINE);
+   int linesVisible = (int)execute(scnActiveHandle, SCI_LINESONSCREEN) - 1;   //-1 for the scrollbar
+   int lastVisibleLineVis = (int)linesVisible + firstVisibleLineVis;
 
    //if out of view vertically, scroll line into (center of) view
    int linesToScroll = 0;
@@ -324,7 +350,7 @@ void AnalysePlugin::displaySectionCentered(int posStart, int posEnd, bool isDown
    {
       linesToScroll = currentlineNumberVis - firstVisibleLineVis;
       //use center
-      linesToScroll -= linesVisible/2;		
+      linesToScroll -= linesVisible/2;
    }
    else if (currentlineNumberVis > lastVisibleLineVis)
    {
@@ -332,12 +358,12 @@ void AnalysePlugin::displaySectionCentered(int posStart, int posEnd, bool isDown
       //use center
       linesToScroll += linesVisible/2;
    }
-	execute(scnActiveHandle, SCI_LINESCROLL, 0, linesToScroll);
+    execute(scnActiveHandle, SCI_LINESCROLL, 0, linesToScroll);
 
    //Make sure the caret is visible, scroll horizontally (this will also fix wrapping problems)
    execute(scnActiveHandle, SCI_GOTOPOS, posStart);
    execute(scnActiveHandle, SCI_GOTOPOS, posEnd);
-   execute(scnActiveHandle, SCI_SETANCHOR, posStart);	
+   execute(scnActiveHandle, SCI_SETANCHOR, posStart);
 }
 
 void AnalysePlugin::setSearchFileName(const generic_string& file) {
@@ -392,6 +418,9 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList)
 {
    DBG0("doSearch() started");
    BOOL bRes = TRUE;
+#ifdef FEATURE_RESVIEW_POS_KEEP_AT_SEARCH
+   _findResult.saveCurrentViewPos();
+#endif
    // set all styles actually used
    _findResult.setPatternStyles(_findDlg.getPatternList());
    // make sure result is shown when we are active
@@ -461,7 +490,7 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList)
       // update please wait controls
       _findDlg.setPleaseWaitProgress(iPatIndex);
 
-      if(u = doFindPattern(pattern, result)){
+      if (u = doFindPattern(pattern, result)){
          DBG1("doSearch() %d items found. Update result window.", u);
          _findResult.reserve(u);
          _findResult.removeUnusedResultLines(iResult.getPatId(), oldResult, result);
@@ -485,7 +514,7 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList)
             int lstart = (int)execute(scnActiveHandle, SCI_POSITIONFROMLINE, it->line);
             int lineLength = lend - lstart; // formerly nbChar
             if(!_findResult.getLineAvail(it->line)) {
-               if (_line==0 || ((int)_maxNbCharAllocated < lineLength))	//line longer than buffer, resize buffer
+               if (_line==0 || ((int)_maxNbCharAllocated < lineLength))   //line longer than buffer, resize buffer
                {
                   _maxNbCharAllocated = lineLength;
                   delete [] _line;
@@ -519,6 +548,15 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList)
       //    later can check whether update of search is required when text
       //    becomes appended
    } // for patterns
+#ifdef FEATURE_RESVIEW_POS_KEEP_AT_SEARCH
+   _findResult.restoreCurrentViewPos();
+#endif
+   int iCurrFirstLineMain = (int)execute(scnActiveHandle, SCI_GETFIRSTVISIBLELINE);
+   int iThisLineToMove = _findResult.getNextFoundLine(iCurrFirstLineMain);
+   if (iThisLineToMove >= iCurrFirstLineMain) { // only move if search result line is valid
+      _findResult.setCurrentMarkedLine(iThisLineToMove);
+      _findResult.setCurrentViewPos(iThisLineToMove);
+   }
    _findDlg.activatePleaseWait(false);
    return bRes;
 }
@@ -532,7 +570,12 @@ int AnalysePlugin::getUseBookmark() const {
 int AnalysePlugin::getDisplayLineNo() const {
    return _configDlg.getDisplayLineNo();
 }
-
+bool AnalysePlugin::getIsSyncScroll() const {
+   return _configDlg.getIsSyncScroll();
+}
+bool AnalysePlugin::getDblClickJumps2EditView() const {
+   return _configDlg.getDblClickJumps2EditView();
+}
 const generic_string& AnalysePlugin::getResultFontName() const {
    return _configDlg.getFontText();
 }
@@ -561,6 +604,11 @@ void AnalysePlugin::beNotified(SCNotification *notification)
    case NPPN_BUFFERACTIVATED:DBG1("beNotified() NPPN_BUFFERACTIVATED BufferID = %d", notification->nmhdr.idFrom);break;
    case SCN_UPDATEUI:
       {
+         if (((notification->updated & SC_UPDATE_V_SCROLL) != 0) && _configDlg.getIsSyncScroll() ) {
+            int currTopLine = (int)execute(scnActiveHandle, SCI_GETFIRSTVISIBLELINE);
+            DBG1("beNotified() SCN_UPDATEUI: Scrolled to currTopLine=%d", currTopLine);
+            _findResult.updateViewScrollState(currTopLine, true);
+         }
          if(_bIgnoreBufferModify) {
             DBG0("beNotified() SCN_UPDATEUI _bIgnoreBufferModify = false");
             _bIgnoreBufferModify = false;
@@ -576,7 +624,7 @@ void AnalysePlugin::beNotified(SCNotification *notification)
          // make sure the text is drawn with our style
          teNppWindows currentEdit;
          ::SendMessage(nppData._nppHandle, NPPM_GETCURRENTSCINTILLA, 0, (LPARAM)&currentEdit);
-         HWND hCurrentEditView = getCurrentHScintilla(currentEdit); // the enum is synchronized for 0 and 1	
+         HWND hCurrentEditView = getCurrentHScintilla(currentEdit); // the enum is synchronized for 0 and 1   
          int startPos = (int)::SendMessage(hCurrentEditView, SCI_GETENDSTYLED, 0, 0);
          int lineNumber = (int)::SendMessage(hCurrentEditView, SCI_LINEFROMPOSITION, startPos, 0);
          startPos = (int)::SendMessage(hCurrentEditView, SCI_POSITIONFROMLINE, lineNumber, 0);
@@ -639,7 +687,7 @@ void AnalysePlugin::beNotified(SCNotification *notification)
          _nppReady = true;
          loadSettings();
 
-			::SendMessage(nppData._nppHandle, NPPM_SETMENUITEMCHECK, funcItem[SHOWFINDDLG]._cmdID, (LPARAM)gbPluginVisible);
+            ::SendMessage(nppData._nppHandle, NPPM_SETMENUITEMCHECK, funcItem[SHOWFINDDLG]._cmdID, (LPARAM)gbPluginVisible);
          showFindDlg();
          ::SetFocus(nppData._scintillaMainHandle);
          break;
@@ -655,109 +703,109 @@ void AnalysePlugin::beNotified(SCNotification *notification)
    } // switch (notification->nmhdr.code)
 }
 
-generic_string AnalysePlugin::convertExtendedToString(const generic_string& query) {	
-	int i = 0, j = 0;
+generic_string AnalysePlugin::convertExtendedToString(const generic_string& query) {   
+    int i = 0, j = 0;
    int length = (int)query.size();
-	int charLeft = length;
-	bool isGood = true;
-	TCHAR current;
+    int charLeft = length;
+    bool isGood = true;
+    TCHAR current;
    generic_string result;
    result.reserve(length);
-	while(i < length) {	//because the backslash escape quences always reduce the size of the generic_string, no overflow checks have to be made for target, assuming parameters are correct
-		current = query[i];
-		charLeft--;
-		if (current == '\\' && charLeft) {	//possible escape sequence
-			i++;
-			charLeft--;
-			current = query[i];
-			switch(current) {
-				case 'r':
-					//result[j] = '\r';
-					result += '\r';
-					break;
-				case 'n':
-					result += '\n';
-					break;
-				case '0':
-					result += (TCHAR)'\0';
-					break;
-				case 't':
-					result += '\t';
-					break;
-				case '\\':
-					result += '\\';
-					break;
-				case 'b':
-				case 'd':
-				case 'o':
-				case 'x':
-				case 'u': {
-					int size = 0, base = 0;
-					if (current == 'b') {			//11111111
-						size = 8, base = 2;
-					} else if (current == 'o') {	//377
-						size = 3, base = 8;
-					} else if (current == 'd') {	//255
-						size = 3, base = 10;
-					} else if (current == 'x') {	//0xFF
-						size = 2, base = 16;
-					} else if (current == 'u') {	//0xCDCD
-						size = 4, base = 16;
-					}
-					if (charLeft >= size) {
-						int res = 0;
+    while(i < length) {   //because the backslash escape quences always reduce the size of the generic_string, no overflow checks have to be made for target, assuming parameters are correct
+        current = query[i];
+        charLeft--;
+        if (current == '\\' && charLeft) {   //possible escape sequence
+            i++;
+            charLeft--;
+            current = query[i];
+            switch(current) {
+                case 'r':
+                    //result[j] = '\r';
+                    result += '\r';
+                    break;
+                case 'n':
+                    result += '\n';
+                    break;
+                case '0':
+                    result += (TCHAR)'\0';
+                    break;
+                case 't':
+                    result += '\t';
+                    break;
+                case '\\':
+                    result += '\\';
+                    break;
+                case 'b':
+                case 'd':
+                case 'o':
+                case 'x':
+                case 'u': {
+                    int size = 0, base = 0;
+                    if (current == 'b') {         //11111111
+                        size = 8, base = 2;
+                    } else if (current == 'o') {   //377
+                        size = 3, base = 8;
+                    } else if (current == 'd') {   //255
+                        size = 3, base = 10;
+                    } else if (current == 'x') {   //0xFF
+                        size = 2, base = 16;
+                    } else if (current == 'u') {   //0xCDCD
+                        size = 4, base = 16;
+                    }
+                    if (charLeft >= size) {
+                        int res = 0;
                   if (readBase(query,(i+1), &res, base, size)) {
-							result += res;
-							i+=size;
-							break;
-						}
-					}
-					//not enough chars to make parameter, use default method as fallback
-					}
-				default: {	//unknown sequence, treat as regular text
-					result += '\\';
-					j++;
-					result += (int)current;
-					isGood = false;
-					break;
-				}
-			}
-		} else {
-			result += query[i];
-		}
-		i++;
-		j++;
-	}
-	//result[j] = 0;
-	//return j;
+                            result += res;
+                            i+=size;
+                            break;
+                        }
+                    }
+                    //not enough chars to make parameter, use default method as fallback
+                    }
+                default: {   //unknown sequence, treat as regular text
+                    result += '\\';
+                    j++;
+                    result += (int)current;
+                    isGood = false;
+                    break;
+                }
+            }
+        } else {
+            result += query[i];
+        }
+        i++;
+        j++;
+    }
+    //result[j] = 0;
+    //return j;
    return result;
 }
 
 bool AnalysePlugin::readBase(const generic_string& str, int curPos, int * value, int base, int size) {
-	int i = 0, temp = 0;
-	*value = 0;
-	TCHAR mx = '0' + (TCHAR)base - 1;
-	TCHAR current;
-	while(i < size) {
-		current = str[i];
-		if (current >= 'A') 
-		{
-			current &= 0xdf;
-			current -= ('A' - '0' - 10);
-		}
-		else if (current > '9')
-			return false;
+    int i = 0, temp = 0;
+    *value = 0;
+    TCHAR mx = '0' + (TCHAR)base - 1;
+    TCHAR current;
+    while(i < size) {
+        current = str[i];
+        if (current >= 'A') 
+        {
+            current &= 0xdf;
+            current -= ('A' - '0' - 10);
+        }
+        else if (current > '9')
+            return false;
 
-		if (current >= '0' && current <= mx) {
-			temp *= base;
-			temp += (current - '0');
-		} else {
-			return false;
-		}
-		i++;
-	}
-	*value = temp;
-	return true;
+        if (current >= '0' && current <= mx) {
+            temp *= base;
+            temp += (current - '0');
+        } else {
+            return false;
+        }
+        i++;
+    }
+    *value = temp;
+    return true;
 }
 
 
@@ -831,11 +879,11 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
       return nbProcessed;
    }
 #ifdef UNICODE
-	WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
-	unsigned int cp = (unsigned int)execute(scnActiveHandle, SCI_GETCODEPAGE); 
-	const char *text2FindA = wmc->wchar2char(text.c_str(), cp);
-	size_t text2FindALen = strlen(text2FindA);
-	targetStart = execute(scnActiveHandle, SCI_SEARCHINTARGET, 
+    WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
+    unsigned int cp = (unsigned int)execute(scnActiveHandle, SCI_GETCODEPAGE); 
+    const char *text2FindA = wmc->wchar2char(text.c_str(), cp);
+    size_t text2FindALen = strlen(text2FindA);
+    targetStart = execute(scnActiveHandle, SCI_SEARCHINTARGET, 
       (WPARAM)text2FindALen, 
       (LPARAM)text2FindA);
 #else
@@ -844,7 +892,7 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
       (LPARAM)text.c_str());
 #endif
    while (targetStart >= 0) // something has been found
-   {	
+   {   
       if(_findDlg.getPleaseWaitCanceled()) {
          // please wait dialog indicates stopping
          DBG1("doFindPattern() cancelled! Return with %d results",nbProcessed);
@@ -854,14 +902,14 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
 
       targetStart = (int)execute(scnActiveHandle, SCI_GETTARGETSTART);
       targetEnd = (int)execute(scnActiveHandle, SCI_GETTARGETEND);
-      if (targetEnd > endRange) {	
+      if (targetEnd > endRange) {   
          // we found a result but outside our range, therefore we do not process it
          // in fact that should not happen, because we set the range before
          break;
       }
       int foundTextLen = targetEnd - targetStart;
 #ifdef TAGGED_MARKUP
-      // TODO startRange = targetStart + foundTextLen ;	//search from result onwards
+      // TODO startRange = targetStart + foundTextLen ;   //search from result onwards
       //if((flags & SCFIND_REGEXP) != 0) 
       {
          // before doing expencive GETTAG we check if required
@@ -918,7 +966,7 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
          result.push_back(targetStart, targetEnd, lineNumberStart+thisLineIndex/*, pLine*/);
          ++thisLineIndex;
       }
-      startRange = targetStart + foundTextLen ;	//search from result onwards
+      startRange = targetStart + foundTextLen ;   //search from result onwards
       execute(scnActiveHandle, SCI_SETTARGETSTART, startRange);
       // end needs to be set because search did use it to signal found selection
       execute(scnActiveHandle, SCI_SETTARGETEND, endRange);
@@ -926,7 +974,7 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
       nbProcessed++;
       // do next search
 #ifdef UNICODE
-	   targetStart = execute(scnActiveHandle, SCI_SEARCHINTARGET, 
+       targetStart = execute(scnActiveHandle, SCI_SEARCHINTARGET, 
          (WPARAM)text2FindALen, 
          (LPARAM)text2FindA);
 #else
@@ -986,6 +1034,14 @@ void AnalysePlugin::showConfigDialog() {
 #endif
 }
 
+#ifdef HOOK_INTO_WNDPROC
+WNDPROC				wndProcNotepad = NULL;
+LRESULT CALLBACK SubWndProcNotepad(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+   return ::CallWindowProc(wndProcNotepad, hWnd, message, wParam, lParam);
+}
+#endif 
+
 void AnalysePlugin::setInfo(NppData notpadPlusData) 
 {
    nppData = notpadPlusData;
@@ -994,12 +1050,15 @@ void AnalysePlugin::setInfo(NppData notpadPlusData)
    _configDlg.setParent(this, &_findDlg, &_findResult);
    _findResult.init(_hModule, nppData._nppHandle);
    _helpDlg.init(_hModule, nppData);
+#ifdef HOOK_INTO_WNDPROC
+   wndProcNotepad = (WNDPROC)SetWindowLongPtr(nppData._nppHandle, GWL_WNDPROC, (LPARAM)SubWndProcNotepad);
+#endif
 }
 
 HWND AnalysePlugin::getCurrentHScintilla(teNppWindows which) const
 {  
    if(nppData._nppHandle==0) {
-      return 0;	
+      return 0;   
    }
    int activView=0;
    switch(which) 
@@ -1025,7 +1084,7 @@ void AnalysePlugin::showFindDlg ()
 {
    if(_findDlg.isCreated() || gbPluginVisible) {
       //MessageBox(NULL, (bVisible?"true":"false"), "bVisible", 0);
-      tTbData	data = {0};
+      tTbData   data = {0};
       RECT rect={0,0,0,0};
       if (!_findDlg.isCreated())
       {
@@ -1092,9 +1151,9 @@ void AnalysePlugin::addSelectionToPatterns() {
    } 
    char* pc = new char[textLength];
    execute(scnActiveHandle, SCI_GETSELTEXT, 0, (LPARAM)pc);
-	
+    
    WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
-	unsigned int cp = (unsigned int)execute(scnActiveHandle, SCI_GETCODEPAGE); 
+    unsigned int cp = (unsigned int)execute(scnActiveHandle, SCI_GETCODEPAGE); 
 #ifdef UNICODE
    WCHAR* selText = const_cast<WCHAR*>(wmc->char2wchar(pc, cp));
 #else
@@ -1111,6 +1170,13 @@ void AnalysePlugin::addSelectionToPatterns() {
       szToken = generic_strtok(NULL, TEXT("\n"));
    }
    delete[] pc;
+}
+
+void AnalysePlugin::runSearch() {
+   if (!isVisible()) {
+      toggleShowFindDlg();
+   }
+   _findDlg.doSearch();
 }
 
 #ifdef UNICODE

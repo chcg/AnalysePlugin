@@ -84,7 +84,5 @@ protected:
     */
    HWND mhMyCtrl;
 
-   /** different behaviour for win32s */
-   bool bMustDie9x;
 };
 #endif //TCLCOMBOBOXCTRL_H
