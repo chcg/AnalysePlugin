@@ -31,7 +31,7 @@ const TCHAR*  tclPattern::transSearchType[max_searchType] = {
    TEXT("normal"),
    TEXT("escaped"),
    TEXT("regex"),
-   TEXT("rgx_dotnewln")
+   TEXT("rgx_multiline")
 };
 const TCHAR*  tclPattern::transSelectionType[max_selectionType] = {
    TEXT("text"),

@@ -833,7 +833,7 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
    if(pattern.getSearchType()== tclPattern::regex) {
       flags |= (SCFIND_REGEXP|SCFIND_POSIX);
       text = pattern.getSearchText(); // text to be searched
-   } else if(pattern.getSearchType()== tclPattern::rgx_dotnewln) {
+   } else if(pattern.getSearchType()== tclPattern::rgx_multiline) {
       flags |= (SCFIND_REGEXP|SCFIND_POSIX|SCFIND_REGEXP_DOTMATCHESNL);
       text = pattern.getSearchText(); // text to be searched
    } else if(pattern.getSearchType()== tclPattern::escaped) {

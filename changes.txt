@@ -6,20 +6,20 @@ Changes since 1.10
  - ensure result and main window to go to next found line from current position
  - updating to Visual Studio 2013
 Changes since 1.10-preview
- - adding feature to separately handle visibility of result window
+ - adding feature to separately handle visibility of result window at startup
  - bugfix color setting in config dialog 
  - clean up mCmbColor
  - change context menu names to Prepend / Append 
  - bugfix headline count with regard to line numbers visibility 
- - adding feature loading current pattern list at startup 
+ - adding feature save current pattern list and restore at startup 
  - bugfix remove setting *.xml into wrong file 
  - some preparations for tagged markup displaying 
  - removal of old unnecessary HEADLINE sections 
  - adding feature "add selection to patterns" 
  - adding feature persistent last config files context menu 
  - adding configuration to select count of entries in the pattern list context menu 
- - adding dialog for clip board copy of context menu e...
- - adding dotmatchnewline in the search type list (even if not functional in NPP)
+ - adding dialog for clip board copy of context menu editing
+ - adding rgx_multiline in the search type list (even if not functional in NPP)
  - changing combobox from add string to insert string to keep order always the same 
  - adding clearSelection() in cmbbox to avoid inserting an empty line 
  - add displaying of config and search file names in title bars of docking wnds 

@@ -35,7 +35,7 @@ public:
       normal,
       escaped,
       regex,
-      rgx_dotnewln,
+	  rgx_multiline,
       max_searchType
    };
 
