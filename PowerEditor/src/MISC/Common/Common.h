@@ -44,58 +44,34 @@ const bool dirDown = false;
 #define BCKGRD_COLOR (RGB(255,102,102))
 #define TXT_COLOR    (RGB(255,255,255))
 
-#ifdef UNICODE
-   #define NppMainEntry wWinMain
-   #define generic_strtol wcstol
-   #define generic_strncpy wcsncpy
-   #define generic_stricmp wcsicmp
-   #define generic_strncmp wcsncmp
-   #define generic_strnicmp wcsnicmp
-   #define generic_strncat wcsncat
-   #define generic_strchr wcschr
-   #define generic_atoi _wtoi
-   #define generic_itoa _itow
-   #define generic_atof _wtof
-   #define generic_strtok wcstok
-   #define generic_strftime wcsftime
-   #define generic_fprintf fwprintf
-   #define generic_sprintf swprintf
-   #define generic_sscanf swscanf
-   #define generic_fopen _wfopen
-   #define generic_fgets fgetws
-   #define generic_stat _wstat
-   #define COPYDATA_FILENAMES COPYDATA_FILENAMESW
-#else
-   #define NppMainEntry WinMain
-   #define generic_strtol strtol
-   #define generic_strncpy strncpy
-   #define generic_stricmp stricmp
-   #define generic_strncmp strncmp
-   #define generic_strnicmp strnicmp
-   #define generic_strncat strncat
-   #define generic_strchr strchr
-   #define generic_atoi atoi
-   #define generic_itoa itoa
-   #define generic_atof atof
-   #define generic_strtok strtok
-   #define generic_strftime strftime
-   #define generic_fprintf fprintf
-   #define generic_sprintf sprintf
-   #define generic_sscanf sscanf
-   #define generic_fopen fopen
-   #define generic_fgets fgets
-   #define generic_stat _stat
-   #define generic_sprintf sprintf
-   #define COPYDATA_FILENAMES COPYDATA_FILENAMESA
-#endif
+#define generic_strtol wcstol
+#define generic_strncpy wcsncpy
+#define generic_stricmp wcsicmp
+#define generic_strncmp wcsncmp
+#define generic_strnicmp wcsnicmp
+#define generic_strncat wcsncat
+#define generic_strchr wcschr
+#define generic_atoi _wtoi
+#define generic_itoa _itow
+#define generic_atof _wtof
+#define generic_strtok wcstok
+#define generic_strftime wcsftime
+#define generic_fprintf fwprintf
+#define generic_sprintf swprintf
+#define generic_sscanf swscanf
+#define generic_fopen _wfopen
+#define generic_fgets fgetws
+#define generic_stat _wstat
+#define COPYDATA_FILENAMES COPYDATA_FILENAMESW
 
 typedef std::basic_string<TCHAR> generic_string;
 
-void folderBrowser(HWND parent, int outputCtrlID, const TCHAR *defaultStr = NULL);
+generic_string folderBrowser(HWND parent, const generic_string & title = TEXT(""), int outputCtrlID = 0, const TCHAR *defaultStr = NULL);
 generic_string getFolderName(HWND parent, const TCHAR *defaultDir = NULL);
 
 void printInt(int int2print);
 void printStr(const TCHAR *str2print);
+generic_string commafyInt(size_t n);
 
 void writeLog(const TCHAR *logFileName, const char *log2write);
 int filter(unsigned int code, struct _EXCEPTION_POINTERS *ep);
@@ -113,73 +89,73 @@ generic_string BuildMenuFileName(int filenameLen, unsigned int pos, const generi
 std::string getFileContent(const TCHAR *file2read);
 generic_string relativeFilePathToFullFilePath(const TCHAR *relativeFilePath);
 void writeFileContent(const TCHAR *file2write, const char *content2write);
-
+bool matchInList(const TCHAR *fileName, const std::vector<generic_string> & patterns);
 
 class WcharMbcsConvertor final
 {
 public:
-   static WcharMbcsConvertor * getInstance() {return _pSelf;}
-   static void destroyInstance() {delete _pSelf;}
+	static WcharMbcsConvertor * getInstance() {return _pSelf;}
+	static void destroyInstance() {delete _pSelf;}
 
-   const wchar_t * char2wchar(const char *mbStr, UINT codepage, int lenIn=-1, int *pLenOut=NULL, int *pBytesNotProcessed=NULL);
-   const wchar_t * char2wchar(const char *mbcs2Convert, UINT codepage, int *mstart, int *mend);
-   const char * wchar2char(const wchar_t *wcStr, UINT codepage, int lenIn=-1, int *pLenOut=NULL);
-   const char * wchar2char(const wchar_t *wcStr, UINT codepage, long *mstart, long *mend);
+	const wchar_t * char2wchar(const char *mbStr, UINT codepage, int lenIn=-1, int *pLenOut=NULL, int *pBytesNotProcessed=NULL);
+	const wchar_t * char2wchar(const char *mbcs2Convert, UINT codepage, int *mstart, int *mend);
+	const char * wchar2char(const wchar_t *wcStr, UINT codepage, int lenIn = -1, int *pLenOut = NULL);
+	const char * wchar2char(const wchar_t *wcStr, UINT codepage, long *mstart, long *mend);
 
-   const char * encode(UINT fromCodepage, UINT toCodepage, const char *txt2Encode, int lenIn=-1, int *pLenOut=NULL, int *pBytesNotProcessed=NULL)
-   {
-      int lenWc = 0;
+	const char * encode(UINT fromCodepage, UINT toCodepage, const char *txt2Encode, int lenIn=-1, int *pLenOut=NULL, int *pBytesNotProcessed=NULL)
+	{
+		int lenWc = 0;
         const wchar_t * strW = char2wchar(txt2Encode, fromCodepage, lenIn, &lenWc, pBytesNotProcessed);
         return wchar2char(strW, toCodepage, lenWc, pLenOut);
     }
 
 protected:
-   WcharMbcsConvertor() {}
-   ~WcharMbcsConvertor() {}
+	WcharMbcsConvertor() {}
+	~WcharMbcsConvertor() {}
 
-   static WcharMbcsConvertor* _pSelf;
+	static WcharMbcsConvertor* _pSelf;
 
-   template <class T>
-   class StringBuffer final
-   {
-   public:
-      ~StringBuffer() { if(_allocLen) delete[] _str; }
+	template <class T>
+	class StringBuffer final
+	{
+	public:
+		~StringBuffer() { if(_allocLen) delete[] _str; }
 
-      void sizeTo(size_t size)
-      {
-         if (_allocLen < size)
-         {
-            if (_allocLen)
-               delete[] _str;
-            _allocLen = max(size, initSize);
-            _str = new T[_allocLen];
-         }
-      }
+		void sizeTo(size_t size)
+		{
+			if (_allocLen < size)
+			{
+				if (_allocLen)
+					delete[] _str;
+				_allocLen = max(size, initSize);
+				_str = new T[_allocLen];
+			}
+		}
 
-      void empty()
-      {
-         static T nullStr = 0; // routines may return an empty string, with null terminator, without allocating memory; a pointer to this null character will be returned in that case
-         if (_allocLen == 0)
-            _str = &nullStr;
-         else
-            _str[0] = 0;
-      }
+		void empty()
+		{
+			static T nullStr = 0; // routines may return an empty string, with null terminator, without allocating memory; a pointer to this null character will be returned in that case
+			if (_allocLen == 0)
+				_str = &nullStr;
+			else
+				_str[0] = 0;
+		}
 
-      operator T* () { return _str; }
-      operator const T* () const { return _str; }
+		operator T* () { return _str; }
+		operator const T* () const { return _str; }
 
-   protected:
-      static const int initSize = 1024;
-      size_t _allocLen = 0;
-      T* _str = nullptr;
-   };
+	protected:
+		static const int initSize = 1024;
+		size_t _allocLen = 0;
+		T* _str = nullptr;
+	};
 
-   StringBuffer<char> _multiByteStr;
-   StringBuffer<wchar_t> _wideCharStr;
+	StringBuffer<char> _multiByteStr;
+	StringBuffer<wchar_t> _wideCharStr;
 
 private:
-   // Since there's no public ctor, we need to void the default assignment operator.
-   WcharMbcsConvertor& operator= (const WcharMbcsConvertor&);
+	// Since there's no public ctor, we need to void the default assignment operator.
+	WcharMbcsConvertor& operator= (const WcharMbcsConvertor&);
 };
 
 

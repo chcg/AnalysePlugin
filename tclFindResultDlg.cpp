@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2016 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -22,8 +22,6 @@ it mainly contains the view based on scintilla and maintains parallel stored
 search result string cache
 */
 //#include "stdafx.h"
-#include "precompiledHeaders.h"
-
 #include "FindDlg.h"
 #include "Scintilla.h"
 #include "SciLexer.h"
@@ -35,6 +33,7 @@ search result string cache
 #define MDBG_COMP "FRDlg:" 
 #include "myDebug.h"
 #include "resource.h"
+#include "npp_defines.h"
 
 #define STYLING_MASK 255
 #define FNDRESDLG_LINE_HEAD ""
@@ -79,6 +78,8 @@ tclFindResultDlg::tclFindResultDlg()
 #ifdef FEATURE_RESVIEW_POS_KEEP_AT_SEARCH
    , mCurrentViewLineNo(0)
 #endif
+   , mFromMainWindow(false)
+   , mFromFindResult(false)
 {
    _ResAdditionalInfo[0] = 0;
 }
@@ -328,17 +329,22 @@ void tclFindResultDlg::updateWindowData(const generic_string& fontName, unsigned
    setPatternFonts();
 }
 
+void tclFindResultDlg::clear_view()
+{
+   setFinderReadOnly(false);
+   _scintView.execute(SCI_CLEARALL);
+   setFinderReadOnly(true);
+}
+
 void tclFindResultDlg::clear() 
 {
    setCurrentMarkedLine(-1);
    //_foundInfos.clear(); 
    mFindResults.clear();
-   setFinderReadOnly(false);
    if(mUseBookmark) {
       _pParent->execute(scnActiveHandle, SCI_MARKERDELETEALL, MARK_BOOKMARK);
    }
-   _scintView.execute(SCI_CLEARALL);
-   setFinderReadOnly(true);
+   clear_view();
    _lineCounter = 0;
 }
 
@@ -354,6 +360,7 @@ void tclFindResultDlg::setCurrentMarkedLine(int line)
 {  // we set the current mark here
    _markedLine = line;
    if(line != -1) {
+      mFromFindResult = true;
       _pParent->execute(scnActiveHandle, SCI_GOTOLINE, _markedLine);
    }
 }
@@ -508,11 +515,13 @@ void tclFindResultDlg::updateViewScrollState(int iLineInMain, bool bInMain) {
    static int topLine = 0;
    if (topLine != iLineInMain){
       topLine = iLineInMain;
-      if (bInMain) {
+      if (bInMain && !mFromFindResult) {
          // text window moves search result
          int line = getNextFoundLine(topLine);
+         mFromMainWindow = bInMain;
          setCurrentViewPos(line);
       }
+      mFromFindResult = false;
    }
 }
 // public version calls internal with correct start and end values
@@ -567,6 +576,7 @@ BOOL CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM 
          if(mDisplayLineNo != _pParent->getDisplayLineNo()) {
             mDisplayLineNo = _pParent->getDisplayLineNo();
             clear();
+            _pParent->runSearch();
          }
          updateWindowData(_pParent->getResultFontName(), _pParent->getResultFontSize());
          break;
@@ -588,7 +598,7 @@ BOOL CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM 
             }
          case FNDRESDLG_SCINTILLAFINFER_SEARCH:
             {
-               mFindResultSearchDlg.doDialog();
+               doFindResultSearchDlg();
                return TRUE;
             }
          case FNDRESDLG_SCINTILLAFINFER_SAVEFILE:
@@ -895,10 +905,18 @@ bool tclFindResultDlg::notify(SCNotification *notification)
       if (((notification->updated & SC_UPDATE_V_SCROLL) != 0) && _pParent->getIsSyncScroll()) {
          int currTopLine = (int)_scintView.execute(SCI_GETFIRSTVISIBLELINE);
          DBG1("notify() SCN_UPDATEUI: Scrolled to currTopLine=%d", currTopLine);
-         tiLine mainLine = mFindResults.getLineNoAtMain(currTopLine);
-         generic_string currFile;
-         if (_pParent->bCheckLastFileNameSame(currFile)) {
-            _pParent->execute(scnActiveHandle, SCI_GOTOLINE, (WPARAM)mainLine);
+         // setting mainwondow based on result windows setting is disabled to avoid echo causing 
+         if (!mFromMainWindow) {
+            mFromFindResult = true;
+            tiLine mainLine = mFindResults.getLineNoAtMain(currTopLine);
+            generic_string currFile;
+            if (_pParent->bCheckLastFileNameSame(currFile)) {
+               _pParent->execute(scnActiveHandle, SCI_ENSUREVISIBLEENFORCEPOLICY, (WPARAM)mainLine);
+            }
+         }
+         else {
+            mFromMainWindow = false;
+            mFromFindResult = false;
          }
       }
       break;

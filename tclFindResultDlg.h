@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2016 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -75,7 +75,8 @@ public:
 
    void updateWindowData(const generic_string& fontName, unsigned fontSize);
    
-   void clear(); 
+   void clear_view();
+   void clear();
 
    int getCurrentMarkedLine() const ;
    
@@ -176,5 +177,7 @@ protected :
 #ifdef FEATURE_RESVIEW_POS_KEEP_AT_SEARCH
    int mCurrentViewLineNo;
 #endif
+   bool mFromMainWindow; // flag if main window moves the result window
+   bool mFromFindResult; // flag set if double click moves the main window
 };
 #endif //TCLFINDRESULTDLG_H

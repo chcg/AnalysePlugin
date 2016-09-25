@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2016 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -22,7 +22,9 @@ tclPattern stores the infos to execute one search
 
 #ifndef TCLPATTERN_H
 #define TCLPATTERN_H
+#include <windows.h>
 #include <string>
+#include "Common.h"
 
 /**
 * A Pattern is a text and additionaly stores the configuration information for it.

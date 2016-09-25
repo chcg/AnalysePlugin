@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2016 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -26,6 +26,7 @@ interface for my plugin knwon to the dock window
 #include <windows.h>
 #include <string>
 #include "chardefines.h"
+#include "Common.h"
 
 class tclResultList;
 class tclResult;
@@ -110,6 +111,7 @@ public:
    */
    virtual BOOL doSearch(tclResultList& resultList) =0;
    
+   virtual void runSearch() = 0;
    /**
    * returns the name of the file being used for analysis
    */

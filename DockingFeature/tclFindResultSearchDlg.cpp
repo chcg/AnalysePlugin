@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2016 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO donho(at)altern.org 
 
@@ -282,7 +282,8 @@ void tclFindResultSearchDlg::setdefaultPattern(const tclPattern& p) {
 BOOL CALLBACK tclFindResultSearchDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
 {
    //DBG1("run_dlgProc() message 0x%04x", Message);
-   switch (Message) 
+   BOOL ret = 0; // true if message processed (2 incase of custom draw feature)
+   switch (Message)
    {
    case WM_INITDIALOG :
       {
@@ -353,6 +354,66 @@ BOOL CALLBACK tclFindResultSearchDlg::run_dlgProc(UINT Message, WPARAM wParam, L
 
                   return TRUE;
                }
+            case NM_CUSTOMDRAW:
+            {// NMCUSTOMDRAW 
+               LPNMLVCUSTOMDRAW pItem = (LPNMLVCUSTOMDRAW)pscn;
+               if (true /*pscn->nmhdr.hwndFrom == _hSelf*/) {
+                  //|| pItem->nmcd.hdr.hwndFrom == g_hList) {
+                  //DBG1("NM_CUSTOMDRAW Table reached %s",((pItem->nmcd.hdr.hwndFrom == g_hList)?"Test":"List"));
+                  const char* cp;
+                  const char* cp1;
+
+                  switch (pItem->nmcd.uItemState) {
+                  case CDIS_CHECKED:cp = "CDIS_CHECKED"; break;
+                  case CDIS_DEFAULT:cp = "CDIS_DEFAULT"; break;
+                  case CDIS_DISABLED:cp = "CDIS_DISABLED"; break;
+                  case CDIS_FOCUS:cp = "CDIS_FOCUS"; break;
+                  case CDIS_GRAYED:cp = "CDIS_GRAYED"; break;
+                  case CDIS_HOT:cp = "CDIS_HOT"; break;
+                  case CDIS_INDETERMINATE:cp = "CDIS_INDETERMINATE"; break;
+                  case CDIS_MARKED:cp = "CDIS_MARKED"; break;
+                  case CDIS_SELECTED:cp = "CDIS_SELECTED"; break;
+                     //case CDIS_SHOWKEYBOARDCUES:cp="CDIS_SHOWKEYBOARDCUES";break;
+                  default:cp = "default"; break;
+                  };
+
+                  switch (pItem->nmcd.dwDrawStage) {
+                  case CDDS_PREPAINT:cp1 = "CDDS_PREPAINT  ";
+                     return CDRF_NOTIFYITEMDRAW;
+                  case CDDS_POSTPAINT:cp1 = "CDDS_POSTPAINT "; break;
+                  case CDDS_PREERASE:cp1 = "CDDS_PREERASE  "; break;
+                  case CDDS_POSTERASE:cp1 = "CDDS_POSTERASE "; break;
+                  case CDDS_ITEMPREPAINT:cp1 = "CDDS_ITEMPREPAINT ";
+                  {
+                     //SelectObject(pItem->nmcd.hdc,
+                     //             GetFontForItem(pItem->nmcd.dwItemSpec,
+                     //                            pItem->nmcd.lItemlParam) );
+                     //pItem->clrText = GetColorForItem(pItem->nmcd.dwItemSpec,
+                     //                                 pItem->nmcd.lItemlParam);
+                     //DBG3("CDDS_ITEMPREPAINT clrText (%x,%x,%x)", GetRValue(pItem->clrText),
+                     //   GetGValue(pItem->clrText), GetBValue(pItem->clrText));
+                     //pItem->clrTextBk = GetBkColorForItem(pItem->nmcd.dwItemSpec,
+                     //                                     pItem->nmcd.lItemlParam);
+                     int iPattern = (int)pItem->nmcd.dwItemSpec;
+                     const tclPattern& pat = mPatterns.getPattern(mPatterns.getPatternId(iPattern));
+                     pItem->clrText = pat.getColorNum();
+                     pItem->clrTextBk = pat.getBgColorNum();
+                     ret = CDRF_NEWFONT;
+                     break;
+                  }
+                  case CDDS_ITEMPOSTPAINT:cp1 = "CDDS_ITEMPOSTPAINT"; break;
+                  case CDDS_ITEMPREERASE:cp1 = "CDDS_ITEMPREERASE "; break;
+                  case CDDS_ITEMPOSTERASE:cp1 = "CDDS_ITEMPOSTERASE"; break;
+                  default:cp1 = "default"; break;
+                  };
+                  DBGA3("NM_CUSTOMDRAW for item %d : %s | %s", (int)pItem->nmcd.dwItemSpec, cp1, cp);
+               }
+               else { // if handle correct
+                  //DBG0("NM_CUSTOMDRAW for different element");
+               }
+               //CDRF_NOTIFYITEMDRAW; // CDRF_DODEFAULT;
+               break;
+            } // case NM_CUSTOMDRAW
             default:
                break;
             } // switch(pscn->nmhdr.code)

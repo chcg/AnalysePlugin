@@ -1,4 +1,22 @@
 Changes since 1.10
+ - bugfix ensure stop of searching if max length of scintilla search window reached
+ - bugfix ensure color pop up is fully visible on top left corner
+ - bugfix white spaces got removed if 1st char in search pattern
+ - ConfigDialog: avoid selected items to be added at top of combo boxes
+ - bugfix ConfigDialog: re-enable vscrollbar in font name selection
+ - ensure also autoSearch puts focus back to edit window
+ - sync with NPP files to version 6.9.2
+ - bugfix avoid synced scroll in case of scroll different file in main window
+ - bugfix window position jumping if moving from findresults window
+ - bugfix for default pattern from OptionsDlg into findDlg window
+ - feature colorized find patterns in result window search function
+ - bugifx create findDlg before updating it at startup
+ - bugfix redo search when line number-display in changed
+ - feature synced scrolling from both sides result <-> main
+ - adding handling for errors in scintilla
+ - bugfix avoid jumping cursor by replacing gotoline to ensure visible in main window 
+ - rename rgx_dotnewln to rgx_multiline
+ - bugfix redraw after ColorPicker is closed
  - adding menu entry "Search now" to allow short cut setting for this function
  - adding feature of synced scrolling between result and search text
  - sync with NPP files version 6.8.8

@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2016 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -20,8 +20,6 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 * implementation of tclFindResultDoc
 */
 //#include "stdafx.h"
-#include "precompiledHeaders.h"
-
 #include "tclFindResultDoc.h"
 #include <algorithm>
 #include "tclResult.h"
@@ -187,7 +185,7 @@ int tclFindResultDoc::getLineNoAtRes(tiLine foundLine) const {
 /** make sure function is not called with resultWinLine >= size() */
 tiLine tclFindResultDoc::getLineNoAtMain(int resultWinLine) const {
    if(resultWinLine >= size() ) {
-      assert(resultWinLine < size()); // index out of range
+      assert(resultWinLine <= size()); // index out of range but 0 should be not be an error as it is reset scintilla
       return -1;
    }
    return mReslines.at(resultWinLine);

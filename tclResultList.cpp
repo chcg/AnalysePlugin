@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2016 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -22,7 +22,6 @@ the corresponding patterns used.
 the syncrosiastion between both lists is the index in the vectors
 */
 //#include "stdafx.h"
-#include "precompiledHeaders.h"
 
 #include "tclResultList.h"
 #include "tclResult.h"

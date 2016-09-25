@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2012 Matthias H. mattesh(at)gmx.net
+Copyright (C)2012-2016 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO donho(at)altern.org 
 
@@ -29,6 +29,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define APN_MSG_CANCEL_FIND WM_USER + 24
 
 DWORD WINAPI AsyncPleaseWaitFunc(LPVOID phWnd) {
+   ::Sleep(1000); // wait a bit before showing the popup 
    MessageBox((HWND)NULL, 
       TEXT("Finding patterns ...\nPress OK to cancel."), 
       TEXT("Analyse Plugin"), MB_OK);

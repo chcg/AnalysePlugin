@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2016 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO donho(at)altern.org 
 
@@ -25,6 +25,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #ifndef RESOURCE_H
 #include "resource.h"
 #endif //RESOURCE_H
+#include "Window.h"
 
 #define COLOURPOPUP_USER   (WM_USER + 6000)
 #define WM_PICKUP_COLOR (COLOURPOPUP_USER + 1)

@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2016 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO donho(at)altern.org 
 
@@ -19,7 +19,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
 //#include "stdafx.h"
-#include "precompiledHeaders.h"
 #include "ColourPopup.h"
 #include "tclPattern.h"
 #include <commdlg.h>
@@ -57,7 +56,9 @@ void ColourPopup::doDialog(POINT p) {
    }
    int cx = _rc.right - _rc.left;
    int cy = _rc.bottom - _rc.top;
-   ::SetWindowPos(_hSelf, HWND_TOP, p.x-cx, p.y-cy, cx, cy, SWP_SHOWWINDOW);
+   int px = (p.x > cx) ? (p.x - cx) : 0;
+   int py = (p.y > cy) ? (p.y - cy) : 0;
+   ::SetWindowPos(_hSelf, HWND_TOP, px, py, cx, cy, SWP_SHOWWINDOW);
 }
 
 INT_PTR CALLBACK ColourPopup::dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
@@ -115,6 +116,7 @@ INT_PTR CALLBACK ColourPopup::run_dlgProc(UINT message, WPARAM wParam, LPARAM lP
             //if (g_bgColor == colourItems[nColor])
             //::SendDlgItemMessage(_hSelf, IDC_COLOUR_LIST, LB_SETCURSEL, nColor, 0);
          }
+         // TODO hier setSelected
          //::SetCapture(_hSelf);
          return TRUE;
       }

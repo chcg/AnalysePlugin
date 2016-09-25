@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2016 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO donho(at)altern.org 
 
@@ -19,8 +19,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
 //#include "stdafx.h"
-#include "precompiledHeaders.h"
-
 #include "AnalysePlugin.h"
 #include "SciLexer.h"
 #include "tclFindResultDoc.h"
@@ -29,6 +27,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define MDBG_COMP "APmain:" 
 #include "myDebug.h"
 #include "boostregexsearch.h"
+#include "ScintillaEditView.h"
 
 AnalysePlugin g_plugin;
 
@@ -323,7 +322,7 @@ void AnalysePlugin::showMargin(int witchMarge, bool willBeShown) {
    if (witchMarge == ScintillaSearchView::_SC_MARGE_LINENUMBER) {
       int chWidth = (int)execute(scnSecondHandle, SCI_TEXTWIDTH, STYLE_LINENUMBER, (LPARAM)"8");
       // The 4 here allows for spacing: 1 pixel on left and 3 on right.
-      pixelWidth = (willBeShown)?(4 + ScintillaEditView::_MARGE_LINENUMBER_NB_CHIFFRE * chWidth):0;
+      pixelWidth = (willBeShown)?(4 + 5 * chWidth):0; // Mattes ScintillaEditView::_MARGE_LINENUMBER_NB_CHIFFRE
    } else {
       pixelWidth = willBeShown?14:0;
    }
@@ -551,12 +550,13 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList)
 #ifdef FEATURE_RESVIEW_POS_KEEP_AT_SEARCH
    _findResult.restoreCurrentViewPos();
 #endif
-   int iCurrFirstLineMain = (int)execute(scnActiveHandle, SCI_GETFIRSTVISIBLELINE);
-   int iThisLineToMove = _findResult.getNextFoundLine(iCurrFirstLineMain);
-   if (iThisLineToMove >= iCurrFirstLineMain) { // only move if search result line is valid
-      _findResult.setCurrentMarkedLine(iThisLineToMove);
-      _findResult.setCurrentViewPos(iThisLineToMove);
-   }
+   // disable the jumping cursor when search runs
+   //int iCurrFirstLineMain = (int)execute(scnActiveHandle, SCI_GETFIRSTVISIBLELINE);
+   //int iThisLineToMove = _findResult.getNextFoundLine(iCurrFirstLineMain);
+   //if (iThisLineToMove >= iCurrFirstLineMain) { // only move if search result line is valid
+   //   _findResult.setCurrentMarkedLine(iThisLineToMove);
+   //   _findResult.setCurrentViewPos(iThisLineToMove);
+   //}
    _findDlg.activatePleaseWait(false);
    return bRes;
 }
@@ -605,9 +605,12 @@ void AnalysePlugin::beNotified(SCNotification *notification)
    case SCN_UPDATEUI:
       {
          if (((notification->updated & SC_UPDATE_V_SCROLL) != 0) && _configDlg.getIsSyncScroll() ) {
-            int currTopLine = (int)execute(scnActiveHandle, SCI_GETFIRSTVISIBLELINE);
-            DBG1("beNotified() SCN_UPDATEUI: Scrolled to currTopLine=%d", currTopLine);
-            _findResult.updateViewScrollState(currTopLine, true);
+            generic_string currFile;
+            if (bCheckLastFileNameSame(currFile)) {
+               int currTopLine = (int)execute(scnActiveHandle, SCI_GETFIRSTVISIBLELINE);
+               DBG1("beNotified() SCN_UPDATEUI: Scrolled to currTopLine=%d", currTopLine);
+               _findResult.updateViewScrollState(currTopLine, true);
+            }
          }
          if(_bIgnoreBufferModify) {
             DBG0("beNotified() SCN_UPDATEUI _bIgnoreBufferModify = false");
@@ -899,7 +902,24 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
          _FindProcessCancelled = true;
          return nbProcessed;
       }
-
+      if (targetStart == 0) {
+         // might be an exception from scintilla let's check the errorcode
+         int st = (int)execute(scnActiveHandle, SCI_GETSTATUS);
+         if (st != 0) {
+            _findDlg.activatePleaseWait(false);
+            const TCHAR* cerr;
+            switch (st) {
+            case SC_STATUS_FAILURE: cerr = TEXT("SC_STATUS_FAILURE"); break; // 1
+            case SC_STATUS_BADALLOC: cerr = TEXT("SC_STATUS_BADALLOC"); break; // 2
+            case SC_STATUS_WARN_REGEX : cerr = TEXT("SC_STATUS_WARN_REGEX"); break; // 1001
+            default: cerr = TEXT("UNKNOWN");
+            };
+            generic_string err = TEXT("While searching an error occured: ");
+            err += cerr;
+            MessageBox((HWND)NULL, err.c_str(), TEXT("Scintilla Error"), MB_OK);
+            break;
+         }
+      }
       targetStart = (int)execute(scnActiveHandle, SCI_GETTARGETSTART);
       targetEnd = (int)execute(scnActiveHandle, SCI_GETTARGETEND);
       if (targetEnd > endRange) {   
@@ -1023,12 +1043,10 @@ void AnalysePlugin::showHelpDialog() {
 void AnalysePlugin::showConfigDialog() {
 #ifdef CONFIG_DIALOG
    execute(nppHandle, NPPM_SETMENUITEMCHECK, (WPARAM)funcItem[SHOWCNFGDLG]._cmdID, (LPARAM)true);
-   if(!_configDlg.isCreated()) {
-      if(!_findDlg.isCreated()) {
-         // let find dialog decode the ini string as single place
-         _findDlg.setDefaultOptions(mDefaultOptions.c_str());
-         _configDlg.setDefaultPattern(_findDlg.getDefaultPattern()); 
-      }
+   if(!_configDlg.isCreated() && !_configDlg.isConfigured()) {
+      // let find dialog decode the ini string as single place
+      _findDlg.setDefaultOptions(mDefaultOptions.c_str());
+      _configDlg.setDefaultPattern(_findDlg.getDefaultPattern()); 
    }
    _configDlg.doDialog(funcItem[SHOWCNFGDLG]._cmdID);
 #endif
@@ -1089,25 +1107,25 @@ void AnalysePlugin::showFindDlg ()
       if (!_findDlg.isCreated())
       {
          _findDlg.create(&data);
+         // set the diag 
+         _findDlg.setSearchHistory(mSearchHistory.c_str());
+         _findDlg.setCommentHistory(mCommentHistory.c_str());
+         // let finddialog decode the string from the ini file
+         _findDlg.setDefaultOptions(mDefaultOptions.c_str());
+         if (PathFileExists(xmlFilePath) == TRUE) {
+            // load the patterns from last run
+            _findDlg.loadConfigFile(xmlFilePath);
+         }
          ::SendMessage(nppData._nppHandle, NPPM_DMMREGASDCKDLG, 0, (LPARAM)&data);
-      }
+     }
       if (!_findResult.isCreated())
       {
          ZeroMemory(&data, sizeof(data));
          _findResult.create(&data);
          ::SendMessage(nppData._nppHandle, NPPM_DMMREGASDCKDLG, 0, (LPARAM)&data);
          DBG0("showFindDlg() result window initEdit()");
-         // set the diag 
-         _findDlg.setSearchHistory(mSearchHistory.c_str());
-         _findDlg.setCommentHistory(mCommentHistory.c_str());
-         // let finddialog decode the string from the ini file
-         _findDlg.setDefaultOptions(mDefaultOptions.c_str());
          _findResult.initEdit(_findDlg.getDefaultPattern()); // here findresult first time exists
          _findResult.updateWindowData(_configDlg.getFontText(), _configDlg.getFontSize());
-         if(PathFileExists(xmlFilePath) == TRUE) {
-            // load the patterns from last run
-            _findDlg.loadConfigFile(xmlFilePath);
-         }
       }
 
       // Always show, unless npp is not ready yet

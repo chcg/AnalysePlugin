@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2016 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO donho(at)altern.org 
 
@@ -19,7 +19,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
 //#include "stdafx.h"
-#include "precompiledHeaders.h"
 #include "resource.h"
 
 #include "FindDlg.h"
@@ -198,6 +197,8 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) {
                DBG0("IDC_DO_RESEARCH");
                setAllDirty();
                doSearch();
+               // finally set focus to editor window
+               ::SetFocus(_pParent->getCurrentHScintilla(scnActiveHandle));
                return TRUE;
             }
          case IDC_DO_SEARCH :
@@ -937,6 +938,7 @@ void FindDlg::setDefaultOptions(const TCHAR* options, int charSize) {
       szToken = generic_strtok(NULL, TEXT(",")); // next token
       ++num;
    } // while
+   setDialogData(mDefPat);
 }
 
 void FindDlg::getDefaultOptions(generic_string& str) {
@@ -990,8 +992,8 @@ void FindDlg::doCopyLineToDialog() {
       ::SendDlgItemMessage(_hSelf, IDC_CHK_HIDE, BM_SETCHECK, bHide?BST_CHECKED:BST_UNCHECKED, 0);
       mCmbSearchText.addText2Combo(mTableView.getSearchTextStr().c_str(), false);
       mCmbComment.addText2Combo(mTableView.getCommentStr().c_str(), false);
-      mCmbSearchType.addText2Combo(mTableView.getSearchTypeStr().c_str(), false);
-      mCmbSelType.addText2Combo(mTableView.getSelectStr().c_str(), false);
+      mCmbSearchType.addText2Combo(mTableView.getSearchTypeStr().c_str(), false, false, false);
+      mCmbSelType.addText2Combo(mTableView.getSelectStr().c_str(), false, false, false);
 #ifdef RESULT_STYLING
       bool bBold = (mTableView.getBoldStr() == TEXT("X"));
       bool bUnder = (mTableView.getUnderlinedStr() == TEXT("X"));
@@ -1144,14 +1146,15 @@ void FindDlg::create(tTbData * data, bool isRTL){
 
    p1.y += 1;
    p2.y += 1;
-
+   DBG2("ColorPicker MoveWindow _pFgColour to: x:%d y:%d", p1.x, p1.y);
    ::MoveWindow((HWND)_pFgColour->getHSelf(), p1.x, p1.y, 12, 12, TRUE);
+   DBG2("ColorPicker MoveWindow _pBgColour to: x:%d y:%d", p2.x, p2.y);
    ::MoveWindow((HWND)_pBgColour->getHSelf(), p2.x, p2.y, 12, 12, TRUE);
    _pFgColour->display();
    _pBgColour->display();
 #endif
    setDialogData(mDefPat);
-   
+
    _pPlsWait = new PleaseWaitDlg(_hSelf);
 
 }
@@ -1163,8 +1166,8 @@ void FindDlg::setDialogData(const tclPattern& p) {
 //   mCmbColor.addInitialText2Combo(p.getDefColorListSize(), p.getDefColorList(), false);
 #endif
    // set to default values
-   mCmbSearchType.addText2Combo(p.getSearchTypeStr().c_str(), false);
-   mCmbSelType.addText2Combo(p.getSelectionTypeStr().c_str(), false);
+   mCmbSearchType.addText2Combo(p.getSearchTypeStr().c_str(), false, false, false);
+   mCmbSelType.addText2Combo(p.getSelectionTypeStr().c_str(), false, false, false);
    // strings are by default empty and shall not get always a blank string
    //mCmbSearchText.addText2Combo(p.getSearchText().c_str(), false);
    //mCmbComment.addText2Combo(p.getComment().c_str(), false);

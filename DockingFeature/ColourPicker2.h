@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2016 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO donho(at)altern.org 
 
@@ -23,6 +23,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define COLOUR_PICKER2_H
 #include "ColourPopupResource.h"
 class ColourPopup;
+#include "Window.h"
 
 //#define CP_CLASS_NAME "ColourPicker2Button"
 #define CPN_COLOURPICKED (BN_CLICKED)

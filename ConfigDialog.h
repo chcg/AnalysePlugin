@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2016 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO donho(at)altern.org 
 
@@ -60,6 +60,8 @@ public:
       ,mDisplayLineNo(1)
       ,mNumOfCfgFiles(4)
       ,mIsSyncScroll(true)
+      ,mDblClickJumps2EditView(false)
+      ,mIsConfigured(false)
    {}
       //, mFontSize(8) {}
 
@@ -128,6 +130,9 @@ public:
 
    void doDialog(int FuncCmdId=0);
 
+   bool isConfigured() const {
+      return mIsConfigured;
+   }
    virtual void destroy() {
       // remove data
    }
@@ -188,6 +193,7 @@ protected :
    AddCtxDlg _addCtxDlg;
    bool mIsSyncScroll;
    bool mDblClickJumps2EditView;
+   bool mIsConfigured;
 };
 
 

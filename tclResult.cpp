@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2016 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -21,7 +21,6 @@ a tclResult is the container for the result of searching for one pattern
 */
 
 //#include "stdafx.h"
-#include "precompiledHeaders.h"
 #include "tclResult.h"
 //#include <algorithm> 
 using namespace std;

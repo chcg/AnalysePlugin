@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2016 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO donho(at)altern.org 
 
@@ -19,7 +19,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
 //#include "stdafx.h"
-#include "precompiledHeaders.h"
+
 #include "menuCmdID.h"
 
 #include "ConfigDialog.h"
@@ -32,7 +32,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "myDebug.h"
 
 #define FONTSIZELIST_COUNT 11
-const TCHAR * FONTSIZELIST[] = {TEXT("20"), TEXT("18"), TEXT("16"), TEXT("14"), TEXT("12"), TEXT("11"), TEXT("10"), TEXT("9"), TEXT("8"), TEXT("7"), TEXT("6") };
+const TCHAR * FONTSIZELIST[] = { TEXT("6"), TEXT("7"), TEXT("8"), TEXT("9"), TEXT("10"), TEXT("11"), TEXT("12"), TEXT("14"), TEXT("16"), TEXT("18"), TEXT("20") };
 #define LISTLENGTHVALS_COUNT 2
 const TCHAR * LISTLENGTHVALS[] = {TEXT("4"), TEXT("10")}; 
 
@@ -105,10 +105,10 @@ void ConfigDialog::doDialog(int FuncCmdId)
       ::SendDlgItemMessage(_hSelf, IDC_CHK_USEBOOKMARK, BM_SETCHECK, getUseBookmark()?BST_CHECKED:BST_UNCHECKED, 0);
       // now get the stuff from configuration in the dialog 
       ::SendDlgItemMessage(_hSelf, IDC_CHK_AUTOUPDT, BM_SETCHECK, getOnAutoUpdate()?BST_CHECKED:BST_UNCHECKED, 0);
-      mCmbOnEnterAction.addText2Combo(getOnEnterActionStr().c_str(), false);
-      mCmbSearchType.addText2Combo(mDefPat.getSearchTypeStr().c_str(), false);
-      mCmbSelType.addText2Combo(mDefPat.getSelectionTypeStr().c_str(), false);
-//      mCmbSearchText.addText2Combo(mDefPat.getSearchText().c_str(), false);
+      mCmbOnEnterAction.addText2Combo(getOnEnterActionStr().c_str(), false, false, false);
+      mCmbSearchType.addText2Combo(mDefPat.getSearchTypeStr().c_str(), false, false, false);
+      mCmbSelType.addText2Combo(mDefPat.getSelectionTypeStr().c_str(), false, false, false);
+//      mCmbSearchText.addText2Combo(mDefPat.getSearchText().c_str(), false, false, false);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_DO_SEARCH, BM_SETCHECK, mDefPat.getDoSearch()?BST_CHECKED:BST_UNCHECKED, 0);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_HIDE, BM_SETCHECK, mDefPat.getIsHideText()?BST_CHECKED:BST_UNCHECKED, 0);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_SETCHECK, mDefPat.getIsWholeWord()?BST_CHECKED:BST_UNCHECKED, 0);
@@ -117,7 +117,7 @@ void ConfigDialog::doDialog(int FuncCmdId)
       ::SendDlgItemMessage(_hSelf, IDC_CHK_SYNCSCROLL, BM_SETCHECK, getIsSyncScroll() ? BST_CHECKED : BST_UNCHECKED, 0);
       ::SendDlgItemMessage(_hSelf, IDC_CHK_JUMP2EDIT, BM_SETCHECK, getDblClickJumps2EditView() ? BST_CHECKED : BST_UNCHECKED, 0);
 #ifdef RESULT_COLORING
-//      mCmbColor.addText2Combo(mDefPat.getColorStr().c_str(), false);
+//      mCmbColor.addText2Combo(mDefPat.getColorStr().c_str(), false, false, false);
       _pFgColour = new ColourPicker2;
       _pBgColour = new ColourPicker2;
       _pFgColour->init(_hInst, _hSelf);
@@ -140,13 +140,13 @@ void ConfigDialog::doDialog(int FuncCmdId)
 #endif
       const generic_string& s = _pParent->getResultFontName();
       if (!s.empty()) {
-         mCmbFontName.addText2Combo(s.c_str(), false);
+         mCmbFontName.addText2Combo(s.c_str(), false, false, false);
       }
       TCHAR tmp[10];
       generic_itoa(_pParent->getResultFontSize(),tmp, 10);
-      mCmbFontSize.addText2Combo(tmp, false);
+      mCmbFontSize.addText2Combo(tmp, false, false, false);
       generic_itoa(mNumOfCfgFiles,tmp, 10);
-      mCmbNumOfCfgFiles.addText2Combo(tmp, false);
+      mCmbNumOfCfgFiles.addText2Combo(tmp, false, false, false);
       DBG1("ConfigDialog::dDialog() %s ", mCmbNumOfCfgFiles.getComboTextList(false).c_str());
    } // isCreated()
 
@@ -230,6 +230,7 @@ void ConfigDialog::setNumOfCfgFilesStr(const generic_string& str) {
 
 void ConfigDialog::setDefaultPattern(const tclPattern& p) {
    mDefPat = p;
+   mIsConfigured = true;
 }
 
 void ConfigDialog::setDialogData(const tclPattern& p) {
@@ -237,14 +238,14 @@ void ConfigDialog::setDialogData(const tclPattern& p) {
    mDefPat = p;
 
    // set to default values
-   mCmbSearchType.addText2Combo(p.getSearchTypeStr().c_str(), false);
-   mCmbSelType.addText2Combo(p.getSelectionTypeStr().c_str(), false);
+   mCmbSearchType.addText2Combo(p.getSearchTypeStr().c_str(), false, false, false);
+   mCmbSelType.addText2Combo(p.getSelectionTypeStr().c_str(), false, false, false);
    ::SendDlgItemMessage(_hSelf, IDC_CHK_DO_SEARCH, BM_SETCHECK, p.getDoSearch()?BST_CHECKED:BST_UNCHECKED, 0);
    ::SendDlgItemMessage(_hSelf, IDC_CHK_HIDE, BM_SETCHECK, p.getIsHideText()?BST_CHECKED:BST_UNCHECKED, 0);
    ::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_SETCHECK, p.getIsWholeWord()?BST_CHECKED:BST_UNCHECKED, 0);
    ::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_SETCHECK, p.getIsMatchCase()?BST_CHECKED:BST_UNCHECKED, 0);
 #ifdef RESULT_COLORING
-   //mCmbColor.addText2Combo(p.getColorStr().c_str(), false);
+   //mCmbColor.addText2Combo(p.getColorStr().c_str(), false, false, false);
    _pFgColour->setColour(p.getColorNum());
    _pBgColour->setColour(p.getBgColorNum());
 #endif

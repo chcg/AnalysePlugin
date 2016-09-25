@@ -26,6 +26,7 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include <algorithm>
 #include <stdexcept>
+#include <sstream>
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <uxtheme.h>
@@ -37,6 +38,7 @@
 
 WcharMbcsConvertor* WcharMbcsConvertor::_pSelf = new WcharMbcsConvertor;
 
+typedef std::basic_stringstream<TCHAR> generic_stringstream;
 
 
 
@@ -53,6 +55,13 @@ void printStr(const TCHAR *str2print)
 	::MessageBox(NULL, str2print, TEXT(""), MB_OK);
 }
 
+generic_string commafyInt(size_t n)
+{
+	generic_stringstream ss;
+	ss.imbue(std::locale(""));
+	ss << n;
+	return ss.str();
+}
 
 std::string getFileContent(const TCHAR *file2read)
 {
@@ -150,8 +159,10 @@ static int __stdcall BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM, LPARAM pDa
 };
 
 
-void folderBrowser(HWND parent, int outputCtrlID, const TCHAR *defaultStr)
+generic_string folderBrowser(HWND parent, const generic_string & title, int outputCtrlID, const TCHAR *defaultStr)
 {
+	generic_string dirStr;
+
 	// This code was copied and slightly modifed from:
 	// http://www.bcbdev.com/faqs/faq62.htm
 
@@ -170,11 +181,13 @@ void folderBrowser(HWND parent, int outputCtrlID, const TCHAR *defaultStr)
 		info.pidlRoot = NULL;
 		TCHAR szDisplayName[MAX_PATH];
 		info.pszDisplayName = szDisplayName;
-		info.lpszTitle = TEXT("Select a folder to search from");
+		info.lpszTitle = title.c_str();
 		info.ulFlags = 0;
 		info.lpfn = BrowseCallbackProc;
+
 		TCHAR directory[MAX_PATH];
-		::GetDlgItemText(parent, outputCtrlID, directory, _countof(directory));
+		if (outputCtrlID != 0)
+			::GetDlgItemText(parent, outputCtrlID, directory, _countof(directory));
 		directory[_countof(directory) - 1] = '\0';
 
 		if (!directory[0] && defaultStr)
@@ -193,12 +206,17 @@ void folderBrowser(HWND parent, int outputCtrlID, const TCHAR *defaultStr)
 			// Return is true if success.
 			TCHAR szDir[MAX_PATH];
 			if (::SHGetPathFromIDList(pidl, szDir))
+			{
 				// Set edit control to the directory path.
-				::SetDlgItemText(parent, outputCtrlID, szDir);
+				if (outputCtrlID != 0)
+					::SetDlgItemText(parent, outputCtrlID, szDir);
+				dirStr = szDir;
+			}
 			pShellMalloc->Free(pidl);
 		}
 		pShellMalloc->Release();
 	}
+	return dirStr;
 }
 
 
@@ -504,7 +522,7 @@ const char * WcharMbcsConvertor::wchar2char(const wchar_t * wcharStr2Convert, UI
 		_multiByteStr.sizeTo(len);
 		len = WideCharToMultiByte(codepage, 0, wcharStr2Convert, -1, _multiByteStr, len, NULL, NULL); // not needed?
 
-        if ((int)*mstart < lstrlenW(wcharStr2Convert) && (int)*mend < lstrlenW(wcharStr2Convert))
+        if (*mstart < lstrlenW(wcharStr2Convert) && *mend < lstrlenW(wcharStr2Convert))
         {
 			*mstart = WideCharToMultiByte(codepage, 0, wcharStr2Convert, *mstart, NULL, 0, NULL, NULL);
 			*mend = WideCharToMultiByte(codepage, 0, wcharStr2Convert, *mend, NULL, 0, NULL, NULL);
@@ -772,8 +790,8 @@ generic_string stringReplace(generic_string subject, const generic_string& searc
 
 std::vector<generic_string> stringSplit(const generic_string& input, const generic_string& delimiter)
 {
-	auto start = 0U;
-	auto end = input.find(delimiter);
+	size_t start = 0U;
+	size_t end = input.find(delimiter);
 	std::vector<generic_string> output;
 	const size_t delimiterLength = delimiter.length();
 	while (end != std::string::npos)
@@ -830,9 +848,9 @@ double stodLocale(const generic_string& str, _locale_t loc, size_t* idx)
 	double ans = ::_wcstod_l(ptr, &eptr, loc);
 #endif
 	if (ptr == eptr)
-		throw new std::invalid_argument("invalid stod argument");
+		throw std::invalid_argument("invalid stod argument");
 	if (errno == ERANGE)
-		throw new std::out_of_range("stod argument out of range");
+		throw std::out_of_range("stod argument out of range");
 	if (idx != NULL)
 		*idx = (size_t)(eptr - ptr);
 	return ans;
@@ -840,7 +858,7 @@ double stodLocale(const generic_string& str, _locale_t loc, size_t* idx)
 
 bool str2Clipboard(const generic_string &str2cpy, HWND hwnd)
 {
-	int len2Allocate = (str2cpy.size() + 1) * sizeof(TCHAR);
+	size_t len2Allocate = (str2cpy.size() + 1) * sizeof(TCHAR);
 	HGLOBAL hglbCopy = ::GlobalAlloc(GMEM_MOVEABLE, len2Allocate);
 	if (hglbCopy == NULL)
 	{
@@ -885,5 +903,13 @@ bool str2Clipboard(const generic_string &str2cpy, HWND hwnd)
 	return true;
 }
 
-
+bool matchInList(const TCHAR *fileName, const std::vector<generic_string> & patterns)
+{
+	for (size_t i = 0, len = patterns.size(); i < len; ++i)
+	{
+		if (PathMatchSpec(fileName, patterns[i].c_str()))
+			return true;
+	}
+	return false;
+}
 
