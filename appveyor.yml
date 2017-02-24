@@ -1,0 +1,74 @@
+version: 1.13.49.{Build}
+
+environment:
+  matrix:
+  - PlatformToolset: v142
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+
+  - PlatformToolset: v143
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+
+
+platform:
+    - x64
+    - x86
+    - arm64
+
+configuration:
+    - Release
+    - Debug
+
+install:
+    - if "%platform%"=="x64" set platform_input=x64
+    - if "%platform%"=="x86" set platform_input=x86
+    - if "%platform%"=="x64" set archi=amd64
+    - if "%platform%"=="x86" set archi=x86
+    - if "%platform%"=="arm64" set archi=amd64_arm64
+    - if "%platform%"=="arm64" set platform_input=arm64
+
+    - if "%PlatformToolset%"=="v142" call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" %archi%
+    - if "%PlatformToolset%"=="v143" call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" %archi%
+
+build_script:
+    - cd "%APPVEYOR_BUILD_FOLDER%"
+    - msbuild AnalysePlugin.sln /m /p:configuration="%configuration%" /p:platform="%platform_input%" /p:PlatformToolset="%PlatformToolset%" /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+
+after_build:
+    - cd "%APPVEYOR_BUILD_FOLDER%"
+    - ps: |
+        if($env:PLATFORM_INPUT -eq "x64"){
+            Push-AppveyorArtifact "bin\$env:PLATFORM_INPUT\$env:CONFIGURATION\plugins\AnalysePlugin\AnalysePlugin.dll" -FileName AnalysePlugin.dll
+        }
+        if($env:PLATFORM_INPUT -eq "x86"){
+            Push-AppveyorArtifact "bin\$env:CONFIGURATION\plugins\AnalysePlugin\AnalysePlugin.dll" -FileName AnalysePlugin.dll
+        }
+        if ($($env:APPVEYOR_REPO_TAG) -eq "true" -and $env:CONFIGURATION -eq "Release" -and $env:PLATFORMTOOLSET -eq "v142")
+        {
+            if($env:PLATFORM_INPUT -eq "x64"){
+                $ZipFileName = "AnalysePlugin_$($env:APPVEYOR_REPO_TAG_NAME)_x64.zip"
+                7z a $ZipFileName $env:APPVEYOR_BUILD_FOLDER\bin\$env:PLATFORM_INPUT\$env:CONFIGURATION\plugins\AnalysePlugin\AnalysePlugin.dll
+                #TODO add further dependencies and txt files
+            }
+            if($env:PLATFORM_INPUT -eq "x86"){
+                $ZipFileName = "AnalysePlugin_$($env:APPVEYOR_REPO_TAG_NAME)_x86.zip"
+                7z a $ZipFileName $env:APPVEYOR_BUILD_FOLDER\bin\$env:CONFIGURATION\plugins\AnalysePlugin\AnalysePlugin.dll
+                #TODO add further dependencies and txt files
+            }
+        }
+artifacts:
+  - path: AnalysePlugin_*.zip
+    name: releases
+
+deploy:
+    provider: GitHub
+    description: ''
+    auth_token:
+        secure: !!!TODO!!!
+    artifact: releases
+    draft: false
+    prerelease: false
+    force_update: true
+    on:
+        appveyor_repo_tag: true
+        PlatformToolset: v142
+        configuration: Release
