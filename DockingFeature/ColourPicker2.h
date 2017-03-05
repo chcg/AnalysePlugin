@@ -51,9 +51,7 @@ private :
 	bool _isEnabled;
 
     static LRESULT CALLBACK staticWinProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) {
-#pragma warning (disable:4312)
        return (((ColourPicker2 *)(::GetWindowLongPtr(hwnd, GWLP_USERDATA)))->runProc(Message, wParam, lParam));
-#pragma warning (default:4312)
     };
 	LRESULT runProc(UINT Message, WPARAM wParam, LPARAM lParam);
     void drawForeground(HDC hDC);

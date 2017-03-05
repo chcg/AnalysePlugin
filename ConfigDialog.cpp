@@ -251,7 +251,7 @@ void ConfigDialog::setDialogData(const tclPattern& p) {
 #endif
 }
 
-BOOL CALLBACK ConfigDialog::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK ConfigDialog::run_dlgProc(UINT Message, WPARAM wParam, LPARAM /*lParam*/)
 {
    switch (Message) 
    {
@@ -362,7 +362,7 @@ BOOL CALLBACK ConfigDialog::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lPar
    return FALSE;
 }
 
-BOOL CALLBACK ConfigDialog::run_dlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK ConfigDialog::run_dlgProc(HWND /*hwnd*/, UINT Message, WPARAM wParam, LPARAM lParam)
 {
    return run_dlgProc(Message, wParam, lParam);
 }

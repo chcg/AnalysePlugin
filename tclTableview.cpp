@@ -114,7 +114,7 @@ int tclTableview::insertAfterRow(){
 }
 
 void tclTableview::updateRow(int item, const tclPattern& rp) {
-   updateRowColor(item, rp);
+   //updateRowColor(item, rp);
 #ifdef COL_NUMBERING
    TCHAR num[10];
    updateCell(item, TBLVIEW_COL_NUM, generic_itoa(item, num, 10));
@@ -138,7 +138,7 @@ void tclTableview::updateRow(int item, const tclPattern& rp) {
 #endif
 }
 
-void tclTableview::updateRowColor(int item, const tclPattern& rp){
+//void tclTableview::updateRowColor(int item, const tclPattern& rp){
    //int i = getSelectedRow();
    //if (i!=item){
    //   setSelectedRow(i);
@@ -153,7 +153,7 @@ void tclTableview::updateRowColor(int item, const tclPattern& rp){
    //if (i!=item){
    //   setSelectedRow(item);
    //}
-}
+//}
 
 void tclTableview::updateCell(int item, int column, const generic_string& s){
    //static TCHAR cs[MAX_CHAR_CELL];

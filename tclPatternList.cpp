@@ -170,12 +170,12 @@ bool tclPatternList::setPattern(tPatId i, const tclPattern& pattern){
 
 unsigned tclPatternList::getCommentWidth() const {
    tlmPatternList::const_iterator it = mlmPattern.begin();
-   unsigned max = 0;
+   size_t max = 0;
    for (;it != mlmPattern.end();++it) {
-      unsigned s = it->second.getComment().size();
+      size_t s = it->second.getComment().size();
       max = (max<s)?s:max;
    }
-   return max;
+   return (int)max;
 }
 
 void tclPatternList::remove(tPatId i){

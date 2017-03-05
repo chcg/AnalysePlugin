@@ -371,11 +371,11 @@ generic_string tclPattern::convertExtendedToString() const
 bool tclPattern::readBase(const TCHAR* string, int* value, int base, int size) const {
    int i = 0, temp = 0;
    *value = 0;
-   TCHAR max = '0' + base - 1;
+   TCHAR mymax = '0' + (TCHAR)(base - 1);
    TCHAR current;
    while(i < size) {
       current = string[i];
-      if (current >= '0' && current <= max) {
+	  if (current >= '0' && current <= mymax) {
          temp *= base;
          temp += (current - '0');
       } else {

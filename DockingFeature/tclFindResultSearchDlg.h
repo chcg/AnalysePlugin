@@ -68,7 +68,7 @@ public :
 
 protected :
 
-   virtual BOOL CALLBACK run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam);
+   virtual INT_PTR CALLBACK run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam);
 
    tclComboBoxCtrl _CmbSearchText;
    tclComboBoxCtrl _CmbSearchType;

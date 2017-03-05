@@ -26,7 +26,6 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include <algorithm>
 #include <stdexcept>
-#include <sstream>
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <uxtheme.h>
@@ -38,7 +37,6 @@
 
 WcharMbcsConvertor* WcharMbcsConvertor::_pSelf = new WcharMbcsConvertor;
 
-typedef std::basic_stringstream<TCHAR> generic_stringstream;
 
 
 
@@ -182,7 +180,7 @@ generic_string folderBrowser(HWND parent, const generic_string & title, int outp
 		TCHAR szDisplayName[MAX_PATH];
 		info.pszDisplayName = szDisplayName;
 		info.lpszTitle = title.c_str();
-		info.ulFlags = 0;
+		info.ulFlags = BIF_USENEWUI | BIF_NONEWFOLDERBUTTON;  // TODO check values correct instead of 0 as before
 		info.lpfn = BrowseCallbackProc;
 
 		TCHAR directory[MAX_PATH];
@@ -589,11 +587,11 @@ generic_string intToString(int val)
 	// can't use abs here because std::numeric_limits<int>::min() has no positive representation
 	//val = std::abs(val);
 
-	vt.push_back('0' + (TCHAR)(std::abs(val % 10)));
+	vt.push_back('0' + static_cast<TCHAR>(std::abs(val % 10)));
 	val /= 10;
 	while (val != 0)
 	{
-		vt.push_back('0' + (TCHAR)(std::abs(val % 10)));
+		vt.push_back('0' + static_cast<TCHAR>(std::abs(val % 10)));
 		val /= 10;
 	}
 
@@ -608,11 +606,11 @@ generic_string uintToString(unsigned int val)
 {
 	std::vector<TCHAR> vt;
 
-	vt.push_back('0' + (TCHAR)(val % 10));
+	vt.push_back('0' + static_cast<TCHAR>(val % 10));
 	val /= 10;
 	while (val != 0)
 	{
-		vt.push_back('0' + (TCHAR)(val % 10));
+		vt.push_back('0' + static_cast<TCHAR>(val % 10));
 		val /= 10;
 	}
 
@@ -627,7 +625,7 @@ generic_string BuildMenuFileName(int filenameLen, unsigned int pos, const generi
 	if (pos < 9)
 	{
 		strTemp.push_back('&');
-		strTemp.push_back('1' + (TCHAR)pos);
+		strTemp.push_back('1' + static_cast<TCHAR>(pos));
 	}
 	else if (pos == 9)
 	{
@@ -642,7 +640,7 @@ generic_string BuildMenuFileName(int filenameLen, unsigned int pos, const generi
 	if (filenameLen > 0)
 	{
 		std::vector<TCHAR> vt(filenameLen + 1);
-		//--FLS: W removed from PathCompactPathExW due to compiler errors for ANSI version.
+		// W removed from PathCompactPathExW due to compiler errors for ANSI version.
 		PathCompactPathEx(&vt[0], filename.c_str(), filenameLen + 1, 0);
 		strTemp.append(convertFileName(vt.begin(), vt.begin() + lstrlen(&vt[0])));
 	}
@@ -751,7 +749,7 @@ COLORREF getCtrlBgColor(HWND hWnd)
 						HGDIOBJ hOld = SelectObject(hdcMem, hBmp);
 						if (hOld)
 						{
-							if (SendMessage(hWnd,	WM_ERASEBKGND, (WPARAM)hdcMem, 0))
+							if (SendMessage(hWnd, WM_ERASEBKGND, reinterpret_cast<WPARAM>(hdcMem), 0))
 							{
 								crRet = GetPixel(hdcMem, 2, 2); // 0, 0 is usually on the border
 							}
@@ -913,3 +911,67 @@ bool matchInList(const TCHAR *fileName, const std::vector<generic_string> & patt
 	return false;
 }
 
+generic_string GetLastErrorAsString(DWORD errorCode)
+{
+	generic_string errorMsg(TEXT(""));
+	// Get the error message, if any.
+	// If both error codes (passed error n GetLastError) are 0, then return empty
+	if (errorCode == 0)
+		errorCode = GetLastError();
+	if (errorCode == 0)
+		return errorMsg; //No error message has been recorded
+
+	LPWSTR messageBuffer = nullptr;
+	FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		nullptr, errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&messageBuffer, 0, nullptr);
+
+	errorMsg += messageBuffer;
+
+	//Free the buffer.
+	LocalFree(messageBuffer);
+
+	return errorMsg;
+}
+
+HWND CreateToolTip(int toolID, HWND hDlg, HINSTANCE hInst, const PTSTR pszText)
+{
+	if (!toolID || !hDlg || !pszText)
+	{
+		return NULL;
+	}
+
+	// Get the window of the tool.
+	HWND hwndTool = GetDlgItem(hDlg, toolID);
+	if (!hwndTool)
+	{
+		return NULL;
+	}
+
+	// Create the tooltip. g_hInst is the global instance handle.
+	HWND hwndTip = CreateWindowEx(NULL, TOOLTIPS_CLASS, NULL,
+		WS_POPUP | TTS_ALWAYSTIP | TTS_BALLOON,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		hDlg, NULL,
+		hInst, NULL);
+
+	if (!hwndTip)
+	{
+		return NULL;
+	}
+
+	// Associate the tooltip with the tool.
+	TOOLINFO toolInfo = { 0 };
+	toolInfo.cbSize = sizeof(toolInfo);
+	toolInfo.hwnd = hDlg;
+	toolInfo.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
+	toolInfo.uId = (UINT_PTR)hwndTool;
+	toolInfo.lpszText = pszText;
+	if (!SendMessage(hwndTip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo))
+	{
+		DestroyWindow(hwndTip);
+		return NULL;
+	}
+
+	return hwndTip;
+}

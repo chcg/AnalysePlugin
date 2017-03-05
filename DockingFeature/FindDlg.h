@@ -184,7 +184,7 @@ public :
    /**
    * callback function for receiving messages
    */
-   virtual BOOL CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
+   virtual INT_PTR CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
 
    /**
    * scintilla notification message

@@ -71,7 +71,7 @@ public:
       : _nppReady(false)
       , gbPluginVisible(false)
       , gbResultVisible(true)
-      , _markedLine(-1)
+      , _markedLine((unsigned int)-1)
       , _Npp(0)
       , _hModule(0)
       , _line(0)
@@ -86,7 +86,7 @@ public:
       _findDlg.setParent(this);
       _findResult.setParent(this);
 
-      mVersionString = TEXT("Analyse Plugin V1.10 ");
+      mVersionString = TEXT("Analyse Plugin V1.11 beta ");
       mVersionString += TEXT("Rev. ");
       mVersionString += SVNRevInfo;
       mVersionString += TEXT(" ");
@@ -95,6 +95,7 @@ public:
       mVersionString += SVNModified;
       mVersionString += TEXT(" ");
       mVersionString += SVNMixed;
+      mVersionString += (sizeof(void *) == 8) ? TEXT(" (64bit)") : TEXT(" (32bit)");
       _helpDlg.setVersion(mVersionString);
    }
 

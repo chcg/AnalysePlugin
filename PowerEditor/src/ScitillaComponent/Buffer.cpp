@@ -213,7 +213,7 @@ void Buffer::setFileName(const TCHAR *fn, LangType defaultLang)
 			newLang = L_CMAKE;
 		else if ((!generic_stricmp(_fileName, TEXT("SConstruct"))) || (!generic_stricmp(_fileName, TEXT("SConscript"))) || (!generic_stricmp(_fileName, TEXT("wscript"))))
 			newLang = L_PYTHON;
-		else if (!generic_stricmp(_fileName, TEXT("Rakefile")))
+		else if ((!generic_stricmp(_fileName, TEXT("Rakefile"))) || (!generic_stricmp(_fileName, TEXT("Vagrantfile"))))
 			newLang = L_RUBY;
 	}
 
@@ -417,6 +417,7 @@ int Buffer::indexOfReference(const ScintillaEditView * identifier) const
 	return -1;	//not found
 }
 
+
 int Buffer::addReference(ScintillaEditView * identifier)
 {
 	if (indexOfReference(identifier) != -1)
@@ -428,6 +429,7 @@ int Buffer::addReference(ScintillaEditView * identifier)
 	++_references;
 	return _references;
 }
+
 
 int Buffer::removeReference(ScintillaEditView * identifier)
 {
@@ -464,6 +466,7 @@ void Buffer::setDeferredReload() // triggers a reload on the next Document acces
 	_needReloading = true;
 	doNotify(BufferChangeDirty);
 }
+
 
 /*
 pair<size_t, bool> Buffer::getLineUndoState(size_t currentLine) const
@@ -559,6 +562,7 @@ void FileManager::addBufferReference(BufferID buffer, ScintillaEditView * identi
 	buf->addReference(identifier);
 }
 
+
 void FileManager::closeBuffer(BufferID id, ScintillaEditView * identifier)
 {
 	int index = getBufferIndexByID(id);
@@ -574,6 +578,7 @@ void FileManager::closeBuffer(BufferID id, ScintillaEditView * identifier)
 		_nrBufs--;
 	}
 }
+
 
 // backupFileName is sentinel of backup mode: if it's not NULL, then we use it (load it). Otherwise we use filename
 BufferID FileManager::loadFile(const TCHAR * filename, Document doc, int encoding, const TCHAR *backupFileName, time_t fileNameTimestamp)
@@ -729,6 +734,7 @@ bool FileManager::deleteFile(BufferID id)
 
 	return SHFileOperation(&fileOpStruct) == 0;
 }
+
 
 bool FileManager::moveFile(BufferID id, const TCHAR * newFileName)
 {
@@ -1012,6 +1018,7 @@ bool FileManager::deleteCurrentBufferBackup()
 	// set to signaled state via destructor EventReset.
 	return result;
 }
+
 
 bool FileManager::saveBuffer(BufferID id, const TCHAR * filename, bool isCopy, generic_string * error_msg)
 {
@@ -1401,7 +1408,7 @@ bool FileManager::loadFileData(Document doc, const TCHAR * filename, char* data,
 		TCHAR * name = NppParameters::getInstance()->getELCFromIndex(id)._name;
 		WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
 		const char *pName = wmc->wchar2char(name, CP_ACP);
-		_pscratchTilla->execute(SCI_SETLEXERLANGUAGE, 0, (LPARAM)pName);
+		_pscratchTilla->execute(SCI_SETLEXERLANGUAGE, 0, reinterpret_cast<LPARAM>(pName));
 	}
 
 	if (encoding != -1)
@@ -1455,14 +1462,14 @@ bool FileManager::loadFileData(Document doc, const TCHAR * filename, char* data,
 				if (encoding == SC_CP_UTF8)
 				{
 					// Pass through UTF-8 (this does not check validity of characters, thus inserting a multi-byte character in two halfs is working)
-					_pscratchTilla->execute(SCI_APPENDTEXT, lenFile, (LPARAM)data);
+					_pscratchTilla->execute(SCI_APPENDTEXT, lenFile, reinterpret_cast<LPARAM>(data));
 				}
 				else
 				{
 					WcharMbcsConvertor* wmc = WcharMbcsConvertor::getInstance();
 					int newDataLen = 0;
 					const char *newData = wmc->encode(encoding, SC_CP_UTF8, data, static_cast<int32_t>(lenFile), &newDataLen, &incompleteMultibyteChar);
-					_pscratchTilla->execute(SCI_APPENDTEXT, newDataLen, (LPARAM)newData);
+					_pscratchTilla->execute(SCI_APPENDTEXT, newDataLen, reinterpret_cast<LPARAM>(newData));
 				}
 
 				if (format == EolType::unknown)
@@ -1471,7 +1478,7 @@ bool FileManager::loadFileData(Document doc, const TCHAR * filename, char* data,
 			else
 			{
 				lenConvert = unicodeConvertor->convert(data, lenFile);
-				_pscratchTilla->execute(SCI_APPENDTEXT, lenConvert, (LPARAM)(unicodeConvertor->getNewBuf()));
+				_pscratchTilla->execute(SCI_APPENDTEXT, lenConvert, reinterpret_cast<LPARAM>(unicodeConvertor->getNewBuf()));
 				if (format == EolType::unknown)
 					format = getEOLFormatForm(unicodeConvertor->getNewBuf(), unicodeConvertor->getNewSize(), EolType::unknown);
 			}
@@ -1557,6 +1564,7 @@ bool FileManager::createEmptyFile(const TCHAR * path)
 	fclose(file);
 	return true;
 }
+
 
 int FileManager::getFileNameFromBuffer(BufferID id, TCHAR * fn2copy)
 {

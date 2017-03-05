@@ -42,10 +42,8 @@ void ColourPicker2::init(HINSTANCE hInst, HWND parent)
       throw std::runtime_error("ColourPicker::init : CreateWindowEx() function return null");
    }
 
-#pragma warning (disable:4311 4312 4244)
-   ::SetWindowLongPtr(_hSelf, GWLP_USERDATA, (LONG_PTR)this);
-   _buttonDefaultProc = reinterpret_cast<WNDPROC>(::SetWindowLongPtr(_hSelf, GWLP_WNDPROC, (LONG_PTR)staticWinProc));	 
-#pragma warning (default:4311 4312 4244)
+   ::SetWindowLongPtr(_hSelf, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+   _buttonDefaultProc = reinterpret_cast<WNDPROC>(::SetWindowLongPtr(_hSelf, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(staticWinProc)));
 }
 
 void ColourPicker2::destroy()
@@ -186,5 +184,5 @@ LRESULT ColourPicker2::runProc(UINT Message, WPARAM wParam, LPARAM lParam)
    default :
       return ::CallWindowProc(_buttonDefaultProc, _hSelf, Message, wParam, lParam);
    }
-   return FALSE;
+   // unreachable code ... return FALSE;
 }

@@ -92,7 +92,7 @@ void tclFindResultDlg::setParent(MyPlugin* parent) {
    _pParent = parent;
 }
 
-void tclFindResultDlg::setCodePage(int cp) {
+void tclFindResultDlg::setCodePage(WPARAM cp) {
    _scintView.execute(SCI_SETCODEPAGE, cp);
 }
 
@@ -123,7 +123,7 @@ void tclFindResultDlg::initEdit(const tclPattern& defaultPattern) {
 }
 
 /** remove all that line being referecend by result not no other pattern */
-void tclFindResultDlg::removeUnusedResultLines(tPatId pattId, const tclResult& oldResult, const tclResult& newResult) 
+void tclFindResultDlg::removeUnusedResultLines(tPatId pattId, const tclResult& oldResult, const tclResult& DBGDEF(newResult))
 {
    DBG2("removeUnusedResultLines() oldResult.size() %d newResult.size() %d.", 
       oldResult.size(), newResult.size());
@@ -179,9 +179,9 @@ void tclFindResultDlg::removeUnusedResultLines(tPatId pattId, const tclResult& o
             }
             DBGW1("removeUnusedResultLines() patterns are: %s.",s.c_str()); 
 #endif
-            int line = mFindResults.getLineNoAtRes(thisLine);
-            int startL = (int)_scintView.execute(SCI_POSITIONFROMLINE, line);
-            int endL = (int)_scintView.execute(SCI_GETLINEENDPOSITION, line);
+            //int line = mFindResults.getLineNoAtRes(thisLine);
+            //int startL = (int)_scintView.execute(SCI_POSITIONFROMLINE, line);
+            //int endL = (int)_scintView.execute(SCI_GETLINEENDPOSITION, line);
             //doStyle(line, startL, endL);
          }
       } else {
@@ -317,7 +317,7 @@ void tclFindResultDlg::setPatternFonts() {
    // user may have removed a pattern already
    for(unsigned iPat = 0; iPat < mPatStyleList.size(); ++iPat) 
    {
-      const tclPattern& rPat = mPatStyleList.getPattern(mPatStyleList.getPatternId(iPat));
+      //const tclPattern& rPat = mPatStyleList.getPattern(mPatStyleList.getPatternId(iPat));
       _scintView.execute(SCI_STYLESETFONT, transStyleId[iPat], (LPARAM)fontName);
       _scintView.execute(SCI_STYLESETSIZE, transStyleId[iPat], (LPARAM)mFontSize);
    } // for 
@@ -331,9 +331,12 @@ void tclFindResultDlg::updateWindowData(const generic_string& fontName, unsigned
 
 void tclFindResultDlg::clear_view()
 {
-   setFinderReadOnly(false);
-   _scintView.execute(SCI_CLEARALL);
-   setFinderReadOnly(true);
+   if (_scintView.getHSelf() != NULL)
+   {
+       setFinderReadOnly(false);
+      _scintView.execute(SCI_CLEARALL);
+       setFinderReadOnly(true);
+   }
 }
 
 void tclFindResultDlg::clear() 
@@ -507,7 +510,7 @@ void tclFindResultDlg::setCurrentViewPos(int iThisMainLine) {
    else {
       iResLine = mFindResults.getLineNoAtRes(iThisMainLine);
    }
-   int res = (int)_scintView.execute(SCI_SETFIRSTVISIBLELINE, iResLine);
+   DBGDEF(int res = (int) ) _scintView.execute(SCI_SETFIRSTVISIBLELINE, iResLine);
    DBG2("tclFindResultDlg::setCurrentViewPos() Setting the line to %d returns %d", iResLine, res);
 }
 
@@ -566,7 +569,7 @@ void tclFindResultDlg::doSaveToFile() {
 }
 
 // message call back method
-BOOL CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
 {
    switch (message) 
    {
@@ -719,7 +722,7 @@ void tclFindResultDlg::doStyle(int startResultLineNo, int startStyleNeeded, int 
    int maxResultLines = (int)_scintView.execute(SCI_GETLINECOUNT);
    int endOfLine = (int)(_scintView.execute(SCI_GETLINEENDPOSITION, resultLineNum)
                      +((resultLineNum<maxResultLines)?2:0)); // CRLF is not in last line
-   int charsHidden = 0;
+   //int charsHidden = 0;
    do // for all lines to be styled
    {
       if(resultLineNum < mFindResults.size() ) 
@@ -853,7 +856,7 @@ bool tclFindResultDlg::notify(SCNotification *notification)
             }
             const tlpLinePosInfo& lineInfo = mFindResults.getLineAtRes(resLineNo);
             int lineMain = (int)lineInfo.first;
-            int startMain = (int)_pParent->execute(scnActiveHandle, SCI_POSITIONFROMLINE, lineMain, 0);
+            //int startMain = (int)_pParent->execute(scnActiveHandle, SCI_POSITIONFROMLINE, lineMain, 0);
 
             //int cmd = NPPM_SWITCHTOFILE;//getMode()==FILES_IN_DIR?WM_DOOPEN:NPPM_SWITCHTOFILE;
             int iSuccess = (int)_pParent->execute(nppHandle, NPPM_SWITCHTOFILE, 0, (LPARAM)getszFileName());

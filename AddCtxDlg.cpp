@@ -44,7 +44,7 @@ void AddCtxDlg::doDialog()
 }
 
 
-BOOL CALLBACK AddCtxDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK AddCtxDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM /*lParam*/)
 {
    switch (Message) 
    {
@@ -98,7 +98,7 @@ void AddCtxDlg::resizeWindow() {
    }
 }
 
-BOOL CALLBACK AddCtxDlg::run_dlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK AddCtxDlg::run_dlgProc(HWND /*hwnd*/, UINT Message, WPARAM wParam, LPARAM lParam)
 {
    return run_dlgProc(Message, wParam, lParam);
 }

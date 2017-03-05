@@ -52,15 +52,16 @@ const int UDD_DOCKED = 2; // 0000 0010
 // 2 : 0000 0010 hide & docked
 // 3 : 0000 0011 show & docked
 
-const int TAB_DRAWTOPBAR = 1;	  //  0000 0001
-const int TAB_DRAWINACTIVETAB = 2; //  0000 0010
-const int TAB_DRAGNDROP = 4;	   //  0000 0100
-const int TAB_REDUCE = 8;		   //  0000 1000
-const int TAB_CLOSEBUTTON = 16;	//  0001 0000
-const int TAB_DBCLK2CLOSE = 32;	//  0010 0000
-const int TAB_VERTICAL = 64;	   //  0100 0000
-const int TAB_MULTILINE = 128;	 //  1000 0000
-const int TAB_HIDE = 256;		  //1 0000 0000
+const int TAB_DRAWTOPBAR = 1;      //0000 0000 0001
+const int TAB_DRAWINACTIVETAB = 2; //0000 0000 0010
+const int TAB_DRAGNDROP = 4;       //0000 0000 0100
+const int TAB_REDUCE = 8;          //0000 0000 1000
+const int TAB_CLOSEBUTTON = 16;    //0000 0001 0000
+const int TAB_DBCLK2CLOSE = 32;    //0000 0010 0000
+const int TAB_VERTICAL = 64;       //0000 0100 0000
+const int TAB_MULTILINE = 128;     //0000 1000 0000
+const int TAB_HIDE = 256;          //0001 0000 0000
+const int TAB_QUITONEMPTY = 512;   //0010 0000 0000
 
 
 enum class EolType: std::uint8_t
@@ -550,7 +551,7 @@ struct NewDocDefaultSettings final
 };
 
 
-struct LangMenuItem
+struct LangMenuItem final
 {
 	LangType _langType;
 	int	_cmdID;
@@ -560,31 +561,29 @@ struct LangMenuItem
 	_langType(lt), _cmdID(cmdID), _langName(langName){};
 };
 
-struct PrintSettings {
-	bool _printLineNumber;
-	int _printOption;
+struct PrintSettings final {
+	bool _printLineNumber = true;
+	int _printOption = SC_PRINT_COLOURONWHITE;
 
 	generic_string _headerLeft;
 	generic_string _headerMiddle;
 	generic_string _headerRight;
 	generic_string _headerFontName;
-	int _headerFontStyle;
-	int _headerFontSize;
+	int _headerFontStyle = 0;
+	int _headerFontSize = 0;
 
 	generic_string _footerLeft;
 	generic_string _footerMiddle;
 	generic_string _footerRight;
 	generic_string _footerFontName;
-	int _footerFontStyle;
-	int _footerFontSize;
+	int _footerFontStyle = 0;
+	int _footerFontSize = 0;
 
 	RECT _marge;
 
-	PrintSettings() : _printLineNumber(true), _printOption(SC_PRINT_NORMAL), _headerLeft(TEXT("")), _headerMiddle(TEXT("")), _headerRight(TEXT("")),\
-		_headerFontName(TEXT("")), _headerFontStyle(0), _headerFontSize(0),  _footerLeft(TEXT("")), _footerMiddle(TEXT("")), _footerRight(TEXT("")),\
-		_footerFontName(TEXT("")), _footerFontStyle(0), _footerFontSize(0) {
-			_marge.left = 0; _marge.top = 0; _marge.right = 0; _marge.bottom = 0;
-		};
+	PrintSettings() {
+		_marge.left = 0; _marge.top = 0; _marge.right = 0; _marge.bottom = 0;
+	};
 
 	bool isHeaderPresent() const {
 		return ((_headerLeft != TEXT("")) || (_headerMiddle != TEXT("")) || (_headerRight != TEXT("")));
@@ -703,14 +702,14 @@ struct NppGUI final
 	{
 		_appPos.left = 0;
 		_appPos.top = 0;
-		_appPos.right = 700;
-		_appPos.bottom = 500;
+		_appPos.right = 1100;
+		_appPos.bottom = 700;
 
 		_defaultDir[0] = 0;
 		_defaultDirExp[0] = 0;
 	}
 
-	toolBarStatusType _toolBarStatus = TB_LARGE;
+	toolBarStatusType _toolBarStatus = TB_STANDARD;
 	bool _toolbarShow = true;
 	bool _statusBarShow = true;
 	bool _menuBarShow = true;
@@ -723,17 +722,17 @@ struct NppGUI final
 	// 6th bit : enable multiline
 
 	// 0:don't draw; 1:draw top bar 2:draw inactive tabs 3:draw both 7:draw both+drag&drop
-	int _tabStatus = (TAB_DRAWTOPBAR | TAB_DRAWINACTIVETAB | TAB_DRAGNDROP);
+	int _tabStatus = (TAB_DRAWTOPBAR | TAB_DRAWINACTIVETAB | TAB_DRAGNDROP | TAB_REDUCE | TAB_CLOSEBUTTON);
 
-	bool _splitterPos = POS_HORIZOTAL;
+	bool _splitterPos = POS_VERTICAL;
 	int _userDefineDlgStatus = UDD_DOCKED;
 
-	int _tabSize = 8;
+	int _tabSize = 4;
 	bool _tabReplacedBySpace = false;
 
 	ChangeDetect _fileAutoDetection = cdEnabled;
 	ChangeDetect _fileAutoDetectionOriginalValue = cdEnabled;
-	bool _checkHistoryFiles = true;
+	bool _checkHistoryFiles = false;
 
 	RECT _appPos;
 
@@ -745,7 +744,12 @@ struct NppGUI final
 	bool _doTaskList = true;
 	bool _maitainIndent = true;
 	bool _enableSmartHilite = true;
+
 	bool _smartHiliteCaseSensitive = false;
+	bool _smartHiliteWordOnly = true;
+	bool _smartHiliteUseFindSettings = false;
+	bool _smartHiliteOnAnotherView = false;
+
 	bool _disableSmartHiliteTmp = false;
 	bool _enableTagsMatchHilite = true;
 	bool _enableTagAttrsHilite = true;
@@ -756,11 +760,13 @@ struct NppGUI final
 	bool _delimiterSelectionOnEntireDocument = false;
 	bool _backSlashIsEscapeCharacterForSql = true;
 
+	bool _isWordCharDefault = true;
+	std::string _customWordChars;
 
 	// 0 : do nothing
 	// 1 : don't draw underline
 	// 2 : draw underline
-	int _styleURL = 0;
+	int _styleURL = 2;
 
 	NewDocDefaultSettings _newDocDefaultSettings;
 
@@ -768,7 +774,7 @@ struct NppGUI final
 	void setTabReplacedBySpace(bool b) {_tabReplacedBySpace = b;};
 	const NewDocDefaultSettings & getNewDocDefaultSettings() const {return _newDocDefaultSettings;};
 	std::vector<LangMenuItem> _excludedLangList;
-	bool _isLangMenuCompact = false;
+	bool _isLangMenuCompact = true;
 
 	PrintSettings _printSettings;
 	BackupFeature _backup = bak_none;
@@ -779,26 +785,24 @@ struct NppGUI final
 	enum AutocStatus{autoc_none, autoc_func, autoc_word, autoc_both};
 	AutocStatus _autocStatus = autoc_both;
 	size_t  _autocFromLen = 1;
-	bool _funcParams = false;
+	bool _autocIgnoreNumbers = true;
+	bool _funcParams = true;
 	MatchedPairConf _matchedPairConf;
 
 	generic_string _definedSessionExt;
 	generic_string _definedWorkspaceExt;
-	
-
-
 
 	struct AutoUpdateOptions
 	{
-		bool _doAutoUpdate;
-		int _intervalDays;
+		bool _doAutoUpdate = true;
+		int _intervalDays = 15;
 		Date _nextUpdateDate;
-		AutoUpdateOptions(): _doAutoUpdate(true), _intervalDays(15), _nextUpdateDate(Date()) {};
+		AutoUpdateOptions(): _nextUpdateDate(Date()) {};
 	}
 	_autoUpdateOpt;
 
 	bool _doesExistUpdater = false;
-	int _caretBlinkRate = 250;
+	int _caretBlinkRate = 600;
 	int _caretWidth = 1;
 	bool _enableMultiSelection = false;
 
@@ -817,6 +821,12 @@ struct NppGUI final
 	generic_string _cloudPath; // this option will never be read/written from/to config.xml
 	unsigned char _availableClouds = '\0'; // this option will never be read/written from/to config.xml
 	bool _useNewStyleSaveDlg = false;
+
+	enum SearchEngineChoice{ se_custom = 0, se_duckDuckGo = 1, se_google = 2, se_bing = 3, se_yahoo = 4 };
+	SearchEngineChoice _searchEngineChoice = se_google;
+	generic_string _searchEngineCustom;
+
+	bool _isFolderDroppedOpenFiles = false;
 };
 
 struct ScintillaViewParams
@@ -837,6 +847,7 @@ struct ScintillaViewParams
 	bool _whiteSpaceShow = false;
 	bool _eolShow;
 	int _borderWidth = 2;
+	bool _scrollBeyondLastLine = false;
 	bool _disableAdvancedScrolling = false;
 	bool _doSmoothFont = false;
 	bool _showBorderEdge = true;
@@ -1001,7 +1012,6 @@ public:
 		return *this;
 	}
 
-	// int getNbKeywordList() {return SCE_USER_KWLIST_TOTAL;};
 	const TCHAR * getName() {return _name.c_str();};
 	const TCHAR * getExtention() {return _ext.c_str();};
 	const TCHAR * getUdlVersion() {return _udlVersion.c_str();};
@@ -1012,7 +1022,6 @@ private:
 	generic_string _ext;
 	generic_string _udlVersion;
 
-	//TCHAR _keywordLists[nbKeywodList][max_char];
 	TCHAR _keywordLists[SCE_USER_KWLIST_TOTAL][max_char];
 	bool _isPrefix[SCE_USER_TOTAL_KEYWORD_GROUPS];
 
@@ -1221,11 +1230,11 @@ public:
 
 	bool load();
 	bool reloadLang();
-	bool reloadStylers(TCHAR *stylePath = NULL);
+	bool reloadStylers(TCHAR *stylePath = nullptr);
 	void destroyInstance();
 	generic_string getSettingsFolder();
 
-	bool _isTaskListRBUTTONUP_Active;
+	bool _isTaskListRBUTTONUP_Active = false;
 	int L_END;
 
 	const NppGUI & getNppGUI() const {
@@ -1316,9 +1325,8 @@ public:
 
 	TiXmlNode* getChildElementByAttribut(TiXmlNode *pere, const TCHAR *childName, const TCHAR *attributName, const TCHAR *attributVal) const;
 
-	bool writeScintillaParams(const ScintillaViewParams & svp);
-
-	bool writeGUIParams();
+	bool writeScintillaParams();
+	void createXmlTreeFromGUIParams();
 
 	void writeStyles(LexerStylerArray & lexersStylers, StyleArray & globalStylers);
 	bool insertTabInfo(const TCHAR *langName, int tabInfo);
@@ -1467,8 +1475,9 @@ public:
 	bool reloadContextMenuFromXmlTree(HMENU mainMenuHadle, HMENU pluginsMenu);
 	winVer getWinVersion() const {return _winVersion;};
 	generic_string getWinVersionStr() const;
+	generic_string getWinVerBitStr() const;
 	FindHistory & getFindHistory() {return _findHistory;};
-	bool _isFindReplacing; // an on the fly variable for find/replace functions
+	bool _isFindReplacing = false; // an on the fly variable for find/replace functions
 	void safeWow64EnableWow64FsRedirection(BOOL Wow64FsEnableRedirection);
 
 	LocalizationSwitcher & getLocalizationSwitcher() {
@@ -1541,6 +1550,8 @@ public:
 	}
 	DPIManager _dpiManager;
 
+	generic_string static getSpecialFolderLocation(int folderKind);
+
 
 private:
 	NppParameters();
@@ -1548,42 +1559,51 @@ private:
 
 	static NppParameters *_pSelf;
 
-	TiXmlDocument *_pXmlDoc, *_pXmlUserDoc, *_pXmlUserStylerDoc, *_pXmlUserLangDoc,\
-		*_pXmlToolIconsDoc, *_pXmlShortcutDoc, *_pXmlSessionDoc,\
-		*_pXmlBlacklistDoc;
-
+	TiXmlDocument *_pXmlDoc = nullptr;
+	TiXmlDocument *_pXmlUserDoc = nullptr;
+	TiXmlDocument *_pXmlUserStylerDoc = nullptr;
+	TiXmlDocument *_pXmlUserLangDoc = nullptr;
+	TiXmlDocument *_pXmlToolIconsDoc = nullptr;
+	TiXmlDocument *_pXmlShortcutDoc = nullptr;
+	TiXmlDocument *_pXmlSessionDoc = nullptr;
+	TiXmlDocument *_pXmlBlacklistDoc = nullptr;
+	
 	TiXmlDocument *_importedULD[NB_MAX_IMPORTED_UDL];
+
+	TiXmlDocumentA *_pXmlNativeLangDocA = nullptr;
+	TiXmlDocumentA *_pXmlContextMenuDocA = nullptr;
+	
 	int _nbImportedULD;
 
-	TiXmlDocumentA *_pXmlNativeLangDocA, *_pXmlContextMenuDocA;
+
 
 	std::vector<TiXmlDocument *> _pXmlExternalLexerDoc;
 
 	NppGUI _nppGUI;
 	ScintillaViewParams _svp;
 	Lang *_langList[NB_LANG];
-	int _nbLang;
+	int _nbLang = 0;
 
 	// Recent File History
 	generic_string *_LRFileList[NB_MAX_LRF_FILE];
-	int _nbRecentFile;
-	int _nbMaxRecentFile;
-	bool _putRecentFileInSubMenu;
-	int _recentFileCustomLength;	//	<0: Full File Path Name
-									//	=0: Only File Name
-									//	>0: Custom Entry Length
+	int _nbRecentFile = 0;
+	int _nbMaxRecentFile = 10;
+	bool _putRecentFileInSubMenu = false;
+	int _recentFileCustomLength = RECENTFILES_SHOWFULLPATH;	//	<0: Full File Path Name
+															//	=0: Only File Name
+															//	>0: Custom Entry Length
 
 	FindHistory _findHistory;
 
 	UserLangContainer *_userLangArray[NB_MAX_USER_LANG];
-	int _nbUserLang;
+	int _nbUserLang = 0;
 	generic_string _userDefineLangPath;
 	ExternalLangContainer *_externalLangArray[NB_MAX_EXTERNAL_LANG];
-	int _nbExternalLang;
+	int _nbExternalLang = 0;
 
 	CmdLineParams _cmdLineParams;
 
-	int _fileSaveDlgFilterIndex;
+	int _fileSaveDlgFilterIndex = -1;
 
 	// All Styles (colours & fonts)
 	LexerStylerArray _lexerStylerArray;
@@ -1593,10 +1613,10 @@ private:
 	std::vector<generic_string> _blacklist;
 	PluginList _pluginList;
 
-	HMODULE _hUXTheme;
+	HMODULE _hUXTheme = nullptr;
 
-	WNDPROC _transparentFuncAddr;
-	WNDPROC _enableThemeDialogTextureFuncAddr;
+	WNDPROC _transparentFuncAddr = nullptr;
+	WNDPROC _enableThemeDialogTextureFuncAddr = nullptr;
 	bool _isLocal;
 	bool _isx64 = false; // by default 32-bit
 
@@ -1640,11 +1660,12 @@ private:
 	ScintillaAccelerator * _pScintAccelerator;
 
 	FindDlgTabTitiles _findDlgTabTitiles;
-	bool _asNotepadStyle;
+	bool _asNotepadStyle = false;
 
 	winVer _winVersion;
+	Platform _platForm;
 
-	NativeLangSpeaker *_pNativeLangSpeaker;
+	NativeLangSpeaker *_pNativeLangSpeaker = nullptr;
 
 	COLORREF _currentDefaultBgColor;
 	COLORREF _currentDefaultFgColor;
@@ -1714,4 +1735,5 @@ private:
 	void initScintillaKeys();	//these functions have to be called first before any modifications are loaded
 	int getCmdIdFromMenuEntryItemName(HMENU mainMenuHadle, generic_string menuEntryName, generic_string menuItemName); // return -1 if not found
 	int getPluginCmdIdFromMenuEntryItemName(HMENU pluginsMenu, generic_string pluginName, generic_string pluginCmdName); // return -1 if not found
+	winVer getWindowsVersion();
 };

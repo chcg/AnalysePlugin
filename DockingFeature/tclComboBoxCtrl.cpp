@@ -41,11 +41,11 @@ tclComboBoxCtrl::~tclComboBoxCtrl(){
    mhMyCtrl =0;
 }
 
-void tclComboBoxCtrl::addText2Combo(const TCHAR * txt2add, bool isUTF8, bool lastAsFirst, bool addAlways)
+void tclComboBoxCtrl::addText2Combo(const TCHAR * txt2add, bool /*isUTF8*/, bool lastAsFirst, bool addAlways)
 {   
    if (!mhMyCtrl) return;
    if ((txt2add==0)) return; 
-   int i = 0;
+   LRESULT i = 0;
    if(*txt2add==0) {
       DBG1("addText2Combo() adding zero length text! in %d", ::GetDlgCtrlID(mhMyCtrl));
    }
@@ -73,7 +73,7 @@ void tclComboBoxCtrl::clearSelection()
    (void)::SendMessage(mhMyCtrl, CB_SETCURSEL, -1, 0);
 }
 
-generic_string tclComboBoxCtrl::getComboTextList(bool isUTF8) const {
+generic_string tclComboBoxCtrl::getComboTextList(bool /*isUTF8*/) const {
    TCHAR text[MAX_CHAR_CELL];
    generic_string s;
 
@@ -103,7 +103,7 @@ generic_string tclComboBoxCtrl::getComboTextList(bool isUTF8) const {
    return s;
 }
 
-generic_string tclComboBoxCtrl::getTextFromCombo(bool isUnicode) const
+generic_string tclComboBoxCtrl::getTextFromCombo(bool /*isUnicode*/) const
 {   
    TCHAR str[MAX_CHAR_CELL];
    ::SendMessage(mhMyCtrl, WM_GETTEXT, MAX_CHAR_CELL - 1, (LPARAM)str);
@@ -129,7 +129,7 @@ void tclComboBoxCtrl::addInitialText2Combo(int argc, const TCHAR** argv, bool is
    if((argc == 0)||(argv ==0))
       return;
    ::SendMessage(mhMyCtrl, CB_RESETCONTENT, 0, 0);
-   int count = ::SendMessage(mhMyCtrl, CB_GETCOUNT, 0, 0);
+   //mattes int count = ::SendMessage(mhMyCtrl, CB_GETCOUNT, 0, 0);
 
    for(int ri = 0; ri < argc ; ++ri) {
       if((argv[ri]) && (*argv[ri])) {

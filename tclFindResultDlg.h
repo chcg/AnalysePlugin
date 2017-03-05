@@ -44,7 +44,7 @@ public:
 
    void setParent(MyPlugin* parent);
 
-   void setCodePage(int cp);
+   void setCodePage(WPARAM cp);
 
    void setLineNumColSize(int size); 
 
@@ -128,7 +128,7 @@ protected :
    // identify the file to which the result shall be stored
    void doSaveToFile();
    // message call back method
-   virtual BOOL CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
+   virtual INT_PTR CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
 
    /** 
    this function sends the series of commands to 

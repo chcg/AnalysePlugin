@@ -131,7 +131,7 @@ protected:
    generic_string getCell(int item, int column) const;
    void updateRow(int item, const tclPattern& rp);
    void updateCell(int item, int column, const generic_string& s);
-   void updateRowColor(int item, const tclPattern& rp);
+   //void updateRowColor(int item, const tclPattern& rp);
 
    HWND mhList;
 };

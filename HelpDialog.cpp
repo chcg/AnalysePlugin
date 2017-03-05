@@ -39,7 +39,7 @@ void HelpDlg::doDialog(int FuncCmdId)
 }
 
 
-BOOL CALLBACK HelpDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK HelpDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM /*lParam*/)
 {
    switch (Message) 
    {
@@ -130,7 +130,7 @@ void HelpDlg::resizeWindow() {
       redraw();
    }
 }
-BOOL CALLBACK HelpDlg::run_dlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK HelpDlg::run_dlgProc(HWND /*hwnd*/, UINT Message, WPARAM wParam, LPARAM lParam)
 {
    return run_dlgProc(Message, wParam, lParam);
 }

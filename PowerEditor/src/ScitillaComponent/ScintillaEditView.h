@@ -35,7 +35,7 @@
 #include "Buffer.h"
 #include "colors.h"
 // Mattes: not in AP: #include "UserDefineDialog.h" 
-#include "xpm_icons.h"
+#include "rgba_icons.h"
 #include <unordered_map>
 
 #ifndef WM_MOUSEWHEEL
@@ -99,9 +99,17 @@ const int CP_GREEK = 1253;
 const bool fold_uncollapse = true;
 const bool fold_collapse = false;
 
-const bool UPPERCASE = true;
-const bool LOWERCASE = false;
-
+enum TextCase : UCHAR
+{
+	UPPERCASE,
+	LOWERCASE,
+	TITLECASE_FORCE,
+	TITLECASE_BLEND,
+	SENTENCECASE_FORCE,
+	SENTENCECASE_BLEND,
+	INVERTCASE,
+	RANDOMCASE
+};
 
 const UCHAR MASK_FORMAT = 0x03;
 const UCHAR MASK_ZERO_LEADING = 0x04;
@@ -114,8 +122,9 @@ const UCHAR BASE_02 = 0x03; // Bin
 const int MARK_BOOKMARK = 24;
 const int MARK_HIDELINESBEGIN = 23;
 const int MARK_HIDELINESEND = 22;
-//const int MARK_LINEMODIFIEDUNSAVED = 21;
-//const int MARK_LINEMODIFIEDSAVED = 20;
+const int MARK_HIDELINESUNDERLINE = 21;
+//const int MARK_LINEMODIFIEDUNSAVED = 20;
+//const int MARK_LINEMODIFIEDSAVED = 19;
 // 24 - 16 reserved for Notepad++ internal used
 // 15 - 0  are free to use for plugins
 
@@ -284,9 +293,9 @@ public:
 			getGenericText(str, strLen, startPos, caretPos);
 	};
 
-    void doUserDefineDlg(bool willBeShown = true, bool isRTL = false) {
-        // Mattes _userDefineDlg.doDialog(willBeShown, isRTL);
-    };
+    // Mattes void doUserDefineDlg(bool willBeShown = true, bool isRTL = false) {
+    //    _userDefineDlg.doDialog(willBeShown, isRTL);
+    //};
 
    // Mattes static UserDefineDialog * getUserDefineDlg() {return &_userDefineDlg;}; // Mattes: not in AP
 
@@ -311,9 +320,11 @@ public:
         else
 		{
 			int width = 3;
-			if (whichMarge == _SC_MARGE_SYBOLE || whichMarge == _SC_MARGE_FOLDER)
-				width = 14;
-            execute(SCI_SETMARGINWIDTHN, whichMarge, willBeShowed?width:0);
+			if (whichMarge == _SC_MARGE_SYBOLE)
+				width = 16; //Mattes NppParameters::getInstance()->_dpiManager.scaleX(100) >= 150 ? 20 : 16;
+			else if (whichMarge == _SC_MARGE_FOLDER)
+				width = 14; //Mattes NppParameters::getInstance()->_dpiManager.scaleX(100) >= 150 ? 18 : 14;
+			execute(SCI_SETMARGINWIDTHN, whichMarge, willBeShowed ? width : 0);
 		}
     };
 
@@ -369,7 +380,7 @@ public:
 	};
 
 	void showIndentGuideLine(bool willBeShowed = true) {
-		execute(SCI_SETINDENTATIONGUIDES, (WPARAM)willBeShowed?(SC_IV_LOOKBOTH):(SC_IV_NONE));
+		execute(SCI_SETINDENTATIONGUIDES, willBeShowed ? SC_IV_LOOKBOTH : SC_IV_NONE);
 	};
 
 	bool isShownIndentGuide() const {
@@ -377,7 +388,7 @@ public:
 	};
 
     void wrap(bool willBeWrapped = true) {
-        execute(SCI_SETWRAPMODE, (WPARAM)willBeWrapped);
+        execute(SCI_SETWRAPMODE, willBeWrapped);
     };
 
     bool isWrap() const {
@@ -452,14 +463,14 @@ public:
 		return true;
 	};
 
-	long getSelectedLength() const
+	long getUnicodeSelectedLength() const
 	{
 		// return -1 if it's multi-selection or rectangle selection
 		if ((execute(SCI_GETSELECTIONS) > 1) || execute(SCI_SELECTIONISRECTANGLE))
 			return -1;
 		auto size_selected = execute(SCI_GETSELTEXT);
 		char *selected = new char[size_selected + 1];
-		execute(SCI_GETSELTEXT, (WPARAM)0, (LPARAM)selected);
+		execute(SCI_GETSELTEXT, 0, reinterpret_cast<LPARAM>(selected));
 		char *c = selected;
 		long length = 0;
 		while(*c != '\0')
@@ -518,7 +529,8 @@ public:
     void currentLinesUp() const;
     void currentLinesDown() const;
 
-	void convertSelectedTextTo(bool Case);
+	void changeCase(__inout wchar_t * const strWToConvert, const int & nbChars, const TextCase & caseToConvert) const;
+	void convertSelectedTextTo(const TextCase & caseToConvert);
 	void setMultiSelections(const ColumnModeInfos & cmi);
 
     void convertSelectedTextToLowerCase() {
@@ -539,6 +551,16 @@ public:
 		else
 #endif // Mattes
 			execute(SCI_UPPERCASE);
+	};
+
+	void convertSelectedTextToNewerCase(const TextCase & caseToConvert) {
+		// if system is w2k or xp
+#if 0 // Mattes
+		if ((NppParameters::getInstance())->isTransparentAvailable())
+			convertSelectedTextTo(caseToConvert);
+		else
+#endif // Mattes
+			::MessageBox(_hSelf, TEXT("This function needs a newer OS version."), TEXT("Change Case Error"), MB_OK | MB_ICONHAND);
 	};
 
 	void collapse(int level2Collapse, bool mode);
@@ -567,7 +589,7 @@ public:
 		execute(SCI_INDICATORCLEARRANGE, docStart, docEnd-docStart);
 	};
 
-	static LanguageName ScintillaEditView::langNames[L_EXTERNAL+1];
+	static LanguageName ScintillaEditView::langNames[L_EXTERNAL+1]; // Mattes ScintillaEditView:: added
 
 	void bufferUpdated(Buffer * buffer, int mask);
 	BufferID getCurrentBufferID() { return _currentBufferID; };
@@ -602,6 +624,11 @@ public:
 	};
 
 	void defineDocType(LangType typeDoc);	//setup stylers for active document
+
+	void addCustomWordChars();
+	void restoreDefaultWordChars();
+	void setWordChars();
+
 	void mouseWheel(WPARAM wParam, LPARAM lParam) {
 		scintillaNew_Proc(_hSelf, WM_MOUSEWHEEL, wParam, lParam);
 	};
@@ -654,6 +681,8 @@ protected:
 
 	int _beginSelectPosition = -1;
 
+	static std::string _defaultCharList;
+
 //Lexers and Styling
 	void restyleBuffer();
 	const char * getCompleteKeywordList(std::basic_string<char> & kwl, LangType langType, int keywordIndex);
@@ -702,9 +731,9 @@ protected:
 
 
 	void setSqlLexer() {
-      const bool kbBackSlash = true; // Mattes  NppParameters::getInstance()->getNppGUI()._backSlashIsEscapeCharacterForSql;
-		execute(SCI_SETPROPERTY, (WPARAM)"sql.backslash.escapes", kbBackSlash ? (LPARAM)"1" : (LPARAM)"0");
+		const bool kbBackSlash = true; // Mattes  NppParameters::getInstance()->getNppGUI()._backSlashIsEscapeCharacterForSql;
 		setLexer(SCLEX_SQL, L_SQL, LIST_0);
+		execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("sql.backslash.escapes"), reinterpret_cast<LPARAM>(kbBackSlash ? "1" : "0"));
 	};
 
 	void setBashLexer() {
@@ -849,6 +878,23 @@ protected:
 
     void setCoffeeScriptLexer() {
 		setLexer(SCLEX_COFFEESCRIPT, L_COFFEESCRIPT, LIST_0 | LIST_1 | LIST_2  | LIST_3);
+	};
+
+	void setBaanCLexer() {
+		setLexer(SCLEX_BAAN, L_BAANC, LIST_0 | LIST_1);
+		execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("styling.within.preprocessor"), reinterpret_cast<LPARAM>("1"));
+	};
+
+	void setSrecLexer() {
+		setLexer(SCLEX_SREC, L_SREC, LIST_NONE);
+	};
+
+	void setIHexLexer() {
+		setLexer(SCLEX_IHEX, L_IHEX, LIST_NONE);
+	};
+
+	void setTEHexLexer() {
+		setLexer(SCLEX_TEHEX, L_TEHEX, LIST_NONE);
 	};
 
     //--------------------

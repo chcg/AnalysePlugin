@@ -136,11 +136,12 @@ void FindDlg::doSearch() {
    }
 }
 
-BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) {
+INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) {
    static bool bDoTrace = false; // make break point and set to true to activate trace
    if(bDoTrace) {
       DBG3("FindDlg::run_dlgProc(0x%08x, 0x%08x, 0x%08x)", message, wParam, lParam);
    }
+   // TODO check if this need to be added here
    if (message == WM_COMMAND) {
       if (wParam == IDC_SHOW_ADDCTXDLG) {
          int i = 0;
@@ -164,7 +165,7 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) {
             _pBgColour->redraw();
          }
          // specialty to shortcut transfer...
-         setNumOfCfgFiles(wParam);
+         setNumOfCfgFiles((unsigned int)wParam);
          break;
       }
    case WM_COMMAND : 
@@ -225,7 +226,7 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) {
                tmp.push_back(MenuItemUnit(IDC_CTXCFG_LOADEND, TEXT("Append file...")));
                if(_lastConfigFiles.size()) {
                   tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
-                  for(size_t i = 0; i < _lastConfigFiles.size(); ++i) {
+                  for(int i = 0; i < (int)_lastConfigFiles.size(); ++i) {
                      TCHAR name[MAX_PATH];
                      ::GetFileTitle(_lastConfigFiles[i].c_str(), name, COUNTCHAR(name));
                      tmp.push_back(MenuItemUnit(IDC_CTXCFG_LOADX_0 + i, name));
@@ -413,8 +414,8 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) {
             {
                if(wParam >= IDC_CTXCFG_LOADX_0 && wParam < IDC_CTXCFG_LOADX_E) {
                   // context menu to load special config files
-                  int i = wParam - IDC_CTXCFG_LOADX_0;
-                  if (i < (int)_lastConfigFiles.size()) {
+                  WPARAM i = wParam - IDC_CTXCFG_LOADX_0;
+                  if (i < _lastConfigFiles.size()) {
                      setConfigFileName(_lastConfigFiles[i]); // will by this remove this instance and add it at pos 0
                      loadConfigFile(_lastConfigFiles[0].c_str()); // so we take it from there
                   }
@@ -427,7 +428,7 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) {
                   {
                      if ((HWND)lParam == _pFgColour->getHSelf())
                      {  
-                        unsigned long u = _pFgColour->getColour();
+						DBGDEF(unsigned long u = _pFgColour->getColour();)
                         DBG2("run_dlgProc() COLOURPICKED 0x%X", u, tclPattern::convColor2Str(tclPattern::convColorNum2Enum(u)));
                         //updateColour(C_FOREGROUND);
                         //notifyDataModified();
@@ -443,7 +444,7 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) {
                      }
                      else if ((HWND)lParam == _pBgColour->getHSelf())
                      {
-                        unsigned long u = _pBgColour->getColour();
+						DBGDEF(unsigned long u = _pBgColour->getColour();)
                         DBG2("run_dlgProc() COLOURPICKED 0x%X", u, tclPattern::convColor2Str(tclPattern::convColorNum2Enum(u)));
                         //	updateColour(C_BACKGROUND);
                         //	notifyDataModified();
@@ -517,7 +518,7 @@ BOOL CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) {
       }
    case WM_DRAWITEM:
       {
-         DRAWITEMSTRUCT *pdis = (DRAWITEMSTRUCT *)lParam;
+		 DBGDEF(DRAWITEMSTRUCT *pdis = (DRAWITEMSTRUCT *)lParam;)
          //if(IDC_LIST_CONF == pdis->CtlID) {
             DBG1("WM_DRAWITEM: paint request for item %d", pdis->itemID);
          //}
@@ -1237,10 +1238,10 @@ void FindDlg::SetModified(bool bModified) {
 }
 
 void CALLBACK FindDlg::MyTimerProc( 
-    HWND hwnd,        // handle to window for timer messages 
-    UINT message,     // WM_TIMER message 
+    HWND /*hwnd*/,        // handle to window for timer messages 
+    UINT /*message*/,     // WM_TIMER message 
     UINT idTimer,     // timer identifier 
-    DWORD dwTime)     // current system time 
+    DWORD /*dwTime*/)     // current system time 
 { 
    DBG2("MyTimerProc() _ModifiedMode=%d, correct ID? %s",_ModifiedMode,(idTimer == IDT_ANALYSEPLG_TIMER)?"YES":"NO");
    if(idTimer == IDT_ANALYSEPLG_TIMER) {

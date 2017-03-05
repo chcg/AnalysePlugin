@@ -175,7 +175,7 @@ const TCHAR* TiXmlBase::SkipWhiteSpace( const TCHAR* p )
 		int c = in->peek();
 		if ( !IsWhiteSpace( c ) )
 			return true;
-		*tag += (TCHAR)in->get();
+		*tag += static_cast<TCHAR>(in->get());
 	}
 }
 
@@ -188,7 +188,7 @@ const TCHAR* TiXmlBase::SkipWhiteSpace( const TCHAR* p )
 			return true;
 
 		in->get();
-		*tag += (TCHAR)c;
+		*tag += static_cast<TCHAR>(c);
 	}
 	return false;
 }
@@ -232,10 +232,11 @@ const TCHAR* TiXmlBase::GetEntity( const TCHAR* p, TCHAR* value )
 		const TCHAR* end = generic_strchr(p+3, TEXT(';'));
 		if (end && end - p <= 3 + 4)
 		{
-			int val;
-			if (generic_sscanf(p+3, TEXT("%x"), &val) == 1)
+			TCHAR* hexend;
+			auto val = generic_strtol(p + 3, &hexend, 16);
+			if (hexend == end)
 			{
-				*value = (TCHAR)val;
+				*value = static_cast<TCHAR>(val);
 				return end + 1;
 			}
 		}
@@ -383,7 +384,7 @@ void TiXmlDocument::StreamIn( TIXML_ISTREAM * in, TIXML_STRING * tag )
 		while ( in->good() && in->peek() != '>' )
 		{
 			int c = in->get();
-			(*tag) += (TCHAR) c;
+			(*tag) += static_cast<TCHAR>(c);
 		}
 
 		if ( in->good() )
@@ -577,7 +578,7 @@ void TiXmlElement::StreamIn (TIXML_ISTREAM * in, TIXML_STRING * tag)
 	while( in->good() )
 	{
 		int c = in->get();
-		(*tag) += (TCHAR) c ;
+		(*tag) += static_cast<TCHAR>(c);
 		
 		if ( c == '>' )
 			break;
@@ -635,7 +636,7 @@ void TiXmlElement::StreamIn (TIXML_ISTREAM * in, TIXML_STRING * tag)
 				if ( c == '>' )
 					break;
 
-				*tag += (TCHAR)c;
+				*tag += static_cast<TCHAR>(c);
 				in->get();
 
 				if ( !firstCharFound && c != '<' && !IsWhiteSpace( c ) )
@@ -651,7 +652,7 @@ void TiXmlElement::StreamIn (TIXML_ISTREAM * in, TIXML_STRING * tag)
 			{
 				int c = in->get();
 				assert( c == '>' );
-				*tag += (TCHAR)c;
+				*tag += static_cast<TCHAR>(c);
 
 				// We are done, once we've found our closing tag.
 				return;
@@ -800,7 +801,7 @@ const TCHAR* TiXmlElement::ReadValue( const TCHAR* p, TiXmlParsingData* data )
 	TiXmlDocument* document = GetDocument();
 
 	// Read in text and elements in any order.
-   if (IsWhiteSpaceCondensed()) p = SkipWhiteSpace(p);
+   if (IsWhiteSpaceCondensed()) p = SkipWhiteSpace(p); // Mattes, bugfix preserving spaces from xml
 	while ( p && *p )
 	{
 		if ( *p != '<' )
@@ -860,7 +861,7 @@ void TiXmlUnknown::StreamIn( TIXML_ISTREAM * in, TIXML_STRING * tag )
 	while ( in->good() )
 	{
 		int c = in->get();	
-		(*tag) += (TCHAR)c;
+		(*tag) += static_cast<TCHAR>(c);
 
 		if ( c == '>' )
 		{
@@ -912,7 +913,7 @@ void TiXmlComment::StreamIn( TIXML_ISTREAM * in, TIXML_STRING * tag )
 	while ( in->good() )
 	{
 		int c = in->get();	
-		(*tag) += (TCHAR)c;
+		(*tag) += static_cast<TCHAR>(c);
 
 		if ( c == '>' 
 			 && tag->at( tag->length() - 2 ) == '-'
@@ -1031,7 +1032,7 @@ void TiXmlText::StreamIn( TIXML_ISTREAM * in, TIXML_STRING * tag )
 		if ( c == '<' )
 			return;
 
-		(*tag) += (TCHAR)c;
+		(*tag) += static_cast<TCHAR>(c);
 		in->get();
 	}
 }
@@ -1061,7 +1062,7 @@ void TiXmlDeclaration::StreamIn( TIXML_ISTREAM * in, TIXML_STRING * tag )
 	while ( in->good() )
 	{
 		int c = in->get();
-		(*tag) += (TCHAR)c;
+		(*tag) += static_cast<TCHAR>(c);
 
 		if ( c == '>' )
 		{

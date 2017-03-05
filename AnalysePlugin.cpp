@@ -108,7 +108,7 @@ void MenuShowConfigDialog () {
 
 BOOL AnalysePlugin::dllmain(HANDLE hModule, 
                             DWORD  reasonForCall, 
-                            LPVOID lpReserved )
+                            LPVOID /*lpReserved*/ )
 {
 
    switch (reasonForCall)
@@ -301,12 +301,12 @@ void AnalysePlugin::saveSettings() {
    generic_itoa(_configDlg.getFontSize(), tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYFONTSIZE, tmp, iniFilePath);
    ::WritePrivateProfileString(SECTIONNAME, KEYMAXNUMOFCFGFILES, _configDlg.getNumOfCfgFilesStr().c_str(), iniFilePath);   
-   size_t maxFiles = _findDlg.getLastConfigFiles().size();
+   int maxFiles = static_cast<int>(_findDlg.getLastConfigFiles().size());
    generic_itoa(maxFiles, tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYNUMOFLASTCFGFILES, tmp, iniFilePath);
    // write the first anyway 
    ::WritePrivateProfileString(SECTIONNAME, KEYLASTSRCHCFGFILE, ((maxFiles)?(_findDlg.getLastConfigFiles().at(0).c_str()):TEXT("")), iniFilePath);
-   for(size_t i = 1; i < maxFiles; ++i) {
+   for(int i = 1; i < maxFiles; ++i) {
       TCHAR num[10];
       generic_string key = generic_string(KEYLASTSRCHCFGFILE) + generic_itoa(i, num, 10);
       ::WritePrivateProfileString(SECTIONNAME, key.c_str() , _findDlg.getLastConfigFiles().at(i).c_str(), iniFilePath);
@@ -482,19 +482,19 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList)
          continue; // next pattern
       }
       // find the pattern
-      unsigned u=0;
       tclResult oldResult = result;
       result.clear();
       const tclPattern& pattern = resultList.getPattern(iResult.getPatId());
       // update please wait controls
       _findDlg.setPleaseWaitProgress(iPatIndex);
+       unsigned u = doFindPattern(pattern, result);
 
-      if (u = doFindPattern(pattern, result)){
+      if (u){
          DBG1("doSearch() %d items found. Update result window.", u);
          _findResult.reserve(u);
          _findResult.removeUnusedResultLines(iResult.getPatId(), oldResult, result);
          tclResult::tlvPosInfo::const_iterator it = result.getPositions().begin();
-         int erasedLen = 0;
+         //int erasedLen = 0;
          int lcount = (int)execute(scnActiveHandle, SCI_GETLINECOUNT);
          unsigned cp = (unsigned)execute(scnActiveHandle, SCI_GETCODEPAGE); // TODO hier sollte die CP vom result window genutzt werden
          WcharMbcsConvertor* wmc = WcharMbcsConvertor::getInstance();
@@ -508,7 +508,7 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList)
                   lcount, it->line, it->start, it->end);
                continue;
             }
-            int resultLine = _findResult.insertPosInfo(iResult.getPatId(), it->line, *it);
+            /*int resultLine =*/ _findResult.insertPosInfo(iResult.getPatId(), it->line, *it);
             int lend = (int)execute(scnActiveHandle, SCI_GETLINEENDPOSITION, it->line);
             int lstart = (int)execute(scnActiveHandle, SCI_POSITIONFROMLINE, it->line);
             int lineLength = lend - lstart; // formerly nbChar
@@ -601,7 +601,7 @@ void AnalysePlugin::beNotified(SCNotification *notification)
    case SCN_SAVEPOINTREACHED:DBG0("beNotified() SCN_SAVEPOINTREACHED");break;
    case NPPN_FILEBEFOREOPEN:DBG0("beNotified() NPPN_FILEBEFOREOPEN");break;
    case NPPN_FILEOPENED:DBG0("beNotified() NPPN_FILEOPENED");break;
-   case NPPN_BUFFERACTIVATED:DBG1("beNotified() NPPN_BUFFERACTIVATED BufferID = %d", notification->nmhdr.idFrom);break;
+   case NPPN_BUFFERACTIVATED:DBG1("beNotified() NPPN_BUFFERACTIVATED BufferID = %p", notification->nmhdr.idFrom);break;
    case SCN_UPDATEUI:
       {
          if (((notification->updated & SC_UPDATE_V_SCROLL) != 0) && _configDlg.getIsSyncScroll() ) {
@@ -784,7 +784,7 @@ generic_string AnalysePlugin::convertExtendedToString(const generic_string& quer
    return result;
 }
 
-bool AnalysePlugin::readBase(const generic_string& str, int curPos, int * value, int base, int size) {
+bool AnalysePlugin::readBase(const generic_string& str, int /*curPos*/, int * value, int base, int size) {
     int i = 0, temp = 0;
     *value = 0;
     TCHAR mx = '0' + (TCHAR)base - 1;
@@ -886,7 +886,7 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
     unsigned int cp = (unsigned int)execute(scnActiveHandle, SCI_GETCODEPAGE); 
     const char *text2FindA = wmc->wchar2char(text.c_str(), cp);
     size_t text2FindALen = strlen(text2FindA);
-    targetStart = execute(scnActiveHandle, SCI_SEARCHINTARGET, 
+    targetStart = (int)execute(scnActiveHandle, SCI_SEARCHINTARGET, 
       (WPARAM)text2FindALen, 
       (LPARAM)text2FindA);
 #else
@@ -994,7 +994,7 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
       nbProcessed++;
       // do next search
 #ifdef UNICODE
-       targetStart = execute(scnActiveHandle, SCI_SEARCHINTARGET, 
+       targetStart = (int)execute(scnActiveHandle, SCI_SEARCHINTARGET, 
          (WPARAM)text2FindALen, 
          (LPARAM)text2FindA);
 #else
@@ -1017,7 +1017,7 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
    return nbProcessed;
 }
 
-void AnalysePlugin::doStyleFormating(HWND hCurrentEditView, int startPos, int endPos) 
+void AnalysePlugin::doStyleFormating(HWND hCurrentEditView, int /*startPos*/, int /*endPos*/) 
 {
    // get the result list, including all positions 
    // get the pattern list including all the styles
@@ -1069,7 +1069,7 @@ void AnalysePlugin::setInfo(NppData notpadPlusData)
    _findResult.init(_hModule, nppData._nppHandle);
    _helpDlg.init(_hModule, nppData);
 #ifdef HOOK_INTO_WNDPROC
-   wndProcNotepad = (WNDPROC)SetWindowLongPtr(nppData._nppHandle, GWL_WNDPROC, (LPARAM)SubWndProcNotepad);
+   wndProcNotepad = (WNDPROC)SetWindowLongPtr(nppData._nppHandle, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(SubWndProcNotepad)); // TODO check if change is correct
 #endif
 }
 
@@ -1103,7 +1103,7 @@ void AnalysePlugin::showFindDlg ()
    if(_findDlg.isCreated() || gbPluginVisible) {
       //MessageBox(NULL, (bVisible?"true":"false"), "bVisible", 0);
       tTbData   data = {0};
-      RECT rect={0,0,0,0};
+      //RECT rect={0,0,0,0};
       if (!_findDlg.isCreated())
       {
          _findDlg.create(&data);
@@ -1145,7 +1145,7 @@ void AnalysePlugin::visibleChanged(bool isVisible)
    execute(nppHandle, NPPM_SETMENUITEMCHECK, funcItem[SHOWFINDDLG]._cmdID, (LPARAM)isVisible);
 }
 
-LRESULT AnalysePlugin::messageProc(UINT Message, WPARAM wParam, LPARAM lParam)
+LRESULT AnalysePlugin::messageProc(UINT /*Message*/, WPARAM /*wParam*/, LPARAM /*lParam*/)
 {
    // Here you can process the Npp Messages 
    // I will make the messages accessible little by little, according to the need of plugin development.
@@ -1162,9 +1162,9 @@ LRESULT AnalysePlugin::messageProc(UINT Message, WPARAM wParam, LPARAM lParam)
 }
 
 void AnalysePlugin::addSelectionToPatterns() {
-   int textLength = execute(scnActiveHandle, SCI_GETSELTEXT);
+   int textLength = (int)execute(scnActiveHandle, SCI_GETSELTEXT);
    if (textLength == 0) {
-      ::MessageBox(getCurrentHScintilla(scnActiveHandle), TEXT("Please select a text or text block to be tken as patterns."), TEXT("AnalysePlugin Selection to Patterns"), MB_OK);
+      ::MessageBox(getCurrentHScintilla(scnActiveHandle), TEXT("Please select a text or text block to be taken as patterns."), TEXT("AnalysePlugin Selection to Patterns"), MB_OK);
       return;
    } 
    char* pc = new char[textLength];

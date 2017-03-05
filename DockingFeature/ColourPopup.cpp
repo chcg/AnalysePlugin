@@ -79,18 +79,14 @@ INT_PTR CALLBACK ColourPopup::dlgProc(HWND hwnd, UINT message, WPARAM wParam, LP
       {
          ColourPopup *pColourPopup = (ColourPopup *)(lParam);
          pColourPopup->_hSelf = hwnd;
-#pragma warning (disable:4244)
-         ::SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)lParam);
-#pragma warning (default:4244)
+         ::SetWindowLongPtr(hwnd, GWLP_USERDATA, lParam);
          pColourPopup->run_dlgProc(message, wParam, lParam);
          return TRUE;
       }
 
    default :
       {
-#pragma warning (disable:4312)
-         ColourPopup *pColourPopup = reinterpret_cast<ColourPopup *>(::GetWindowLongPtr(hwnd, GWL_USERDATA));
-#pragma warning (default:4312)
+         ColourPopup *pColourPopup = reinterpret_cast<ColourPopup *>(::GetWindowLongPtr(hwnd, GWLP_USERDATA)); // TODO check if GWLP_ or GWL_ is correct
          if (!pColourPopup)
             return FALSE;
          return pColourPopup->run_dlgProc(message, wParam, lParam);

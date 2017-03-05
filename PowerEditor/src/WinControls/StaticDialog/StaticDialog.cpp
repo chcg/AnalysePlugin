@@ -118,14 +118,14 @@ HGLOBAL StaticDialog::makeRTLResource(int dialogID, DLGTEMPLATE **ppMyDlgTemplat
 	if (!hDlgTemplate)
 		return NULL;
 
-	DLGTEMPLATE *pDlgTemplate = reinterpret_cast<DLGTEMPLATE *>(::LockResource(hDlgTemplate));
+	DLGTEMPLATE *pDlgTemplate = static_cast<DLGTEMPLATE *>(::LockResource(hDlgTemplate));
 	if (!pDlgTemplate)
 		return NULL;
 
 	// Duplicate Dlg Template resource
 	unsigned long sizeDlg = ::SizeofResource(_hInst, hDialogRC);
 	HGLOBAL hMyDlgTemplate = ::GlobalAlloc(GPTR, sizeDlg);
-	*ppMyDlgTemplate = reinterpret_cast<DLGTEMPLATE *>(::GlobalLock(hMyDlgTemplate));
+	*ppMyDlgTemplate = static_cast<DLGTEMPLATE *>(::GlobalLock(hMyDlgTemplate));
 
 	::memcpy(*ppMyDlgTemplate, pDlgTemplate, sizeDlg);
 
@@ -184,10 +184,10 @@ INT_PTR CALLBACK StaticDialog::dlgProc(HWND hwnd, UINT message, WPARAM wParam, L
 			if (!pStaticDlg)
 				return FALSE;
           //mattes begin
-         BOOL lResult = pStaticDlg->run_dlgProc(message, wParam, lParam);
+         INT_PTR lResult = pStaticDlg->run_dlgProc(message, wParam, lParam);
          if (lResult!= 0){
             // this function transfers the return value around dialogue proc using only bool
-            SetWindowLong(hwnd, DWL_MSGRESULT, lResult); 
+            SetWindowLongPtr(hwnd, DWLP_MSGRESULT, lResult);  // TODO check if change from SetWindowLong(hwnd, DWL_MSGRESULT, lResult);  was correct
             return TRUE;
          }
          return lResult;

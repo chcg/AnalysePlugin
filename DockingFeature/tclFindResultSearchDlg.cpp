@@ -144,7 +144,7 @@ int tclFindResultSearchDlg::doFindText(int start, int end/*, bool bDownWards*/) 
    unsigned int cp = (unsigned int)_pSearchResultView->execute(SCI_GETCODEPAGE); 
    const char *text2FindA = wmc->wchar2char(p.getSearchText().c_str(), cp);
    size_t text2FindALen = strlen(text2FindA);
-   targetStart = _pSearchResultView->execute(SCI_SEARCHINTARGET, 
+   targetStart = (int)_pSearchResultView->execute(SCI_SEARCHINTARGET, 
       (WPARAM)text2FindALen, 
       (LPARAM)text2FindA);
 #else
@@ -177,8 +177,8 @@ void tclFindResultSearchDlg::doFindFirst() {
    if(startRange != -1) {
       int targetEnd = (int)_pSearchResultView->execute(SCI_GETTARGETEND);
       markFoundText(startRange, targetEnd);
-      int lineNumber = (int)_pSearchResultView->execute(SCI_LINEFROMPOSITION, startRange);
-      int foundTextLen = targetEnd - startRange;
+      DBGDEF(int lineNumber = (int)_pSearchResultView->execute(SCI_LINEFROMPOSITION, startRange);)
+      DBGDEF(int foundTextLen = targetEnd - startRange;)
       DBG2("doFindFirst() text found in line %d with %d chars length", lineNumber, foundTextLen);
    } else {
       ::MessageBox(_hSelf, TEXT("Can' find the text!"), TEXT("Find in Result"), MB_OK);
@@ -239,8 +239,8 @@ void tclFindResultSearchDlg::doFindNext(bool bSearchDown, bool bDoWrap) {
    if(startRange != -1) {
       int targetEnd = (int)_pSearchResultView->execute(SCI_GETTARGETEND);
       markFoundText(startRange, targetEnd);
-      int lineNumber = (int)_pSearchResultView->execute(SCI_LINEFROMPOSITION, startRange);
-      int foundTextLen = targetEnd - startRange;
+      DBGDEF(int lineNumber = (int)_pSearchResultView->execute(SCI_LINEFROMPOSITION, startRange);)
+      DBGDEF(int foundTextLen = targetEnd - startRange;)
       DBG2("doFindNext() text found in line %d with %d chars length", lineNumber, foundTextLen);
    } else {
       ::MessageBox(_hSelf, TEXT("Can' find the text!"), TEXT("Find in Result"), MB_OK);
@@ -279,7 +279,7 @@ void tclFindResultSearchDlg::setdefaultPattern(const tclPattern& p) {
    mDefPat = p;
 }
 
-BOOL CALLBACK tclFindResultSearchDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK tclFindResultSearchDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
 {
    //DBG1("run_dlgProc() message 0x%04x", Message);
    BOOL ret = 0; // true if message processed (2 incase of custom draw feature)
@@ -357,7 +357,7 @@ BOOL CALLBACK tclFindResultSearchDlg::run_dlgProc(UINT Message, WPARAM wParam, L
             case NM_CUSTOMDRAW:
             {// NMCUSTOMDRAW 
                LPNMLVCUSTOMDRAW pItem = (LPNMLVCUSTOMDRAW)pscn;
-               if (true /*pscn->nmhdr.hwndFrom == _hSelf*/) {
+			   { // always if (pscn->nmhdr.hwndFrom == _hSelf) {
                   //|| pItem->nmcd.hdr.hwndFrom == g_hList) {
                   //DBG1("NM_CUSTOMDRAW Table reached %s",((pItem->nmcd.hdr.hwndFrom == g_hList)?"Test":"List"));
                   const char* cp;
@@ -407,9 +407,6 @@ BOOL CALLBACK tclFindResultSearchDlg::run_dlgProc(UINT Message, WPARAM wParam, L
                   default:cp1 = "default"; break;
                   };
                   DBGA3("NM_CUSTOMDRAW for item %d : %s | %s", (int)pItem->nmcd.dwItemSpec, cp1, cp);
-               }
-               else { // if handle correct
-                  //DBG0("NM_CUSTOMDRAW for different element");
                }
                //CDRF_NOTIFYITEMDRAW; // CDRF_DODEFAULT;
                break;
