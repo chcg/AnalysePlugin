@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2016 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2017 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO donho(at)altern.org 
 
