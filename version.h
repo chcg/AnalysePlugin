@@ -1,5 +1,5 @@
 /* -------------------------------------
-This file is part of AnalysePlugin for NotePad++ 
+This file is part of AnalysePlugin for NotePad++
 Copyright (C)2011-2017 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
@@ -16,20 +16,14 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
+#pragma once
 
-#ifndef VERSIONINFO_INC
-#define VERSIONINFO_INC
-//
-// this file is generated from versionInfo.tags
-//
-#define SVNREVISION_N $WCREV$
-#define SVNREVINFO    "$WCREV$:$WCRANGE$$WCMODS?+: $"
-#define SVNREVISION   "$WCREV$"
-#define SVNMODIFIED   "$WCMODS?Unclean revision:Clean$"
-#define SVNDATE       "$WCDATE$"
-#define SVNREVRANGE   "$WCRANGE$"
-#define SVNMIXED      "$WCMIXED?Mixed revision:Single revision$"
-#define SVNURL        "$WCURL$"
+// include subversion generated numbers
+#include "versioninfo.inc"
 
-#endif // VERSIONINFO_INC
-
+// version.h
+// writing the version info in several flavours is caused by the fact, that 
+// MS resource compiler is only intepreting one level of macro expansion
+#define VER_FILEVERSION_MAYOR         1
+#define VER_FILEVERSION_MINOR         11
+#define VER_FILEVERSION_STR           "1.11\0"

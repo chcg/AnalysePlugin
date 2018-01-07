@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<! -------------------------------------
+<!-- 
 This file is part of AnalysePlugin for NotePad++ 
 Copyright (C)2011-2017 Matthias H. mattesh(at)gmx.net
 
@@ -16,12 +16,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-------------------------------------->
+-->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
    <xs:element name="AnalyseDoc">
       <xs:complexType>
          <xs:sequence>
-            <xs:element name="Headline" type="xs:string" />
+            <xs:element name="Headline" type="xs:string" minOccurs="0"/>
             <xs:sequence maxOccurs="unbounded">
                <xs:element name="SearchText" nillable="false">
                   <xs:complexType>
@@ -36,7 +36,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
                            <xs:attribute name="italic" type="xs:boolean" default="false" />
                            <xs:attribute name="underlined" type="xs:boolean" default="false" />
                            <xs:attribute name="color" type="tColor" default="black" />
-                           <xs:attribute name="bGcolor" type="tColor" />
+                           <xs:attribute name="bgColor" type="tColor" default="white" />
                            <xs:attribute name="comment" type="xs:string" />
                         </xs:extension>
                      </xs:simpleContent>

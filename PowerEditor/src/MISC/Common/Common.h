@@ -56,6 +56,7 @@ const bool dirDown = false;
 #define generic_itoa _itow
 #define generic_atof _wtof
 #define generic_strtok wcstok
+//#define generic_strtok(a,b) wcstok(a,b,0) // VS 2015
 #define generic_strftime wcsftime
 #define generic_fprintf fwprintf
 #define generic_sprintf swprintf
@@ -189,3 +190,5 @@ generic_string intToString(int val);
 generic_string uintToString(unsigned int val);
 
 HWND CreateToolTip(int toolID, HWND hDlg, HINSTANCE hInst, const PTSTR pszText);
+
+bool isCertificateValidated(const generic_string & fullFilePath, const generic_string & subjectName2check);

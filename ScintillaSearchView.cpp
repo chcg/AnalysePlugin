@@ -54,12 +54,6 @@ const int ScintillaSearchView::transStylePos[MY_STYLE_MASK+1] = {
 void ScintillaSearchView::init(HINSTANCE hInst, HWND hPere)
 {
 #pragma warning(disable:4312 4311)
-    if (!_hLib)
-    {
-        MessageBox( NULL, TEXT("Can not load the dynamic library _hLib==0"), TEXT("ScintillaSearchView ERROR : "), MB_OK | MB_ICONSTOP);
-        throw int(106900);
-    }
-
     Window::init(hInst, hPere);
    _hSelf = ::CreateWindowEx(
                     WS_EX_CLIENTEDGE,\

@@ -1,3 +1,11 @@
+Changes since 1.11
+ - bugfix small correction in xsd to reflect current status
+ - bugfix assertion when Options dialog is opened before findDlg docking window
+ - added version information in Windows properties dialog
+ - synced with source from Notepad++ v7.4.1
+ - added package for both systems 32/64 in one 
+Changes sonce 1.11-preview
+ - added 64bit support and package for both systems 32/64 in one 
 Changes since 1.10
  - bugfix ensure stop of searching if max length of scintilla search window reached
  - bugfix ensure color pop up is fully visible on top left corner

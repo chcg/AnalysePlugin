@@ -27,7 +27,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define MDBG_COMP "APmain:" 
 #include "myDebug.h"
 #include "boostregexsearch.h"
-#include "ScintillaEditView.h"
+// #include "ScintillaEditView.h"
 
 AnalysePlugin g_plugin;
 
@@ -658,13 +658,7 @@ void AnalysePlugin::beNotified(SCNotification *notification)
                   DBG0("AnalysePlugin: SCN_MODIFIED(text) setting SetModified()");
                   _findDlg.SetModified();
                } else {
-                  char name[MAX_PATH];
-#ifdef UNICODE
-                  wcstombs(name, currentfile.c_str(),MAX_PATH);
-#else
-                  strcpy(name, currentfile.c_str());
-#endif
-                  DBG1("AnalysePlugin: SCN_MODIFIED(text) for different file %s", name);
+                  DBG1("AnalysePlugin: SCN_MODIFIED(text) for different file %s", currentfile.c_str());
                }
             }
          }
@@ -1044,6 +1038,9 @@ void AnalysePlugin::showConfigDialog() {
 #ifdef CONFIG_DIALOG
    execute(nppHandle, NPPM_SETMENUITEMCHECK, (WPARAM)funcItem[SHOWCNFGDLG]._cmdID, (LPARAM)true);
    if(!_configDlg.isCreated() && !_configDlg.isConfigured()) {
+      if (!_findDlg.isCreated()) {
+         createFindDlg();
+      }
       // let find dialog decode the ini string as single place
       _findDlg.setDefaultOptions(mDefaultOptions.c_str());
       _configDlg.setDefaultPattern(_findDlg.getDefaultPattern()); 
@@ -1098,26 +1095,35 @@ HWND AnalysePlugin::getCurrentHScintilla(teNppWindows which) const
    } // switch
 }
 
+void AnalysePlugin::createFindDlg()
+{
+   tTbData   data = { 0 };
+   _findDlg.create(&data);
+   // set the diag 
+   _findDlg.setSearchHistory(mSearchHistory.c_str());
+   _findDlg.setCommentHistory(mCommentHistory.c_str());
+   // let finddialog decode the string from the ini file
+   _findDlg.setDefaultOptions(mDefaultOptions.c_str());
+   if (PathFileExists(xmlFilePath) == TRUE) {
+      // load the patterns from last run
+      _findDlg.loadConfigFile(xmlFilePath);
+   }
+   ::SendMessage(nppData._nppHandle, NPPM_DMMREGASDCKDLG, 0, (LPARAM)&data);
+   // Always sync show status, unless npp is not ready yet
+   if (_nppReady) {
+      _findDlg.display(gbPluginVisible);
+   }
+}
+
 void AnalysePlugin::showFindDlg ()
 {
-   if(_findDlg.isCreated() || gbPluginVisible) {
+   if (_findDlg.isCreated() || gbPluginVisible) {
       //MessageBox(NULL, (bVisible?"true":"false"), "bVisible", 0);
-      tTbData   data = {0};
+      tTbData   data = { 0 };
       //RECT rect={0,0,0,0};
-      if (!_findDlg.isCreated())
-      {
-         _findDlg.create(&data);
-         // set the diag 
-         _findDlg.setSearchHistory(mSearchHistory.c_str());
-         _findDlg.setCommentHistory(mCommentHistory.c_str());
-         // let finddialog decode the string from the ini file
-         _findDlg.setDefaultOptions(mDefaultOptions.c_str());
-         if (PathFileExists(xmlFilePath) == TRUE) {
-            // load the patterns from last run
-            _findDlg.loadConfigFile(xmlFilePath);
-         }
-         ::SendMessage(nppData._nppHandle, NPPM_DMMREGASDCKDLG, 0, (LPARAM)&data);
-     }
+      if (!_findDlg.isCreated()) {
+         createFindDlg();
+      }
       if (!_findResult.isCreated())
       {
          ZeroMemory(&data, sizeof(data));

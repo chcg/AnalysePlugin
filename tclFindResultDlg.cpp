@@ -925,7 +925,7 @@ bool tclFindResultDlg::notify(SCNotification *notification)
       break;
    }
    default :
-      int i = notification->nmhdr.code;
+      DBGDEF(int i = notification->nmhdr.code;)
       DBG2("notify() unused notification code %d 0x%x", i, i);
       break;
    }

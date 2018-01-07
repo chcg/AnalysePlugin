@@ -1,6 +1,7 @@
 // Microsoft Visual C++ generated resource script.
 //
 #include "resource.h"
+#include "version.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
@@ -337,6 +338,36 @@ BEGIN
 END
 
 #endif    // APSTUDIO_INVOKED
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     VER_FILEVERSION_MAYOR, VER_FILEVERSION_MINOR, SVNREVISION_N
+FILEFLAGSMASK   0
+FILEFLAGS       0
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_DLL
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+BLOCK "StringFileInfo"
+BEGIN
+BLOCK "040904E4"
+BEGIN
+VALUE "FileDescription", "AnalysePlugin for Notepad++"
+VALUE "LegalCopyright", "Copyright (C)2011-2017"
+VALUE "OriginalFilename", "AnalysePlugin.dll"
+VALUE "ProductName", "AnalysePlugin"
+VALUE "ProductVersion", VER_FILEVERSION_STR
+END
+END
+BLOCK "VarFileInfo"
+BEGIN
+VALUE "Translation", 0x409, 1252
+END
+END
 
 #endif    // German (Germany) resources
 /////////////////////////////////////////////////////////////////////////////

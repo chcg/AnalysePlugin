@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <windows.h>
 #include "StaticDialog.h"
+#include "Common.h"
 
 StaticDialog::~StaticDialog()
 {
@@ -152,10 +153,9 @@ void StaticDialog::create(int dialogID, bool isRTL, bool msgDestParent)
 
 	if (!_hSelf)
 	{
-		DWORD err = ::GetLastError();
-		char errMsg[256];
-		sprintf(errMsg, "CreateDialogParam() return NULL.\rGetLastError() == %u", err);
-		::MessageBoxA(NULL, errMsg, "In StaticDialog::create()", MB_OK);
+		generic_string errMsg = TEXT("CreateDialogParam() return NULL.\rGetLastError(): ");
+		errMsg += GetLastErrorAsString();
+		::MessageBox(NULL, errMsg.c_str(), TEXT("In StaticDialog::create()"), MB_OK);
 		return;
 	}
 
@@ -183,15 +183,15 @@ INT_PTR CALLBACK StaticDialog::dlgProc(HWND hwnd, UINT message, WPARAM wParam, L
 			StaticDialog *pStaticDlg = reinterpret_cast<StaticDialog *>(::GetWindowLongPtr(hwnd, GWLP_USERDATA));
 			if (!pStaticDlg)
 				return FALSE;
-          //mattes begin
+          // Mattes begin
          INT_PTR lResult = pStaticDlg->run_dlgProc(message, wParam, lParam);
          if (lResult!= 0){
             // this function transfers the return value around dialogue proc using only bool
-            SetWindowLongPtr(hwnd, DWLP_MSGRESULT, lResult);  // TODO check if change from SetWindowLong(hwnd, DWL_MSGRESULT, lResult);  was correct
+            SetWindowLongPtr(hwnd, DWLP_MSGRESULT, lResult);
             return TRUE;
          }
          return lResult;
-      } //mattes end
+      } // Mattes end
 	}
 }
 

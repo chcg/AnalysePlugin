@@ -96,9 +96,6 @@ void ConfigDialog::doDialog(int FuncCmdId)
       mCmbOnEnterAction.addInitialText2Combo(max_onEnterAction, transOnEnterAction, false);
       mCmbSearchType.addInitialText2Combo(mDefPat.getDefSearchTypeListSize(), mDefPat.getDefSearchTypeList(), false);
       mCmbSelType.addInitialText2Combo(mDefPat.getDefSelTypeListSize(), mDefPat.getDefSelTypeList(), false);
-#ifdef RESULT_COLORING
-      //mCmbColor.addInitialText2Combo(mDefPat.getDefColorListSize(), mDefPat.getDefColorList(), false);
-#endif
       mCmbFontName.addInitialText2Combo(mlsFontList, false);
       mCmbFontSize.addInitialText2Combo(FONTSIZELIST_COUNT, FONTSIZELIST, false);
       mCmbNumOfCfgFiles.addInitialText2Combo(LISTLENGTHVALS_COUNT, LISTLENGTHVALS, false);

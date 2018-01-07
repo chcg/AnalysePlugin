@@ -21,7 +21,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "MyPluginInterface.h"
 #include "Notepad_plus_msgs.h"
-#include "versioninfo.inc"
+#include "version.h"
 #include <shlobj.h>
 
 // outscourced demo functions
@@ -43,6 +43,9 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define FINDDLG_SCINTILLAFINFERCOPY       (WM_USER + 16)
 #define FINDDLG_SCINTILLAFINFERSELECTALL  (WM_USER + 17)
 
+#define vstr(a) __vstr(a)
+#define __vstr(a) #a
+
 typedef void *WindowID;
 
 // list of functions provided to notepad++
@@ -58,7 +61,6 @@ enum tePluginFuncId {
    SHOWHELPDLG,
    LAST_PLUGINFUNCID // this one is used as max index of function ids
 };
-
 
 /**
  * this is the plugin interface to notepad 
@@ -86,15 +88,18 @@ public:
       _findDlg.setParent(this);
       _findResult.setParent(this);
 
-      mVersionString = TEXT("Analyse Plugin V1.11 beta ");
-      mVersionString += TEXT("Rev. ");
-      mVersionString += SVNRevInfo;
+      mVersionString = TEXT("Analyse Plugin ");
+      mVersionString += TEXT(vstr(VER_FILEVERSION_MAYOR));
+      mVersionString += TEXT(".");
+      mVersionString += TEXT(vstr(VER_FILEVERSION_MINOR));
+      mVersionString += TEXT(" Rev. ");
+      mVersionString += TEXT(SVNREVINFO);
       mVersionString += TEXT(" ");
-      mVersionString += SVNDate;
+      mVersionString += TEXT(SVNDATE);
       mVersionString += TEXT(" ");
-      mVersionString += SVNModified;
+      mVersionString += TEXT(SVNMODIFIED);
       mVersionString += TEXT(" ");
-      mVersionString += SVNMixed;
+      mVersionString += TEXT(SVNMIXED);
       mVersionString += (sizeof(void *) == 8) ? TEXT(" (64bit)") : TEXT(" (32bit)");
       _helpDlg.setVersion(mVersionString);
    }
@@ -110,6 +115,7 @@ public:
    * Analyse plugin dialog
    */
    void showFindDlg();
+   void createFindDlg();
    void toggleShowFindDlg();
    void showHelpDialog();
    void showConfigDialog();

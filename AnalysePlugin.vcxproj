@@ -280,6 +280,7 @@
     <ClInclude Include="PowerEditor\src\TinyXml\tinystr.h" />
     <ClInclude Include="PowerEditor\src\TinyXml\tinyxml.h" />
     <ClInclude Include="PowerEditor\src\WinControls\Window.h" />
+    <ClInclude Include="version.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="icons\text1.bin" />
@@ -294,7 +295,6 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="changes.txt" />
-    <Text Include="Concept.txt" />
     <Text Include="manual.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
