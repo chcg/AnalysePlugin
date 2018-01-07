@@ -1,4 +1,6 @@
 Changes since 1.11
+ - bugfix positioning ColorPopup on left side multi screen (negative coordinates)
+ - bugfix scrambling with "Toggle this" context menu option
  - bugfix small correction in xsd to reflect current status
  - bugfix assertion when Options dialog is opened before findDlg docking window
  - added version information in Windows properties dialog

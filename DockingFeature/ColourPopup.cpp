@@ -50,14 +50,24 @@ void ColourPopup::create(int dialogID)
 }
 
 
-void ColourPopup::doDialog(POINT p) {
+void ColourPopup::doDialog(POINT p)
+{
    if (!isCreated()){
       create(IDD_COLOUR_POPUP);
    }
+   int px, py;
    int cx = _rc.right - _rc.left;
    int cy = _rc.bottom - _rc.top;
-   int px = (p.x > cx) ? (p.x - cx) : 0;
-   int py = (p.y > cy) ? (p.y - cy) : 0;
+   if (p.x >= 0) {
+	   px = (p.x > cx) ? (p.x - cx) : 0;
+   } else {
+	   px = p.x - cx;
+   }
+   if (p.y >= 0) {
+	   py = (p.y > cy) ? (p.y - cy) : 0;
+   } else {
+	   py = p.y - cy;
+   }
    ::SetWindowPos(_hSelf, HWND_TOP, px, py, cx, cy, SWP_SHOWWINDOW);
 }
 

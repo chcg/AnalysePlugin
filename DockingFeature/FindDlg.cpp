@@ -635,6 +635,7 @@ BOOL FindDlg::notify(SCNotification *notification) {
             tmp.push_back(MenuItemUnit(IDC_BUT_DEL, TEXT("Delete this")));
             tmp.push_back(MenuItemUnit(IDC_BUT_MOVE_UP, TEXT("Move this up")));
             tmp.push_back(MenuItemUnit(IDC_BUT_MOVE_DOWN, TEXT("Move this down")));
+            doCopyLineToDialog();
          }
          tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
          tmp.push_back(MenuItemUnit(IDC_DO_ENABLE_ALL, TEXT("Enable All")));
