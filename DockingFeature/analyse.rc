@@ -357,7 +357,7 @@ BEGIN
 BLOCK "040904E4"
 BEGIN
 VALUE "FileDescription", "AnalysePlugin for Notepad++"
-VALUE "LegalCopyright", "Copyright (C)2011-2017"
+VALUE "LegalCopyright", "Copyright (C)2011-2018"
 VALUE "OriginalFilename", "AnalysePlugin.dll"
 VALUE "ProductName", "AnalysePlugin"
 VALUE "ProductVersion", VER_FILEVERSION_STR
