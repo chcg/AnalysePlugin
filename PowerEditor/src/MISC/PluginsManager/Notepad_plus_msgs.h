@@ -40,7 +40,11 @@ enum LangType {L_TEXT, L_PHP , L_C, L_CPP, L_CS, L_OBJC, L_JAVA, L_RC,\
 			   L_CAML, L_ADA, L_VERILOG, L_MATLAB, L_HASKELL, L_INNO, L_SEARCHRESULT,\
 			   L_CMAKE, L_YAML, L_COBOL, L_GUI4CLI, L_D, L_POWERSHELL, L_R, L_JSP,\
 			   L_COFFEESCRIPT, L_JSON, L_JAVASCRIPT, L_FORTRAN_77, L_BAANC, L_SREC,\
-			   L_IHEX, L_TEHEX,\
+			   L_IHEX, L_TEHEX, L_SWIFT,\
+			   L_ASN1, L_AVS, L_BLITZBASIC, L_PUREBASIC, L_FREEBASIC, \
+			   L_CSOUND, L_ERLANG, L_ESCRIPT, L_FORTH, L_LATEX, \
+			   L_MMIXAL, L_NIMROD, L_NNCRONTAB, L_OSCRIPT, L_REBOL, \
+			   L_REGISTRY, L_RUST, L_SPICE, L_TXT2TAGS, L_VISUALPROLOG,\
 			   // Don't use L_JS, use L_JAVASCRIPT instead
 			   // The end of enumated language type, so it should be always at the end
 			   L_EXTERNAL};
@@ -176,7 +180,11 @@ enum Platform { PF_UNKNOWN, PF_X86, PF_X64, PF_IA64 };
 	//BOOL NPPM_GETENABLETHEMETEXTUREFUNC(0, 0)
 
 	#define NPPM_GETPLUGINSCONFIGDIR (NPPMSG + 46)
-	//void NPPM_GETPLUGINSCONFIGDIR(int strLen, TCHAR *str)
+	//INT NPPM_GETPLUGINSCONFIGDIR(int strLen, TCHAR *str)
+	// Get user's plugin config directory path. It's useful if plugins want to save/load parameters for the current user
+	// Returns the number of TCHAR copied/to copy.
+	// Users should call it with "str" be NULL to get the required number of TCHAR (not including the terminating nul character),
+	// allocate "str" buffer with the return value + 1, then call it again to get the path.
 
 	#define NPPM_MSGTOPLUGIN (NPPMSG + 47)
 	//BOOL NPPM_MSGTOPLUGIN(TCHAR *destModuleName, CommunicationInfo *info)
@@ -380,7 +388,7 @@ enum Platform { PF_UNKNOWN, PF_X86, PF_X64, PF_IA64 };
 
 	#define NPPM_GETAPPDATAPLUGINSALLOWED    (NPPMSG + 87)
 	// BOOL NPPM_GETAPPDATAPLUGINSALLOWED(0, 0)
-	// Check to see if loading plugins from "%APPDATA%\Notepad++\plugins" is allowed.
+	// Check to see if loading plugins from "%APPDATA%\..\Local\Notepad++\plugins" is allowed.
 
 	#define NPPM_GETCURRENTVIEW    (NPPMSG + 88)
 	// INT NPPM_GETCURRENTVIEW(0, 0)
@@ -409,6 +417,19 @@ enum Platform { PF_UNKNOWN, PF_X86, PF_X64, PF_IA64 };
 
 	#define NPPM_DISABLEAUTOUPDATE (NPPMSG + 95) // 2119 in decimal
 	// VOID NPPM_DISABLEAUTOUPDATE(0, 0)
+
+	#define NPPM_REMOVESHORTCUTBYCMDID (NPPMSG + 96) // 2120 in decimal
+	// BOOL NPPM_REMOVESHORTCUTASSIGNMENT(int cmdID)
+	// removes the assigned shortcut mapped to cmdID
+	// returned value : TRUE if function call is successful, otherwise FALSE
+
+	#define NPPM_GETPLUGINHOMEPATH (NPPMSG + 97)
+	// INT NPPM_GETPLUGINHOMEPATH(size_t strLen, TCHAR *pluginRootPath)
+	// Get plugin home root path. It's useful if plugins want to get its own path
+	// by appending <pluginFolderName> which is the name of plugin without extension part.
+	// Returns the number of TCHAR copied/to copy.
+	// Users should call it with pluginRootPath be NULL to get the required number of TCHAR (not including the terminating nul character),
+	// allocate pluginRootPath buffer with the return value + 1, then call it again to get the path.
 
 #define	RUNCOMMAND_USER    (WM_USER + 3000)
 	#define NPPM_GETFULLCURRENTPATH		(RUNCOMMAND_USER + FULL_CURRENT_PATH)

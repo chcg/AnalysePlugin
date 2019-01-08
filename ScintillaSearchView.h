@@ -1,8 +1,8 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
-Don HO donho(at)altern.org 
+Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -44,6 +44,9 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define FNDRESDLG_SCINTILLAFINFER_SEARCH   (FNDRESDLG_BASE + 1)
 #define FNDRESDLG_SCINTILLAFINFER_SAVEFILE (FNDRESDLG_BASE + 2)
 #define FNDRESDLG_SCINTILLAFINFER_SAVE_CLR (FNDRESDLG_BASE + 3)
+#define FNDRESDLG_WRAP_MODE                (FNDRESDLG_BASE + 4)
+#define FNDRESDLG_SHOW_LINE_NUMBERS        (FNDRESDLG_BASE + 5)
+#define FNDRESDLG_SHOW_OPTIONS             (FNDRESDLG_BASE + 6)
 
 class ScintillaSearchView : public ScintillaEditView
 {
@@ -69,9 +72,16 @@ public:
 
    void setRtfColorTable(const char* pColortbl);
    bool doRichTextCopy();
+   void setWrapMode(bool bOn);
+   bool getWrapMode() const;
    std::vector<MenuItemUnit> getContextMenu() const;
    void updateLineNumberWidth(bool lineNumbersShown);
-
+   void setLineNumbersInResult(bool bOn) {
+      _bLineNumbersInResult = bOn;
+   }
+   bool getLineNumbersInResult() const {
+      return _bLineNumbersInResult;
+   }
 protected:
    static const int transStylePos[MY_STYLE_MASK+1];
 
@@ -88,7 +98,7 @@ protected:
 
 
     int _oemCodepage;
-
+    bool _bLineNumbersInResult = true;
 
 
 };

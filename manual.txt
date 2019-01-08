@@ -1,4 +1,4 @@
-Analyse Plugin for NotePad++                                             DE 2016-09
+Analyse Plugin for NotePad++                                             DE 2019-01
 
 This Plugin will help you to search for more than one search pattern at a time.
 
@@ -12,10 +12,10 @@ can check the "hide" option which results in hiding of that line or text from th
 search result. The text is still there and clipboard copy will still hold all text.
 To hint that a line was found once, the line number remains in the result window.
 You can also give colours the different searches to better distinguish which line
-belongs to which pattern. The colouring is done topline first and bottomline last.
+belongs to which pattern. The colouring is done topline first and bottom line last.
 If a pattern is found twice, the lower pattern defines the colour. You can also 
 give each line a comment e.g. what this pattern helps to find.
-The Anaylse Configuration Dialog handles the list of search patterns and save or 
+The Analyse Configuration Dialog handles the list of search patterns and save or 
 load the list. You can adjust the different search patterns with following buttons:
 
 ---- Buttons ----
@@ -53,12 +53,14 @@ Comment:        Useful for info what this pattern helps to find.
 ---- Visualization Options ----
 These options can be updated without activating a re-search
 Hide Text:      If on, the found pattern is removed from result line.
-Colour FG/BG:   The result window text becomes coloured in
-                foreground and background herewith.
-                If a result text is cached by several patterns, the
-                colour of the last pattern in list is used.
-                The maximum of maintainable pattern colors is 119!
-                All further patterns will get the default color.
+Colour FG/BG:   The result window text becomes coloured in foreground
+                and background herewith. You can use pre-configured
+                colours or select own custom colors from colour config
+                dialogue.
+                If a result text is catched by several patterns, the
+                colour of the last pattern in the list is used.
+                The maximum of maintainable colour combinations is 119!
+                All further colour pattern will get the default colour.
 Selection on:   Decides if the found text or the whole line shall be
                 coloured / hidden.
 
@@ -104,7 +106,7 @@ Action on Enter:         You can decide how the plugin shall react on pressing
      pattern and is amended to the search list. In this setting changing other 
      options will be treated like update line, as normally it does not make sense 
      to search for the same text twice.
-Recently used config files: Controls the max length of te context menu in find 
+Recently used config files: Controls the max length of the context menu in find 
      pattern configuration list.
 Editor context menu [add command]: Is actually not a config in AP but in Notepad++
      The button opens an extra window that describes the proposed content of the 
@@ -117,12 +119,13 @@ Name: This combobox allows to explicitly select the font that shall be used for 
      font size for the result window.
 Show line numbers in result: Controls if the text in the result window shall
      contain the original line number from the search text.
+Word wrap mode in result: Allows to use the same word wrap mode as in edit window.
 
 The [OK] button will take over the values into the different places and stored it 
 persistently.
 
 If you have any question, comment or concern, please seek the project discussion 
-and ticket lists on http://analyseplugin.sourceforge.net/
+and ticket lists on https://sourceforge.net/p/analyseplugin/
 
 Best Regards,
 Mattes H. mattesh(at)gmx.net

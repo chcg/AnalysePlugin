@@ -37,7 +37,7 @@
 #include "Notepad_plus_msgs.h"
 #endif //NOTEPAD_PLUS_MSGS_H
 
-const int nbChar = 64;
+const int cnbChar = 64;
 
 typedef const TCHAR * (__cdecl * PFUNCGETNAME)();
 
@@ -64,7 +64,7 @@ struct ShortcutKey
 
 struct FuncItem
 {
-	TCHAR _itemName[nbChar];
+	TCHAR _itemName[cnbChar];
 	PFUNCPLUGINCMD _pFunc;
 	int _cmdID;
 	bool _init2Check;

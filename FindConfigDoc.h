@@ -1,8 +1,8 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
-Don HO donho(at)altern.org 
+Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -21,6 +21,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #pragma once
 
 #include "tclPatternList.h"
+#include "tclResultList.h"
 #include "chardefines.h"
 
 
@@ -47,6 +48,7 @@ public:
     */
    bool readPatternList(tclPatternList& pl, bool bAppend=true, bool bLoadNew=true);
    bool writePatternList(tclPatternList& pl);
+   bool writePatternHitsList(tclResultList& rl);
 
 protected:
    TiXmlDocument* mDoc;

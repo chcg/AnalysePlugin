@@ -1,8 +1,8 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
-Don HO donho(at)altern.org 
+Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -31,7 +31,7 @@ class ColourPopup;
 class ColourPicker2 : public Window
 {
 public :
-	ColourPicker2() : Window(),  _currentColour(RGB(0xFF, 0x00, 0x00)), _pColourPopup(NULL), _isEnabled(true) {};
+   ColourPicker2() : Window(), _currentColour(RGB(0xFF, 0x00, 0x00)), _pColourPopup(NULL), _isEnabled(true), _pCustomColors(0){};
     ~ColourPicker2(){};
 	virtual void init(HINSTANCE hInst, HWND parent);
 	virtual void destroy();
@@ -44,11 +44,14 @@ public :
 	bool isEnabled() {return _isEnabled;};
 	void setEnabled(bool enabled) {_isEnabled = enabled;};
 
+   void setCustomColors(COLORREF* p);
+
 private :
 	COLORREF _currentColour;
     WNDPROC _buttonDefaultProc;
 	ColourPopup *_pColourPopup;
 	bool _isEnabled;
+   COLORREF* _pCustomColors;
 
     static LRESULT CALLBACK staticWinProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) {
        return (((ColourPicker2 *)(::GetWindowLongPtr(hwnd, GWLP_USERDATA)))->runProc(Message, wParam, lParam));

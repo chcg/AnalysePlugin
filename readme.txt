@@ -1,6 +1,6 @@
-Shorten your time of reading mega bytes of log files!                          DE 2016-01
+Shorten your time of reading mega bytes of log files!                          DE 2019-01
 
-Supporting Don HO's NotePad++ see http://notepad-plus-plus.org/
+Supporting Don HO's NotePad++ see https://notepad-plus-plus.org/
 
 This sources are a dockable pattern search plugin for Notepad++ version 5.1 or later.
 With this plugin you can search for multiple patterns in any of the opened documents 
@@ -16,7 +16,7 @@ For generating the dll file I use a  msdev compiler. If you like to port it to o
 just let me know your changes and I'll incorporate it.
 
 The project site is:
-http://analyseplugin.sourceforge.net/
+https://sourceforge.net/p/analyseplugin/
 
 Best Regards,
 Mattes H. mattesh(at)gmx.net

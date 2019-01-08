@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -30,7 +30,7 @@ in the find config dock window
 
 class tclPatternList;
 class tclPattern;
-
+class tclResultList;
 
 struct tstPatternConfTab {
    TCHAR* szColumnName;
@@ -46,6 +46,7 @@ public:
 #ifdef COL_NUMBERING
       TBLVIEW_COL_NUM,
 #endif
+      TBLVIEW_COL_HITS,
       TBLVIEW_COL_DO_SEARCH,    
       TBLVIEW_COL_SEARCH_TEXT,
    #ifdef RESULT_COLORING
@@ -90,6 +91,14 @@ public:
 
    int getRowCount() const ;
 
+   void setHitsRowVisible(bool bVisible, const tclResultList& results);
+
+   bool isHitsRowVisible() const {
+      return mbHitsVisible;
+   }
+
+   generic_string getHitCountStr(int row) const;
+
    generic_string getSearchTextStr() const ;
    generic_string getSearchTypeStr() const ;
    generic_string getMatchCaseStr() const ;
@@ -98,6 +107,7 @@ public:
    generic_string getHideStr() const ;
    generic_string getCommentStr() const ;
    generic_string getDoSearchStr() const ;
+   generic_string getHitsStr() const;
 #ifdef COL_NUMBERING
    generic_string getItemNumStr() const ;
 #endif
@@ -134,5 +144,6 @@ protected:
    //void updateRowColor(int item, const tclPattern& rp);
 
    HWND mhList;
+   bool mbHitsVisible = false;
 };
 #endif //TCLTABLEVIEW_H

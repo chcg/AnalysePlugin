@@ -1,8 +1,8 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
-Don HO donho(at)altern.org 
+Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -374,6 +374,18 @@ bool ScintillaSearchView::prepareRtfClip(char *pGlobalText, int iClipLength, cha
    strcpy(pDest, _RtfFooter.c_str());
    return true;
 }
+void ScintillaSearchView::setWrapMode(bool bOn) {
+   if (bOn) {
+      execute(SCI_SETWRAPMODE, SC_WRAP_WORD);
+   }
+   else {
+      execute(SCI_SETWRAPMODE, SC_WRAP_NONE);
+   }
+}
+
+bool ScintillaSearchView::getWrapMode() const {
+   return (execute(SCI_GETWRAPMODE) != SC_WRAP_NONE);
+}
 
 std::vector<MenuItemUnit> ScintillaSearchView::getContextMenu() const {
    std::vector<MenuItemUnit> tmp;
@@ -384,6 +396,11 @@ std::vector<MenuItemUnit> ScintillaSearchView::getContextMenu() const {
    tmp.push_back(MenuItemUnit(FNDRESDLG_SCINTILLAFINFER_SEARCH, TEXT("Find... [Ctrl+F]")));
    tmp.push_back(MenuItemUnit(FNDRESDLG_SCINTILLAFINFER_SAVEFILE, TEXT("Save to file...")));
    tmp.push_back(MenuItemUnit(FNDRESDLG_SCINTILLAFINFER_SAVE_CLR, TEXT("Reset save file")));
+   tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
+   tmp.push_back(MenuItemUnit(FNDRESDLG_WRAP_MODE, TEXT("Word Wrap")));
+   tmp.push_back(MenuItemUnit(FNDRESDLG_SHOW_LINE_NUMBERS, TEXT("Show line numbers")));
+   tmp.push_back(MenuItemUnit(FNDRESDLG_SHOW_OPTIONS, TEXT("Options...")));
+   
    return tmp;
 }
 
@@ -405,8 +422,13 @@ LRESULT ScintillaSearchView::scintillaNew_Proc(HWND hwnd, UINT Message, WPARAM w
             case FNDRESDLG_SCINTILLAFINFER_SEARCH:
             case FNDRESDLG_SCINTILLAFINFER_SAVEFILE:
             case FNDRESDLG_SCINTILLAFINFER_SAVE_CLR:
+            case FNDRESDLG_SHOW_LINE_NUMBERS:
+            case FNDRESDLG_SHOW_OPTIONS:
                // deferre to parent window
                ::SendMessage(_hParent, WM_COMMAND, wParam, (LPARAM)0);
+               break;
+            case FNDRESDLG_WRAP_MODE:
+               setWrapMode(!getWrapMode());
                break;
             default:
                break;
@@ -431,6 +453,8 @@ LRESULT ScintillaSearchView::scintillaNew_Proc(HWND hwnd, UINT Message, WPARAM w
 
          ContextMenu scintillaContextmenu;
          scintillaContextmenu.create(_hSelf, getContextMenu());
+         scintillaContextmenu.checkItem(FNDRESDLG_WRAP_MODE, getWrapMode());
+         scintillaContextmenu.checkItem(FNDRESDLG_SHOW_LINE_NUMBERS, getLineNumbersInResult());
          scintillaContextmenu.display(pt);
          
             return 0;

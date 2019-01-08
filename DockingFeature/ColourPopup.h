@@ -1,8 +1,8 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
-Don HO donho(at)altern.org 
+Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -34,8 +34,8 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 class ColourPopup : public Window
 {
 public :
-   ColourPopup() : Window()/*, isColourChooserLaunched(false)*/ {};
-   ColourPopup(COLORREF defaultColor) : Window(), /*isColourChooserLaunched(false),*/ _colour(defaultColor) {};
+   ColourPopup() : Window(), /*isColourChooserLaunched(false),*/ _colour(0), _pacCustomColors(0){};
+   ColourPopup(COLORREF defaultColor) : Window(), /*isColourChooserLaunched(false),*/ _colour(defaultColor), _pacCustomColors(0){};
    virtual ~ColourPopup(){}
 
    bool isCreated() const {
@@ -54,6 +54,9 @@ public :
 	{
 		_colour = c;
 	}
+   void setCustomColors(COLORREF* p) {
+      _pacCustomColors = p;
+   }
 
    COLORREF getSelColour(){
       return _colour;
@@ -63,7 +66,7 @@ private :
    RECT _rc;
    COLORREF _colour;
 	//bool isColourChooserLaunched = false;
-
+   COLORREF * _pacCustomColors;
    static INT_PTR CALLBACK dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
    INT_PTR CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
 };

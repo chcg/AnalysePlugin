@@ -1,8 +1,8 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
-Don HO donho(at)altern.org 
+Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -121,7 +121,8 @@ void ConfigDialog::doDialog(int FuncCmdId)
       _pBgColour->init(_hInst, _hSelf);
       _pFgColour->setColour(mDefPat.getColorNum());
       _pBgColour->setColour(mDefPat.getBgColorNum());
-
+      _pFgColour->setCustomColors(_pParent->refCustomColors());
+      _pBgColour->setCustomColors(_pParent->refCustomColors());
       POINT p1, p2;
 
      alignWith(::GetDlgItem(_hSelf, IDC_STATIC_COL_FG2), _pFgColour->getHSelf(), PosAlign::right, p1);
@@ -147,6 +148,7 @@ void ConfigDialog::doDialog(int FuncCmdId)
       DBG1("ConfigDialog::dDialog() %s ", mCmbNumOfCfgFiles.getComboTextList(false).c_str());
    } // isCreated()
 
+   ::SendDlgItemMessage(_hSelf, IDC_CHK_RESWORDWRAP, BM_SETCHECK, _pParent->getResultWrapMode() ? BST_CHECKED : BST_UNCHECKED, 0);
    ::EnableWindow(_pFgColour->getHSelf(), true);
    ::EnableWindow(_pBgColour->getHSelf(), true);
    mbOkPressed = false;
@@ -301,6 +303,7 @@ INT_PTR CALLBACK ConfigDialog::run_dlgProc(UINT Message, WPARAM wParam, LPARAM /
                if(_pResultDlg) {
                   ::SendMessage(_pResultDlg->getHSelf(), IDC_DO_CHECK_CONF, (WPARAM)0, (LPARAM)&mDefPat);
                }
+               _pParent->setResultWrapMode(BST_CHECKED == ::SendDlgItemMessage(_hSelf, IDC_CHK_RESWORDWRAP, BM_GETCHECK, 0, 0));
                return TRUE;
             }
          case IDCANCEL :

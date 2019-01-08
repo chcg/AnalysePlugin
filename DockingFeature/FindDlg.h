@@ -1,8 +1,8 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
-Don HO donho(at)altern.org 
+Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -49,7 +49,6 @@ class tclPattern;
 //const int MARK_HIDELINESEND = 3;
 
 #define MAX_CHAR_HISTORY 2000
-
 
 #if 0
 struct TargetRange {
@@ -164,7 +163,7 @@ public :
    void setConfigFileName(const generic_string str); // intentionally a copy parameter
 
    bool loadConfigFile(const TCHAR* file, bool bAppend=true, bool bLoadNew=true);
-   bool saveConfigFile(const TCHAR* file);
+   bool saveConfigFile(const TCHAR* file, bool bWithHits=false);
 
    void setNumOfCfgFiles(unsigned u);
    void setNumOfCfgFilesStr(const generic_string& str);
@@ -195,7 +194,7 @@ public :
     * store the patterns into a file 
     * returns true if file was saved
     */
-   bool doStoreConfigFile();
+   bool doStoreConfigFile(bool bWithHits=false);
 
    /**
     * implementation of the load button 
@@ -276,7 +275,7 @@ protected:
    *  it stores the position infos into the result */
    int doFindPattern(tclPattern& pattern, tclResult& result);
    
-   void refillTable();
+   void refillTable(bool initial = false);
 
    /** @link aggregation */
    MyPlugin* _pParent;

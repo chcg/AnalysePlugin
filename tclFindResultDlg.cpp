@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -33,7 +33,7 @@ search result string cache
 #define MDBG_COMP "FRDlg:" 
 #include "myDebug.h"
 #include "resource.h"
-#include "npp_defines.h"
+#include "npp_exceptions.h"
 
 #define STYLING_MASK 255
 #define FNDRESDLG_LINE_HEAD ""
@@ -73,7 +73,6 @@ tclFindResultDlg::tclFindResultDlg()
    , miLineHeadSize(0)
    , mFontSize(8)
    , mUseBookmark(1)
-   , mDisplayLineNo(1)
    , mDisplayComment(0) // TODO check fact that pattern may be a different
 #ifdef FEATURE_RESVIEW_POS_KEEP_AT_SEARCH
    , mCurrentViewLineNo(0)
@@ -119,7 +118,6 @@ void tclFindResultDlg::initEdit(const tclPattern& defaultPattern) {
    mFindResultSearchDlg.init(_hInst, _hParent, &_scintView);
    mFindResultSearchDlg.setdefaultPattern(defaultPattern);
    mFindResultSearchDlg.create(IDD_FIND_RES_DLG_SEARCH);
-   // TODO _scintView.showMargin(ScintillaSearchView::_SC_MARGE_LINENUMBER);
 }
 
 /** remove all that line being referecend by result not no other pattern */
@@ -246,10 +244,10 @@ void tclFindResultDlg::setLineText(int iFoundLine, const std::string& text, cons
       setFinderReadOnly(false);
       std::string s = FNDRESDLG_LINE_HEAD;
       s.reserve(text.size() 
-                + (mDisplayLineNo)?(miLineNumColSize + strlen(FNDRESDLG_LINE_COLON)):(0) 
+                + (_scintView.getLineNumbersInResult())?(miLineNumColSize + strlen(FNDRESDLG_LINE_COLON)):(0)
                 + (mDisplayComment)?(commentWidth + strlen(FNDRESDLG_LINE_HYPHEN)):(0));
       char conv[20];
-      if (mDisplayLineNo) {
+      if (_scintView.getLineNumbersInResult()) {
          s.append(miLineNumColSize-strlen(_itoa(iFoundLine+1, conv, 10)), ' ');
          s.append(conv);
          s.append(FNDRESDLG_LINE_COLON);
@@ -339,12 +337,12 @@ void tclFindResultDlg::clear_view()
    }
 }
 
-void tclFindResultDlg::clear() 
+void tclFindResultDlg::clear(bool initial)
 {
    setCurrentMarkedLine(-1);
    //_foundInfos.clear(); 
    mFindResults.clear();
-   if(mUseBookmark) {
+   if(mUseBookmark && !initial) {
       _pParent->execute(scnActiveHandle, SCI_MARKERDELETEALL, MARK_BOOKMARK);
    }
    clear_view();
@@ -488,13 +486,13 @@ void tclFindResultDlg::updateHeadline() {
 
 #ifdef FEATURE_RESVIEW_POS_KEEP_AT_SEARCH
 void tclFindResultDlg::saveCurrentViewPos() {
-   mCurrentViewLineNo = (int)_scintView.execute(SCI_GETFIRSTVISIBLELINE);
+   mCurrentViewLineNo = (int)_pParent->execute(scnActiveHandle, SCI_GETFIRSTVISIBLELINE);
    DBG1("tclFindResultDlg::saveCurrentViewPos() VisibleLine %d", mCurrentViewLineNo);
 }
 
 void tclFindResultDlg::restoreCurrentViewPos() {
-   int res = (int)_scintView.execute(SCI_SETFIRSTVISIBLELINE, mCurrentViewLineNo);
-   DBG1("tclFindResultDlg::restoreCurrentViewPos() Setting the line returns %d", res);
+   DBG1("tclFindResultDlg::restoreCurrentViewPos() Re-setting the line %d", mCurrentViewLineNo);
+   updateViewScrollState(mCurrentViewLineNo, true, true);
 }
 #endif
 
@@ -514,11 +512,12 @@ void tclFindResultDlg::setCurrentViewPos(int iThisMainLine) {
    DBG2("tclFindResultDlg::setCurrentViewPos() Setting the line to %d returns %d", iResLine, res);
 }
 
-void tclFindResultDlg::updateViewScrollState(int iLineInMain, bool bInMain) {
+void tclFindResultDlg::updateViewScrollState(int iLineInMain, bool bInMain, bool bAnyway) {
    static int topLine = 0;
-   if (topLine != iLineInMain){
+   DBG3("updateViewScrollState() topLine %d iLineInMain %d bInMain %d", topLine, iLineInMain, (int)bInMain);
+   if (bAnyway || topLine != iLineInMain){
       topLine = iLineInMain;
-      if (bInMain && !mFromFindResult) {
+      if (bAnyway || (bInMain && !mFromFindResult)) {
          // text window moves search result
          int line = getNextFoundLine(topLine);
          mFromMainWindow = bInMain;
@@ -576,8 +575,9 @@ INT_PTR CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPAR
    case IDC_DO_CHECK_CONF: 
       {
          mUseBookmark = _pParent->getUseBookmark();
-         if(mDisplayLineNo != _pParent->getDisplayLineNo()) {
-            mDisplayLineNo = _pParent->getDisplayLineNo();
+         // TODO in case Bookmark changed make clean state
+         if(_scintView.getLineNumbersInResult() != (_pParent->getDisplayLineNo() != 0)) {
+            _scintView.setLineNumbersInResult((_pParent->getDisplayLineNo() != 0));
             clear();
             _pParent->runSearch();
          }
@@ -616,6 +616,19 @@ INT_PTR CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPAR
                updateHeadline();
                return TRUE;
             }
+         case FNDRESDLG_SHOW_LINE_NUMBERS:
+            {
+               _scintView.setLineNumbersInResult(!_scintView.getLineNumbersInResult());
+               _pParent->setDisplayLineNo(_scintView.getLineNumbersInResult()); // toggle value in config dialog
+               clear();
+               _pParent->runSearch();
+               return TRUE;
+            }
+         case FNDRESDLG_SHOW_OPTIONS:
+         {
+            _pParent->showConfigDlg();
+            return TRUE;
+         }
          default :
             {
                break;
@@ -739,7 +752,8 @@ void tclFindResultDlg::doStyle(int startResultLineNo, int startStyleNeeded, int 
          } 
          // default style
          setDefaultStyle(styleBegin, iLength);
-         if(iLength <= (mDisplayLineNo?miLineHeadSize:0)) {
+         int iThisLineHead = _scintView.getLineNumbersInResult() ? miLineHeadSize : 0;
+         if(iLength <= iThisLineHead) {
             DBG0("doStyle() line length 0 nothing to style");
             ++resultLineNum;
             styleBegin = (int)_scintView.execute(SCI_POSITIONFROMLINE, resultLineNum);
@@ -760,7 +774,7 @@ void tclFindResultDlg::doStyle(int startResultLineNo, int startStyleNeeded, int 
             if(iPattern.getPattern().getSelectionType() == tclPattern::line) {
                // style whole line if chars left after line header
                DBG0("doStyle() style for line");
-               setStyle(iPosInfo->first, styleBegin+(mDisplayLineNo?miLineHeadSize:0), iLength-(mDisplayLineNo?miLineHeadSize:0)); // until end of line
+               setStyle(iPosInfo->first, styleBegin+ iThisLineHead, iLength- iThisLineHead); // until end of line
             } else {
                // style per found positions
                // iPosInfo calculates on mainWin text
@@ -769,14 +783,14 @@ void tclFindResultDlg::doStyle(int startResultLineNo, int startStyleNeeded, int 
                   int iPosInfoLength = (iFoundPos->end - iFoundPos->start);
                   int iPosLineBegin = iFoundPos->start - (int)_pParent->execute(scnActiveHandle,SCI_POSITIONFROMLINE,iFoundPos->line);
                   if((iPosInfoLength>0) && (iPosLineBegin>=0) &&
-                     ((styleBegin+(mDisplayLineNo?miLineHeadSize:0)+iPosLineBegin) >= styleBegin) &&
+                     ((styleBegin+ iThisLineHead +iPosLineBegin) >= styleBegin) &&
                      (iPosInfoLength <= (endOfLine-styleBegin))) {
                      // do styling 
-                        setStyle(iPosInfo->first, styleBegin+(mDisplayLineNo?miLineHeadSize:0)+iPosLineBegin, iPosInfoLength);
+                        setStyle(iPosInfo->first, styleBegin+ iThisLineHead +iPosLineBegin, iPosInfoLength);
                   } else {
                      DBG4("doStyle() ERROR word styling pos illegal pos.start %d styleBegin %d pos.end %d endOfLine %d.",
-                        styleBegin+(mDisplayLineNo?miLineHeadSize:0)+iPosLineBegin, styleBegin, 
-                        styleBegin+(mDisplayLineNo?miLineHeadSize:0)+iPosLineBegin+iPosInfoLength, endOfLine);
+                        styleBegin+ iThisLineHead +iPosLineBegin, styleBegin,
+                        styleBegin+ iThisLineHead +iPosLineBegin+iPosInfoLength, endOfLine);
                   }
                }
             }
@@ -886,7 +900,7 @@ bool tclFindResultDlg::notify(SCNotification *notification)
 
             ret = true;
 
-         } NPP_CATCH_ALL{
+         } NPP_CATCH_ALL (...) {
             DBG0("notify(SCNotification) ERROR SCN_DOUBLECLICK problem.");
          }
          break;
@@ -907,7 +921,7 @@ bool tclFindResultDlg::notify(SCNotification *notification)
    {
       if (((notification->updated & SC_UPDATE_V_SCROLL) != 0) && _pParent->getIsSyncScroll()) {
          int currTopLine = (int)_scintView.execute(SCI_GETFIRSTVISIBLELINE);
-         DBG1("notify() SCN_UPDATEUI: Scrolled to currTopLine=%d", currTopLine);
+         DBG3("notify() SCN_UPDATEUI: Scrolled to currTopLine=%d from main %d result %d", currTopLine, mFromMainWindow, mFromFindResult);
          // setting mainwondow based on result windows setting is disabled to avoid echo causing 
          if (!mFromMainWindow) {
             mFromFindResult = true;
@@ -933,6 +947,7 @@ bool tclFindResultDlg::notify(SCNotification *notification)
 }
 
 void tclFindResultDlg::setFinderReadOnly(bool isReadOnly) {
+   DBG1("setFinderReadOnly(): %d", (int)isReadOnly);
    _scintView.execute(SCI_SETREADONLY, isReadOnly);
 }
 

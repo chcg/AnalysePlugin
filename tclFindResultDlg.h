@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -76,7 +76,7 @@ public:
    void updateWindowData(const generic_string& fontName, unsigned fontSize);
    
    void clear_view();
-   void clear();
+   void clear(bool initial = false);
 
    int getCurrentMarkedLine() const ;
    
@@ -97,9 +97,20 @@ public:
    void setUseBookmark(int useIt){
       mUseBookmark = useIt;
    }
+   void setWrapMode(bool bOn) {
+      _scintView.setWrapMode(bOn);
+   }
+   bool getWrapMode() const {
+      return _scintView.getWrapMode();
+   }
 
+   int getDisplayLineNo() const {
+      return _scintView.getLineNumbersInResult();
+   }
    void setDisplayLineNo(int useIt){
-      mDisplayLineNo = useIt;
+      if (_scintView.getLineNumbersInResult() != (useIt!=0)) {
+         _scintView.setLineNumbersInResult((useIt != 0));
+      }
    }
 
    void setFileName(const generic_string& str);
@@ -115,7 +126,7 @@ public:
    void restoreCurrentViewPos();
 #endif
    void setCurrentViewPos(int iThisMainLine);
-   void updateViewScrollState(int iLineInMain, bool bInMain);
+   void updateViewScrollState(int iLineInMain, bool bInMain, bool bAnyway=false);
 
 protected :
    static const int transStyleId[MY_STYLE_COUNT];
@@ -171,7 +182,6 @@ protected :
    generic_string mFontName;
    unsigned mFontSize;
    int mUseBookmark;
-   int mDisplayLineNo;
    int mDisplayComment;
    generic_string mSearchResultFile;
 #ifdef FEATURE_RESVIEW_POS_KEEP_AT_SEARCH

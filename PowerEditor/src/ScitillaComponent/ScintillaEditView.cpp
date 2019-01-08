@@ -25,15 +25,16 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-#define MDBG_COMP "SEView:" 
-#include "myDebug.h"
+#define MDBG_COMP "SEView:"  // Mattes
+#include "myDebug.h" // Mattes
 #include <memory>
 #include <shlwapi.h>
+#include <cinttypes>
 #include "ScintillaEditView.h"
 #include "Parameters.h"
 #include "Sorters.h"
 #include "tchar.h"
-// #include "verifySignedFile.h" // Mattes
+// Mattes #include "verifySignedFile.h"
 
 using namespace std;
 
@@ -98,7 +99,7 @@ LanguageName ScintillaEditView::langNames[L_EXTERNAL+1] = {
 {TEXT("batch"),			TEXT("Batch"),				TEXT("Batch file"),										L_BATCH,		SCLEX_BATCH},
 {TEXT("ini"),			TEXT("ini"),				TEXT("MS ini file"),									L_INI,			SCLEX_PROPERTIES},
 {TEXT("nfo"),			TEXT("NFO"),				TEXT("MSDOS Style/ASCII Art"),							L_ASCII,		SCLEX_NULL},
-{TEXT("udf"),			TEXT("udf"),				TEXT("User Define File"),								L_USER,			SCLEX_USER},
+{TEXT("udf"),			TEXT("udf"),				TEXT("User Defined language file"),						L_USER,			SCLEX_USER},
 {TEXT("asp"),			TEXT("ASP"),				TEXT("Active Server Pages script file"),				L_ASP,			SCLEX_HTML},
 {TEXT("sql"),			TEXT("SQL"),				TEXT("Structured Query Language file"),					L_SQL,			SCLEX_SQL},
 {TEXT("vb"),			TEXT("Visual Basic"),		TEXT("Visual Basic file"),								L_VB,			SCLEX_VB},
@@ -147,16 +148,33 @@ LanguageName ScintillaEditView::langNames[L_EXTERNAL+1] = {
 {TEXT("srec"),			TEXT("S-Record"),			TEXT("Motorola S-Record binary data"),					L_SREC,			SCLEX_SREC},
 {TEXT("ihex"),			TEXT("Intel HEX"),			TEXT("Intel HEX binary data"),							L_IHEX,			SCLEX_IHEX},
 {TEXT("tehex"),			TEXT("Tektronix extended HEX"),	TEXT("Tektronix extended HEX binary data"),			L_TEHEX,		SCLEX_TEHEX},
+{TEXT("swift"),			TEXT("Swift"),              TEXT("Swift file"),										L_SWIFT,		SCLEX_CPP},
+{TEXT("asn1"),			TEXT("ASN.1"),				TEXT("Abstract Syntax Notation One file"),				L_ASN1,			SCLEX_ASN1},
+{TEXT("avs"),			TEXT("AviSynth"),			TEXT("AviSynth scripts files"),							L_AVS,			SCLEX_AVS},
+{TEXT("blitzbasic"),	TEXT("BlitzBasic"),			TEXT("BlitzBasic file"),								L_BLITZBASIC,	SCLEX_BLITZBASIC},
+{TEXT("purebasic"),		TEXT("PureBasic"),			TEXT("PureBasic file"),									L_PUREBASIC,	SCLEX_PUREBASIC},
+{TEXT("freebasic"),		TEXT("FreeBasic"),			TEXT("FreeBasic file"),									L_FREEBASIC,	SCLEX_FREEBASIC},
+{TEXT("csound"),		TEXT("Csound"),				TEXT("Csound file"),									L_CSOUND,		SCLEX_CSOUND},
+{TEXT("erlang"),		TEXT("Erlang"),				TEXT("Erlang file"),									L_ERLANG,		SCLEX_ERLANG},
+{TEXT("escript"),		TEXT("ESCRIPT"),			TEXT("ESCRIPT file"),									L_ESCRIPT,		SCLEX_ESCRIPT},
+{TEXT("forth"),			TEXT("Forth"),				TEXT("Forth file"),										L_FORTH,		SCLEX_FORTH},
+{TEXT("latex"),			TEXT("LaTeX"),				TEXT("LaTeX file"),										L_LATEX,		SCLEX_LATEX},
+{TEXT("mmixal"),		TEXT("MMIXAL"),				TEXT("MMIXAL file"),									L_MMIXAL,		SCLEX_MMIXAL},
+{TEXT("nimrod"),		TEXT("Nimrod"),				TEXT("Nimrod file"),									L_NIMROD,		SCLEX_NIMROD},
+{TEXT("nncrontab"),		TEXT("Nncrontab"),			TEXT("extended crontab file"),							L_NNCRONTAB,	SCLEX_NNCRONTAB},
+{TEXT("oscript"),		TEXT("OScript"),			TEXT("OScript source file"),							L_OSCRIPT,		SCLEX_OSCRIPT},
+{TEXT("rebol"),			TEXT("REBOL"),				TEXT("REBOL file"),										L_REBOL,		SCLEX_REBOL},
+{TEXT("registry"),		TEXT("registry"),			TEXT("registry file"),									L_REGISTRY,		SCLEX_REGISTRY},
+{TEXT("rust"),			TEXT("Rust"),				TEXT("Rust file"),										L_RUST,			SCLEX_RUST},
+{TEXT("spice"),			TEXT("Spice"),				TEXT("spice file"),										L_SPICE,		SCLEX_SPICE},
+{TEXT("txt2tags"),		TEXT("txt2tags"),			TEXT("txt2tags file"),									L_TXT2TAGS,		SCLEX_TXT2TAGS},
+{TEXT("visualprolog"),	TEXT("Visual Prolog"),		TEXT("Visual Prolog file"),								L_VISUALPROLOG,	SCLEX_VISUALPROLOG},
 {TEXT("ext"),			TEXT("External"),			TEXT("External"),										L_EXTERNAL,		SCLEX_NULL}
 };
 
 //const int MASK_RED   = 0xFF0000;
 //const int MASK_GREEN = 0x00FF00;
 //const int MASK_BLUE  = 0x0000FF;
-
-const generic_string scintilla_signer_display_name = TEXT("Notepad++");
-const generic_string scintilla_signer_subject = TEXT("C=FR, S=Ile-de-France, L=Saint Cloud, O=\"Notepad++\", CN=\"Notepad++\"");
-const generic_string scintilla_signer_key_id = TEXT("42C4C5846BB675C74E2B2C90C69AB44366401093");
 
 
 int getNbDigits(int aNum, int base)
@@ -186,9 +204,13 @@ TCHAR moduleFileName[1024];
 HMODULE loadSciLexerDll()
 {
 #if 0 // Mattes done in SearchView
-   generic_string sciLexerPath = getSciLexerFullPathName(moduleFileName, 1024);
+	generic_string sciLexerPath = getSciLexerFullPathName(moduleFileName, 1024);
 
-	bool isOK = VerifySignedLibrary(sciLexerPath, scintilla_signer_key_id, scintilla_signer_subject, scintilla_signer_display_name, false, false);
+	// Do not check dll signature if npp is running in debug mode
+	// This is helpful for developers to skip signature checking
+	// while analyzing issue or modifying the lexer dll
+#ifndef _DEBUG
+	bool isOK = VerifySignedLibrary(sciLexerPath, NPP_COMPONENT_SIGNER_KEY_ID, NPP_COMPONENT_SIGNER_SUBJECT, NPP_COMPONENT_SIGNER_DISPLAY_NAME, false, false);
 
 	if (!isOK)
 	{
@@ -198,6 +220,7 @@ HMODULE loadSciLexerDll()
 			MB_OK | MB_ICONERROR);
 		return nullptr;
 	}
+#endif // !_DEBUG
 
 	return ::LoadLibrary(sciLexerPath.c_str());
 #endif // Mattes
@@ -350,7 +373,7 @@ LRESULT CALLBACK ScintillaEditView::scintillaStatic_Proc(HWND hwnd, UINT Message
 		bool isSynpnatic = std::string(synapticsHack) == "SynTrackCursorWindowClass";
 		bool makeTouchPadCompetible = false; // Mattes ((NppParameters::getInstance())->getSVP())._disableAdvancedScrolling;
 
-		if (isSynpnatic || makeTouchPadCompetible)
+		if (pScint && (isSynpnatic || makeTouchPadCompetible))
 			return (pScint->scintillaNew_Proc(hwnd, Message, wParam, lParam));
 
 		ScintillaEditView *pScintillaOnMouse = (ScintillaEditView *)(::GetWindowLongPtr(hwndOnMouse, GWLP_USERDATA));
@@ -502,6 +525,7 @@ void ScintillaEditView::setSpecialStyle(const Style & styleToSet)
     if (styleToSet._fontName && lstrcmp(styleToSet._fontName, TEXT("")) != 0)
 	{
 		WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
+
 #if 0 // Mattes
 		if (not _pParameter->isInFontList(styleToSet._fontName))
 		{
@@ -626,6 +650,8 @@ void ScintillaEditView::setXmlLexer(LangType type)
 			execute(SCI_SETKEYWORDS, i, reinterpret_cast<LPARAM>(TEXT("")));
 
         makeStyle(type);
+
+		execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("lexer.xml.allow.scripts"), reinterpret_cast<LPARAM>("0"));
 	}
 	else if ((type == L_HTML) || (type == L_PHP) || (type == L_ASP) || (type == L_JSP))
 	{
@@ -765,6 +791,7 @@ void ScintillaEditView::setUserLexer(const TCHAR * /*userLangName*/) // Mattes
 	{
 		WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
 		const char * keyWords_char = wmc->wchar2char(userLangContainer->_keywordLists[i], codepage);
+
 #if 0 // Mattes
 		if (globalMappper().setLexerMapper.find(i) != globalMappper().setLexerMapper.end())
 		{
@@ -825,20 +852,19 @@ void ScintillaEditView::setUserLexer(const TCHAR * /*userLangName*/) // Mattes
 		}
 	}
 
- 	char intBuffer[15];
-	char nestingBuffer[] = "userDefine.nesting.00";
+ 	char intBuffer[32];
 
-    itoa(userLangContainer->_forcePureLC, intBuffer, 10);
+	sprintf(intBuffer, "%d", userLangContainer->_forcePureLC);
 	execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("userDefine.forcePureLC"), reinterpret_cast<LPARAM>(intBuffer));
 
-    itoa(userLangContainer->_decimalSeparator, intBuffer, 10);
+	sprintf(intBuffer, "%d", userLangContainer->_decimalSeparator);
 	execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("userDefine.decimalSeparator"), reinterpret_cast<LPARAM>(intBuffer));
 
 	// at the end (position SCE_USER_KWLIST_TOTAL) send id values
-	itoa(reinterpret_cast<int>(userLangContainer->getName()), intBuffer, 10); // use numeric value of TCHAR pointer
+	sprintf(intBuffer, "%" PRIuPTR, reinterpret_cast<uintptr_t>(userLangContainer->getName())); // use numeric value of TCHAR pointer
 	execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("userDefine.udlName"), reinterpret_cast<LPARAM>(intBuffer));
 
-    itoa(reinterpret_cast<int>(_currentBufferID), intBuffer, 10); // use numeric value of BufferID pointer
+	sprintf(intBuffer, "%" PRIuPTR, reinterpret_cast<uintptr_t>(_currentBufferID)); // use numeric value of BufferID pointer
     execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("userDefine.currentBufferID"), reinterpret_cast<LPARAM>(intBuffer));
 
 	for (int i = 0 ; i < SCE_USER_STYLE_TOTAL_STYLES ; ++i)
@@ -848,9 +874,10 @@ void ScintillaEditView::setUserLexer(const TCHAR * /*userLangName*/) // Mattes
 		if (style._styleID == STYLE_NOT_USED)
 			continue;
 
-		if (i < 10)	itoa(i, (nestingBuffer+20), 10);
-		else		itoa(i, (nestingBuffer+19), 10);
-		execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>(nestingBuffer), reinterpret_cast<LPARAM>(itoa(style._nesting, intBuffer, 10)));
+		char nestingBuffer[32];
+		sprintf(nestingBuffer, "userDefine.nesting.%02d", i );
+		sprintf(intBuffer, "%d", style._nesting);
+		execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>(nestingBuffer), reinterpret_cast<LPARAM>(intBuffer));
 
 		setStyle(style);
 	}
@@ -958,13 +985,10 @@ void ScintillaEditView::setJsLexer()
 	LexerStyler *pNewStyler = (_pParameter->getLStylerArray()).getLexerStylerByName(newLexerName);
 	if (pNewStyler) // New js styler is available, so we can use it do more modern styling
 	{
-		if (pNewStyler)
+		for (int i = 0, nb = pNewStyler->getNbStyler(); i < nb; ++i)
 		{
-			for (int i = 0, nb = pNewStyler->getNbStyler(); i < nb; ++i)
-			{
-				Style & style = pNewStyler->getStyler(i);
-				setStyle(style);
-			}
+			Style & style = pNewStyler->getStyler(i);
+			setStyle(style);
 		}
 
 		basic_string<char> keywordListInstruction("");
@@ -1086,7 +1110,6 @@ void ScintillaEditView::setTclLexer()
 	execute(SCI_SETKEYWORDS, 1, reinterpret_cast<LPARAM>(tclTypes));
 }
 
-//used by Objective-C and Actionscript
 void ScintillaEditView::setObjCLexer(LangType langType)
 {
     execute(SCI_SETLEXER, SCLEX_OBJC);
@@ -1429,6 +1452,7 @@ void ScintillaEditView::defineDocType(LangType typeDoc)
 		case L_RC :
 		case L_CS :
 		case L_FLASH :
+		case L_SWIFT:
 			setCppLexer(typeDoc); break;
 
 		case L_JS:
@@ -1626,6 +1650,66 @@ void ScintillaEditView::defineDocType(LangType typeDoc)
 		case L_TEHEX :
 			setTEHexLexer(); break;
 
+		case L_ASN1 :
+			setAsn1Lexer(); break;
+
+		case L_AVS :
+			setAVSLexer(); break;
+
+		case L_BLITZBASIC :
+			setBlitzBasicLexer(); break;
+
+		case L_PUREBASIC :
+			setPureBasicLexer(); break;
+
+		case L_FREEBASIC :
+			setFreeBasicLexer(); break;
+
+		case L_CSOUND :
+			setCsoundLexer(); break;
+
+		case L_ERLANG :
+			setErlangLexer(); break;
+
+		case L_ESCRIPT :
+			setESCRIPTLexer(); break;
+
+		case L_FORTH :
+			setForthLexer(); break;
+
+		case L_LATEX :
+			setLatexLexer(); break;
+
+		case L_MMIXAL :
+			setMMIXALLexer(); break;
+
+		case L_NIMROD :
+			setNimrodLexer(); break;
+
+		case L_NNCRONTAB :
+			setNncrontabLexer(); break;
+
+		case L_OSCRIPT :
+			setOScriptLexer(); break;
+
+		case L_REBOL :
+			setREBOLLexer(); break;
+
+		case L_REGISTRY :
+			setRegistryLexer(); break;
+
+		case L_RUST :
+			setRustLexer(); break;
+
+		case L_SPICE :
+			setSpiceLexer(); break;
+
+		case L_TXT2TAGS :
+			setTxt2tagsLexer(); break;
+
+		case L_VISUALPROLOG:
+			setVisualPrologLexer(); break;
+
 		case L_TEXT :
 		default :
 			if (typeDoc >= L_EXTERNAL && typeDoc < _pParameter->L_END)
@@ -1682,6 +1766,7 @@ BufferID ScintillaEditView::attachDefaultDoc()
 	_currentBufferID = id;
 	_currentBuffer = buf;
 	bufferUpdated(buf, BufferChangeMask);	//make sure everything is in sync with the buffer, since no reference exists
+
 #endif // Mattes
 	return id;
 }
@@ -1774,9 +1859,8 @@ void ScintillaEditView::activateBuffer(BufferID buffer)
 	// Due to execute(SCI_CLEARDOCUMENTSTYLE); in defineDocType() function
 	// defineDocType() function should be called here, but not be after the fold info loop
 	defineDocType(_currentBuffer->getLangType());
-    // TODO probably required here????? 
-	// setTabSettings(_currentBuffer->getCurrentLang());
-	setWordChars(); // TODO check if correct to add
+
+	setWordChars();
 
 	if (_currentBuffer->getNeedsLexing()) {
 		restyleBuffer();
@@ -2026,7 +2110,7 @@ void ScintillaEditView::getVisibleStartAndEndPosition(int * startPos, int * endP
 	*endPos = static_cast<int32_t>(execute(SCI_POSITIONFROMLINE, visibleLine));
 	if (*endPos == -1) { // Mattes
 		*endPos = static_cast<int32_t>(execute(SCI_GETLENGTH));
-		}
+		} // Mattes
 }
 
 char * ScintillaEditView::getWordFromRange(char * txt, int size, int pos1, int pos2)
@@ -3040,12 +3124,12 @@ void ScintillaEditView::hideLines()
 	int endLine = static_cast<int32_t>(execute(SCI_LINEFROMPOSITION, execute(SCI_GETSELECTIONEND)));
 	//perform range check: cannot hide very first and very last lines
 	//Offset them one off the edges, and then check if they are within the reasonable
-	int nrLines = static_cast<int32_t>(execute(SCI_GETLINECOUNT));
-	if (nrLines < 3)
+	int nbLines = static_cast<int32_t>(execute(SCI_GETLINECOUNT));
+	if (nbLines < 3)
 		return;	//cannot possibly hide anything
 	if (!startLine)
 		++startLine;
-	if (endLine == (nrLines-1))
+	if (endLine == (nbLines-1))
 		--endLine;
 
 	if (startLine > endLine)
@@ -3248,7 +3332,7 @@ void ScintillaEditView::setTabSettings(Lang *lang)
 		if (lang->_langID == L_JAVASCRIPT)
 		{
 			Lang *ljs = _pParameter->getLangFromID(L_JS);
-			execute(SCI_SETTABWIDTH, ljs->_tabSize);
+			execute(SCI_SETTABWIDTH, ljs->_tabSize > 0 ? ljs->_tabSize : lang->_tabSize);
 			execute(SCI_SETUSETABS, !ljs->_isTabReplacedBySpace);
 			return;
 		}
@@ -3258,7 +3342,7 @@ void ScintillaEditView::setTabSettings(Lang *lang)
     else
     {
         const NppGUI & nppgui = _pParameter->getNppGUI();
-        execute(SCI_SETTABWIDTH, nppgui._tabSize);
+        execute(SCI_SETTABWIDTH, nppgui._tabSize  > 0 ? nppgui._tabSize : lang->_tabSize);
 		execute(SCI_SETUSETABS, !nppgui._tabReplacedBySpace);
     }
 }

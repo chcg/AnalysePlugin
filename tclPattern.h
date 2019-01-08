@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -25,6 +25,7 @@ tclPattern stores the infos to execute one search
 #include <windows.h>
 #include <string>
 #include "Common.h"
+#include "tclColor.h"
 
 /**
 * A Pattern is a text and additionaly stores the configuration information for it.
@@ -47,54 +48,13 @@ public:
       max_selectionType
    };
 
-   enum teColor 
-   {
-      black,         
-      red,           
-      darkRed,       
-      deepPurple,    
-      darkBlue,      
-      darkGreen,     
-
-      darkGrey,      
-      liteRed,       
-      brown,         
-      purple,        
-      blue,          
-      blueGreen,     
-
-      grey,          
-      orange,        
-      beige,         
-      pink, 
-      liteBlue,      
-      green,         
-
-      liteGrey,      
-      darkYellow,    
-      liteBeige,     
-      litePink,   
-      cyan,          
-      liteGreen,     
-
-      white,         
-      yellow,        
-      offWhite,      
-      veryLitePurple, 
-      veryLiteBlue,  
-      veryLiteGrey,  
-      max_color
-   };
-
 
 protected:
    // following tables are used to translate enum into text and back
    static const TCHAR*  transSearchType[max_searchType];
    static const TCHAR*  transSelectionType[max_selectionType];
-   static const TCHAR*  transColorName[max_color];
    static const TCHAR*  transBool[2];
    //static unsigned long transColorNum16[16];
-   static const unsigned long transColorNum[max_color];
 
 public:
    
@@ -300,33 +260,33 @@ public:
    generic_string getColorStr()const;
    generic_string getBgColorStr()const;
    
-   teColor getColor() const {
-      return mColor;
+   tColor getColor() const {
+      return tclColor::getColRgb(mColor);
    }
-   teColor getBgColor() const {
-      return mBgColor;
+   tColor getBgColor() const {
+      return tclColor::getColRgb(mBgColor);
    }
 
-   unsigned long getColorNum() const ;
-   unsigned long getBgColorNum() const ;
+   tColor getColorNum() const ;
+   tColor getBgColorNum() const ;
+   static unsigned long getDefColorNum(int e);
 
    void setColorStr(const generic_string& color) ;
    void setBgColorStr(const generic_string& color) ;
 
-   void setColor(teColor color) ;
-   void setBgColor(teColor color) ;
+   void setColor(tColor color) ;
+   void setBgColor(tColor color) ;
 
    static int getDefColorListSize() {
-      return max_color;
+      return tclColor::getDefColorListSize();
    }
 
-   static unsigned long convColorStr2Num(const generic_string& color);
-   static teColor convColorNum2Enum(unsigned long color);
-   static generic_string convColor2Str(teColor col);
+   static unsigned long convColorStr2Rgb(const generic_string& color);
+   static tColor convColorNum2Enum(unsigned long color);
+   //static generic_string convColor2Str(teColor col);
 
-   static const TCHAR** getDefColorList() ;
-   static const unsigned long* getDefColorNumList() ;
-   static unsigned long getDefColorNum(int e) ;
+   //static const TCHAR** getDefColorList() ;
+   //static const unsigned long* getDefColorNumList() ;
 
    generic_string getHideTextStr()const;
    generic_string getIsReplaceTextStr()const;
@@ -386,8 +346,8 @@ protected:
    /** true if the found text shall be shown underlined  */
    bool mUnderlined;
    /** color in which the found text shall be shown */
-   teColor mColor;
-   teColor mBgColor;
+   tColor mColor;
+   tColor mBgColor;
    /** true if the found text shall be madi invisible */
    bool mHideText;
    bool mDoReplace;

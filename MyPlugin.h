@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
 /**
-interface for my plugin knwon to the dock window
+interface for my plugin known to the dock window
 */
 
 #ifndef MYPLUGIN_H
@@ -96,7 +96,7 @@ public:
    /**
    * remove all search content
    */
-   virtual void clearResult()=0;
+   virtual void clearResult(bool initial = false)=0;
 
    /**
    * move the results in result window and search result from old to new Id
@@ -145,12 +145,15 @@ public:
    virtual const generic_string& getResultFontName() const =0;
 
    virtual unsigned getResultFontSize() const =0;
-
+   virtual void setDisplayLineNo(bool bOn) = 0;
    virtual int getUseBookmark() const = 0;
+   virtual bool getResultWrapMode() const = 0;
+   virtual void setResultWrapMode(bool bOn) = 0;
    virtual int getDisplayLineNo() const = 0;
    virtual bool getIsSyncScroll() const = 0;
    virtual bool getDblClickJumps2EditView() const = 0;
-
+   virtual void showConfigDlg() = 0;
+   virtual COLORREF* refCustomColors() = 0;
 };
 #endif //MYPLUGIN_H
 

@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -24,6 +24,7 @@ in the find config dock window
 #include "resource.h"
 #include "tclTableview.h"
 #include "tclPatternList.h"
+#include "tclResultList.h"
 #include "chardefines.h"
 #include <commctrl.h>// For ListView control APIs
 
@@ -34,7 +35,8 @@ const tstPatternConfTab tclTableview::gPatternConfTab[tclTableview::TBLVIEW_COL_
 #ifdef COL_NUMBERING
     {TEXT("#"), 20 },
 #endif
-    {TEXT("Active"), 20 } 
+    {TEXT("Hits"),   0 }
+   ,{TEXT("Active"), 20 }
    ,{TEXT("Search"), 100}
 #ifdef RESULT_COLORING
    ,{TEXT("Color"),  40 }
@@ -119,6 +121,7 @@ void tclTableview::updateRow(int item, const tclPattern& rp) {
    TCHAR num[10];
    updateCell(item, TBLVIEW_COL_NUM, generic_itoa(item, num, 10));
 #endif
+   updateCell(item, TBLVIEW_COL_HITS, getHitCountStr(item));
    updateCell(item, TBLVIEW_COL_DO_SEARCH, rp.getDoSearch()?TEXT("X"):TEXT(""));
    updateCell(item, TBLVIEW_COL_SEARCH_TEXT, rp.getSearchText());
    updateCell(item, TBLVIEW_COL_SEARCH_TYPE, rp.getSearchTypeStr());
@@ -138,29 +141,40 @@ void tclTableview::updateRow(int item, const tclPattern& rp) {
 #endif
 }
 
-//void tclTableview::updateRowColor(int item, const tclPattern& rp){
-   //int i = getSelectedRow();
-   //if (i!=item){
-   //   setSelectedRow(i);
-   //}
-   //::SendDlgItemMessage(mhList, IDC_LIST_CONF, LB_SETITEMDATA , item, (LPARAM) rp.getColorNum());
-   //LVITEM lvitem;
-   //lvitem.iItem = item;
-   //
-   //ListView_GetItem(mhList, &lvitem);
-   //ListView_SetTextBkColor(mhList, rp.getBgColorNum());
-   //ListView_SetTextColor(mhList, rp.getColorNum());
-   //if (i!=item){
-   //   setSelectedRow(item);
-   //}
-//}
-
 void tclTableview::updateCell(int item, int column, const generic_string& s){
    //static TCHAR cs[MAX_CHAR_CELL];
    //int j = (int)s.length()+1; 
    //j = (j>MAX_CHAR_CELL)?MAX_CHAR_CELL:j;
    //for(int i=0; i<j; ++i) {cs[i] = (TCHAR)(s[i]&0xff);}
    ListView_SetItemText(mhList, item, column, (TCHAR*)s.c_str());
+}
+
+void tclTableview::setHitsRowVisible(bool bVisible, const tclResultList& results) {
+   mbHitsVisible = bVisible;
+   size_t max = 0;
+   TCHAR num[20];
+   int row = 0;
+   for (tclResultList::const_iterator it = results.begin(); it != results.end(); ++it , ++row) {
+      if (bVisible) {
+         const tclResult& r = it.getResult();
+         int n = (int)r.getPositions().size();
+         generic_itoa(n, num, 10);
+         updateCell(row, TBLVIEW_COL_HITS, num);
+         max = (n > max) ? n : max;
+      }
+      else {
+         updateCell(row, TBLVIEW_COL_HITS, TEXT(""));
+      }
+   }
+   int iLineNumColSize =   (max<10) ? 20 :
+                           (max<1000) ? 30 :
+                           (max<10000) ? 35 :
+                           (max<100000) ? 40 : 50;
+   ListView_SetColumnWidth(mhList, TBLVIEW_COL_HITS, bVisible ? iLineNumColSize : 0);
+}
+
+generic_string tclTableview::getHitCountStr(int row) const {
+   return generic_string(TEXT(""));
 }
 
 void tclTableview::create(){
@@ -183,6 +197,7 @@ void tclTableview::create(){
 #ifdef COL_NUMBERING
 generic_string tclTableview::getItemNumStr() const { return getItem(TBLVIEW_COL_NUM);}
 #endif
+generic_string tclTableview::getHitsStr() const { return getItem(TBLVIEW_COL_HITS); }
 generic_string tclTableview::getDoSearchStr() const { return getItem(TBLVIEW_COL_DO_SEARCH);}
 generic_string tclTableview::getSearchTextStr() const { return getItem(TBLVIEW_COL_SEARCH_TEXT);}
 generic_string tclTableview::getSearchTypeStr() const {return getItem(TBLVIEW_COL_SEARCH_TYPE);}

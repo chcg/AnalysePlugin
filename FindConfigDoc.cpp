@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -43,6 +43,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define FNDDOC_COLOR TEXT("color")
 #define FNDDOC_BGCOLOR TEXT("bgColor")
 #define FNDDOC_COMMENT TEXT("comment")
+#define FNDDOC_HITS TEXT("hits")
 
 FindConfigDoc::FindConfigDoc(const TCHAR * filename)
    : mDoc(0)
@@ -234,4 +235,34 @@ bool FindConfigDoc::writePatternList(tclPatternList& pl){
       bRes = false;
    }
    return bRes; 
+}
+
+bool FindConfigDoc::writePatternHitsList(tclResultList& rl) {
+   bool bRet = writePatternList(rl);
+   bool bRet2 = false;
+   TiXmlNode* n;
+   TiXmlElement* e;
+   n = mDoc->FirstChildElement();
+   if (n && generic_string(n->Value()) == FNDDOC_ANALYSE_DOC) {
+      n = n->FirstChildElement();
    }
+   if (n && (generic_string(n->Value()) == FNDDOC_HEADLINE)) {
+      n = n->NextSiblingElement();
+   }
+   for (unsigned i = 0; i < rl.size(); ++i) {
+      const tclResult& rr = rl.refResult(rl.getPatternId(i));
+      if (!rr.getIsDirty()) {
+         unsigned u = rr.size();
+         if (n && generic_string(n->Value()) == FNDDOC_SEARCH_TEXT) {
+            e = n->ToElement();
+            bRet2 = true;
+            e->SetAttribute(FNDDOC_HITS, u);
+            n = n->NextSiblingElement();
+         }
+      }
+   }
+   if (bRet2) {
+      bRet2 = mDoc->SaveFile();
+   }
+   return bRet && bRet2;
+}

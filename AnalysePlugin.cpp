@@ -1,8 +1,8 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
-Don HO donho(at)altern.org 
+Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -42,6 +42,7 @@ const TCHAR AnalysePlugin::KEYONAUTOUPDATE[] = TEXT("onAutoUpdate");
 const TCHAR AnalysePlugin::KEYSYNCEDSCORLL[] = TEXT("syncedScrolling");
 const TCHAR AnalysePlugin::KEYDBLCLKUMP2EDIT[] = TEXT("dblclkJumps2EditView");
 const TCHAR AnalysePlugin::KEYUSEBOOKMARK[] = TEXT("useBookmark");
+const TCHAR AnalysePlugin::KEYRESWINWORDWRAP[] = TEXT("resWinWordWrap");
 const TCHAR AnalysePlugin::KEYDISPLAYLINENO[] = TEXT("displayLineNo");
 const TCHAR AnalysePlugin::KEYONENTERACTION[] = TEXT("onEnterAction");
 const TCHAR AnalysePlugin::KEYLASTFILENAME[] = TEXT("lastFile");
@@ -50,9 +51,11 @@ const TCHAR AnalysePlugin::KEYFONTSIZE[] = TEXT("resultFontSize");
 const TCHAR AnalysePlugin::KEYMAXNUMOFCFGFILES[] = TEXT("maxNumOfConfigFiles");
 const TCHAR AnalysePlugin::KEYLASTSRCHCFGFILE[] = TEXT("lastSearchConfigFile");
 const TCHAR AnalysePlugin::KEYNUMOFLASTCFGFILES[] = TEXT("numberOfLastConfigFiles");
+const TCHAR AnalysePlugin::KEYCUSTOMCOLORS[] = TEXT("customColors");
 const TCHAR AnalysePlugin::SECTIONNAME[] = TEXT("Analyse Plugin");
 const TCHAR AnalysePlugin::LOCALCONFFILE[] = TEXT("doLocalConf.xml");
 const TCHAR AnalysePlugin::ANALYSE_INIFILE[] = TEXT("AnalysePlugin.ini");
+COLORREF AnalysePlugin::_acrCustClr[NUM_CUSTOM_COLORS]; // array of custom colors 
 
 // +++++++++++++ plugin dll interface ++++++++++++++++++++++++++++++++++++++ 
 
@@ -105,6 +108,9 @@ void MenuShowHelpDialog () {
 void MenuShowConfigDialog () {
    g_plugin.showConfigDialog();
 }
+void AnalysePlugin::showConfigDlg() {
+   g_plugin.showConfigDialog();
+}
 
 BOOL AnalysePlugin::dllmain(HANDLE hModule, 
                             DWORD  reasonForCall, 
@@ -127,13 +133,13 @@ BOOL AnalysePlugin::dllmain(HANDLE hModule,
 #endif
          funcItem[SHOWHELPDLG]._pFunc = MenuShowHelpDialog;
 
-         ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_DIAG, funcItem[SHOWFINDDLG]._itemName, nbChar);
-         ::LoadString((HINSTANCE)_hModule, IDS_ADDSELTOPATT, funcItem[ADDSELTOPATT]._itemName, nbChar);
-         ::LoadString((HINSTANCE)_hModule, IDS_RUNSEARCH, funcItem[RUNSEARCH]._itemName, nbChar);
+         ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_DIAG, funcItem[SHOWFINDDLG]._itemName, cnbChar);
+         ::LoadString((HINSTANCE)_hModule, IDS_ADDSELTOPATT, funcItem[ADDSELTOPATT]._itemName, cnbChar);
+         ::LoadString((HINSTANCE)_hModule, IDS_RUNSEARCH, funcItem[RUNSEARCH]._itemName, cnbChar);
 #ifdef CONFIG_DIALOG
-         ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_CONFIG, funcItem[SHOWCNFGDLG]._itemName, nbChar);
+         ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_CONFIG, funcItem[SHOWCNFGDLG]._itemName, cnbChar);
 #endif
-         ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_HELP, funcItem[SHOWHELPDLG]._itemName, nbChar);
+         ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_HELP, funcItem[SHOWHELPDLG]._itemName, cnbChar);
          // Shortcut :
          // Following code makes the first command
          // bind to the shortcut Ctrl-Alt-F
@@ -171,26 +177,14 @@ BOOL AnalysePlugin::dllmain(HANDLE hModule,
 void AnalysePlugin::loadSettings() 
 {
    DBG0("loadSettings()");
-   TCHAR nppPath[MAX_PATH];
-   generic_strncpy(nppPath, _szPluginFileName, MAX_PATH);
-   // remove the module name : get plugins directory path
-   PathRemoveFileSpec(nppPath);
-
-   // cd .. : get npp executable path
-   PathRemoveFileSpec(nppPath);
-
-   // Make localConf.xml path
-   TCHAR localConfPath[MAX_PATH];
-   generic_strncpy(localConfPath, nppPath, MAX_PATH);
-   PathAppend(localConfPath, localConfFile);
-
-   // Test if localConf.xml exist
-   bool isLocal = (PathFileExists(localConfPath) == TRUE);
+   (NppParameters::getInstance())->load();
+   bool isLocal = (NppParameters::getInstance())->isLocal();
 
    if (isLocal) 
    {
-      generic_strncpy(iniFilePath, nppPath, MAX_PATH);
-      generic_strncpy(xmlFilePath, nppPath, MAX_PATH);
+      generic_string nppConfigPath = (NppParameters::getInstance())->getNppPath();
+      generic_strncpy(iniFilePath, nppConfigPath.c_str(), MAX_PATH);
+      generic_strncpy(xmlFilePath, nppConfigPath.c_str(), MAX_PATH);
       PathAppend(iniFilePath, TEXT("plugins\\config\\AnalysePlugin.ini"));
       PathAppend(xmlFilePath, TEXT("plugins\\config\\AnalysePlugin.xml"));
    }
@@ -219,6 +213,8 @@ void AnalysePlugin::loadSettings()
    ::GetPrivateProfileString(SECTIONNAME, KEYUSEBOOKMARK, TEXT("1"), tmp, COUNTCHAR(tmp), iniFilePath);
    _configDlg.setUseBookmark(generic_atoi(tmp));
    _findResult.setUseBookmark(generic_atoi(tmp));
+   ::GetPrivateProfileString(SECTIONNAME, KEYRESWINWORDWRAP, TEXT("0"), tmp, COUNTCHAR(tmp), iniFilePath);
+   _findResult.setWrapMode(generic_atoi(tmp) != 0);
    ::GetPrivateProfileString(SECTIONNAME, KEYDISPLAYLINENO, TEXT("1"), tmp, COUNTCHAR(tmp), iniFilePath);
    _configDlg.setDisplayLineNo(generic_atoi(tmp));
    _findResult.setDisplayLineNo(generic_atoi(tmp));
@@ -234,6 +230,10 @@ void AnalysePlugin::loadSettings()
    _configDlg.setFontText(generic_string(tmp));
    ::GetPrivateProfileString(SECTIONNAME, KEYFONTSIZE, TEXT("8"), tmp, COUNTCHAR(tmp), iniFilePath);
    _configDlg.setFontSize(generic_atoi(tmp));
+   ::GetPrivateProfileString(SECTIONNAME, KEYCUSTOMCOLORS, TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
+   if (generic_strlen(tmp) > 0) {
+      setCustomColorsStr(tmp);
+   }
    ::GetPrivateProfileString(SECTIONNAME, KEYMAXNUMOFCFGFILES, TEXT("4"), tmp, COUNTCHAR(tmp), iniFilePath);
    _configDlg.setNumOfCfgFilesStr(tmp);  
    _findDlg.setNumOfCfgFilesStr(tmp);
@@ -253,6 +253,7 @@ void AnalysePlugin::loadSettings()
    if(generic_strlen(tmp)){
       _findDlg.setConfigFileName(tmp);
    }
+
    // next is done after dialog is created
    //if(PathFileExists(xmlFilePath) == TRUE) {
    //   // load the patterns from last run
@@ -286,6 +287,8 @@ void AnalysePlugin::saveSettings() {
    TCHAR tmp[10];
    generic_itoa(_configDlg.getUseBookmark(), tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYUSEBOOKMARK, tmp, iniFilePath);
+   generic_itoa((_findResult.getWrapMode() ? 1 : 0), tmp, 10);
+   ::WritePrivateProfileString(SECTIONNAME, KEYRESWINWORDWRAP, tmp, iniFilePath);
    generic_itoa(_configDlg.getDisplayLineNo(), tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYDISPLAYLINENO, tmp, iniFilePath);
    generic_itoa(_configDlg.getOnAutoUpdate(), tmp, 10);
@@ -300,6 +303,7 @@ void AnalysePlugin::saveSettings() {
    ::WritePrivateProfileString(SECTIONNAME, KEYFONTNAME, cp, iniFilePath);
    generic_itoa(_configDlg.getFontSize(), tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYFONTSIZE, tmp, iniFilePath);
+   ::WritePrivateProfileString(SECTIONNAME, KEYCUSTOMCOLORS, getCustomColorsStr().c_str(), iniFilePath);
    ::WritePrivateProfileString(SECTIONNAME, KEYMAXNUMOFCFGFILES, _configDlg.getNumOfCfgFilesStr().c_str(), iniFilePath);   
    int maxFiles = static_cast<int>(_findDlg.getLastConfigFiles().size());
    generic_itoa(maxFiles, tmp, 10);
@@ -317,17 +321,17 @@ void AnalysePlugin::saveSettings() {
    }
 }
 
-void AnalysePlugin::showMargin(int witchMarge, bool willBeShown) {
-   int pixelWidth;
-   if (witchMarge == ScintillaSearchView::_SC_MARGE_LINENUMBER) {
-      int chWidth = (int)execute(scnSecondHandle, SCI_TEXTWIDTH, STYLE_LINENUMBER, (LPARAM)"8");
-      // The 4 here allows for spacing: 1 pixel on left and 3 on right.
-      pixelWidth = (willBeShown)?(4 + 5 * chWidth):0; // Mattes ScintillaEditView::_MARGE_LINENUMBER_NB_CHIFFRE
-   } else {
-      pixelWidth = willBeShown?14:0;
-   }
-   execute(scnSecondHandle, SCI_SETMARGINWIDTHN, witchMarge, pixelWidth);
-}
+//void AnalysePlugin::showMargin(int witchMarge, bool willBeShown) {
+//   int pixelWidth;
+//   if (witchMarge == ScintillaSearchView::_SC_MARGE_LINENUMBER) {
+//      int chWidth = (int)execute(scnSecondHandle, SCI_TEXTWIDTH, STYLE_LINENUMBER, (LPARAM)"8");
+//      // The 4 here allows for spacing: 1 pixel on left and 3 on right.
+//      pixelWidth = (willBeShown)?(4 + 5 * chWidth):0; // Mattes ScintillaEditView::_MARGE_LINENUMBER_NB_CHIFFRE
+//   } else {
+//      pixelWidth = willBeShown?14:0;
+//   }
+//   execute(scnSecondHandle, SCI_SETMARGINWIDTHN, witchMarge, pixelWidth);
+//}
 
 void AnalysePlugin::displaySectionCentered(int posStart, int posEnd, bool isDownwards)
 {
@@ -374,16 +378,19 @@ void AnalysePlugin::setSearchFileName(const generic_string& file) {
       //don't do it here because window is not init() _findResult.clear();
    }
 }
+void AnalysePlugin::setDisplayLineNo(bool bOn) {
+   _configDlg.setDisplayLineNo(bOn ? 1 : 0);
+}
 
 void AnalysePlugin::removeUnusedResultLines(tPatId pattId, const tclResult& oldResult, const tclResult& newResult) 
 {
    _findResult.removeUnusedResultLines(pattId, oldResult, newResult);
 }
 
-void AnalysePlugin::clearResult() 
+void AnalysePlugin::clearResult(bool initial)
 {
    setSearchFileName(TEXT(""));
-   _findResult.clear();
+   _findResult.clear(initial);
 }
 
 void AnalysePlugin::moveResult(tPatId oldPattId, tPatId newPattId)
@@ -496,7 +503,7 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList)
          tclResult::tlvPosInfo::const_iterator it = result.getPositions().begin();
          //int erasedLen = 0;
          int lcount = (int)execute(scnActiveHandle, SCI_GETLINECOUNT);
-         unsigned cp = (unsigned)execute(scnActiveHandle, SCI_GETCODEPAGE); // TODO hier sollte die CP vom result window genutzt werden
+         unsigned cp = (unsigned)execute(scnActiveHandle, SCI_GETCODEPAGE);
          WcharMbcsConvertor* wmc = WcharMbcsConvertor::getInstance();
          std::string comment;
          if (wmc) {
@@ -521,6 +528,11 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList)
 
                }
                execute(scnActiveHandle, SCI_GETLINE, it->line, (LPARAM)_line);
+               for (int i = 0; i < lineLength; ++i) {
+                  if (_line[i] == 0) { // ensure paradigma no zeros in strings
+                     _line[i] = (char)0x20;
+                  }
+               }
                _line[lineLength] = 0x0D;
                _line[lineLength+1] = 0x0A;
                _line[lineLength+2] = '\0';
@@ -558,6 +570,14 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList)
    //   _findResult.setCurrentViewPos(iThisLineToMove);
    //}
    _findDlg.activatePleaseWait(false);
+//   mCurScnHandle = getCurrentHScintilla(scnActiveHandle);
+// hier
+//#define MARGIN_SCRIPT_FOLD_INDEX 1
+//   ::SendMessage(mCurScnHandle, SCI_SETPROPERTY, (WPARAM)TEXT("fold"), (LPARAM)TEXT("1"));
+//   ::SendMessage(mCurScnHandle, SCI_SETPROPERTY, (WPARAM)TEXT("fold.compact"), (LPARAM)TEXT("0"));
+//   ::SendMessage(mCurScnHandle, SCI_SETMARGINWIDTHN, MARGIN_SCRIPT_FOLD_INDEX, 0);
+//   ::SendMessage(mCurScnHandle, SCI_SETLEXER, SCLEX_CONTAINER, 0);
+//   ::PostMessage(mCurScnHandle, SCI_COLOURISE, 0, -1);
    return bRes;
 }
 
@@ -567,6 +587,13 @@ teOnEnterAction AnalysePlugin::getOnEnterAction() const {
 int AnalysePlugin::getUseBookmark() const {
    return _configDlg.getUseBookmark();
 }
+bool AnalysePlugin::getResultWrapMode() const {
+   return _findResult.getWrapMode();
+}
+void AnalysePlugin::setResultWrapMode(bool bOn) {
+   _findResult.setWrapMode(bOn);
+}
+
 int AnalysePlugin::getDisplayLineNo() const {
    return _configDlg.getDisplayLineNo();
 }
@@ -618,24 +645,59 @@ void AnalysePlugin::beNotified(SCNotification *notification)
          }
          break;
       }
-#if 1 
-      // diese nachricht ist hier nicht angekommen trotz
-      //::SendMessage(hwnd, SCI_SETLEXER, SCLEX_CONTAINER , 0 );
+#if 0 // SCN_STYLENEEDED
    case SCN_STYLENEEDED:
       {
-         DBG0("SCN_STYLENEEDED");
          // make sure the text is drawn with our style
-         teNppWindows currentEdit;
-         ::SendMessage(nppData._nppHandle, NPPM_GETCURRENTSCINTILLA, 0, (LPARAM)&currentEdit);
-         HWND hCurrentEditView = getCurrentHScintilla(currentEdit); // the enum is synchronized for 0 and 1   
-         int startPos = (int)::SendMessage(hCurrentEditView, SCI_GETENDSTYLED, 0, 0);
-         int lineNumber = (int)::SendMessage(hCurrentEditView, SCI_LINEFROMPOSITION, startPos, 0);
-         startPos = (int)::SendMessage(hCurrentEditView, SCI_POSITIONFROMLINE, lineNumber, 0);
-         doStyleFormating(hCurrentEditView, startPos, notification->position);
+         if (mCurScnHandle == notification->nmhdr.hwndFrom) {
+            DBG0("SCN_STYLENEEDED");
 
-      }
+            WPARAM line_number = (WPARAM)execute(mCurScnHandle, SCI_LINEFROMPOSITION, execute(mCurScnHandle, SCI_GETENDSTYLED));
+            int start_pos = execute(mCurScnHandle, SCI_POSITIONFROMLINE, line_number);
+            int end_pos = notification->position;
+            int line_length = execute(mCurScnHandle, SCI_LINELENGTH, line_number);
+            // The SCI_STARTSTYLING here is important
+            execute(mCurScnHandle, SCI_STARTSTYLING, start_pos, MY_STYLE_MASK);
+
+            while (end_pos > start_pos) {
+               if (line_length) {
+                  char first_char = (char)execute(mCurScnHandle, SCI_GETCHARAT, (WPARAM)execute(mCurScnHandle, SCI_POSITIONFROMLINE, line_number));
+                  switch (first_char)
+                  {
+                  case '#':
+                     execute(mCurScnHandle, SCI_SETSTYLING, line_length, STYLE_DEFAULT);
+                     execute(mCurScnHandle, SCI_SETFOLDLEVEL, line_number, 1);
+                     break;
+
+                  default:
+                     execute(mCurScnHandle, SCI_SETSTYLING, line_length, STYLE_BRACELIGHT);
+                     break;
+                  } // switch
+                  ++line_number;
+                  start_pos = execute(mCurScnHandle, SCI_POSITIONFROMLINE, line_number);
+                  line_length = execute(mCurScnHandle, SCI_LINELENGTH, line_number);
+                  if (start_pos == -1 || start_pos > end_pos) {
+                     start_pos = end_pos; // normal end
+                  }
+               } // if line_length
+               else {
+                  DBG2("SCN_STYLENEEDED line with length 0 start_pos %d line %d", start_pos, line_number);
+                  break;
+               }
+            } // while end_pos >= start_pos
+         } // if hwnd == mCurScnHandle
+      } // case SCN_STYLENEEDED
       break;
-#endif // 0
+      // hier
+   case SCN_MARGINCLICK:
+   {
+      // make sure the text is drawn with our style
+      if (mCurScnHandle == notification->nmhdr.hwndFrom) {
+         DBG0("SCN_MARGINCLICK");
+      }
+   }
+   break;
+#endif // SCN_STYLENEEDED
    case SCN_MODIFIED:
       {
          if((notification->modificationType & (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT))!= 0) {
@@ -1011,15 +1073,15 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
    return nbProcessed;
 }
 
-void AnalysePlugin::doStyleFormating(HWND hCurrentEditView, int /*startPos*/, int /*endPos*/) 
-{
-   // get the result list, including all positions 
-   // get the pattern list including all the styles
-   // apply to all positions in the given area the correct pattern
-   ::SendMessage(hCurrentEditView, SCI_STARTSTYLING, 0, MY_STYLE_MASK ); //(int pos, int mask)
-   ::SendMessage(hCurrentEditView, SCI_SETSTYLING, 100, 10);//foundTextLen, fs
-
-}
+//void AnalysePlugin::doStyleFormating(HWND hCurrentEditView, int /*startPos*/, int /*endPos*/) 
+//{
+//   // get the result list, including all positions 
+//   // get the pattern list including all the styles
+//   // apply to all positions in the given area the correct pattern
+//   ::SendMessage(hCurrentEditView, SCI_STARTSTYLING, 0, MY_STYLE_MASK ); //(int pos, int mask)
+//   ::SendMessage(hCurrentEditView, SCI_SETSTYLING, 100, 10);//foundTextLen, fs
+//
+//}
 
 void AnalysePlugin::toggleShowFindDlg () 
 {
@@ -1149,6 +1211,39 @@ void AnalysePlugin::showFindDlg ()
 void AnalysePlugin::visibleChanged(bool isVisible) 
 {
    execute(nppHandle, NPPM_SETMENUITEMCHECK, funcItem[SHOWFINDDLG]._cmdID, (LPARAM)isVisible);
+}
+
+void AnalysePlugin::setCustomColorsStr(const TCHAR* colors) {
+   if (colors == 0) return;
+   int j = (int)generic_strlen(colors) + 1;
+   j = (j>MAX_CHAR_HISTORY) ? MAX_CHAR_HISTORY : j;
+   TCHAR szPart[MAX_CHAR_HISTORY];
+   generic_strncpy(szPart, colors, j);
+   szPart[j - 1] = 0;
+   TCHAR* szToken = generic_strtok(szPart, TEXT(","));
+   int num = 0;
+   while (szToken && num < NUM_CUSTOM_COLORS) {
+      tColor c;
+      c = tclColor::convColorStr2Rgb(generic_string(szToken));
+      _acrCustClr[num] = c;
+      szToken = generic_strtok(NULL, TEXT(",")); // next token
+      ++num;
+   } // while
+}
+
+generic_string AnalysePlugin::getCustomColorsStr() {
+   generic_string s;
+   for (int i = 0; i < NUM_CUSTOM_COLORS; ++i) {
+      if (i > 0) {
+         s += TEXT(",");
+      }
+      TCHAR col[8];
+      tColor c = _acrCustClr[i] + 0x01000000; // to preserve all zeros
+      generic_itoa(c, col, 16);
+      col[0] = TEXT('#'); // set string trigger 
+      s += generic_string(col);
+   }
+   return s;
 }
 
 LRESULT AnalysePlugin::messageProc(UINT /*Message*/, WPARAM /*wParam*/, LPARAM /*lParam*/)

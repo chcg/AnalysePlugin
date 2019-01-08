@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -25,5 +25,5 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 // writing the version info in several flavours is caused by the fact, that 
 // MS resource compiler is only intepreting one level of macro expansion
 #define VER_FILEVERSION_MAYOR         1
-#define VER_FILEVERSION_MINOR         11
-#define VER_FILEVERSION_STR           "1.11\0"
+#define VER_FILEVERSION_MINOR         12
+#define VER_FILEVERSION_STR           "1.12\0"

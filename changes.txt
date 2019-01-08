@@ -1,3 +1,23 @@
+Changes since 1.12-preview
+ - starting use of lexer, no yet active
+ - adding possibility to save the hits into configfile
+ - adding feature search results statistic
+ - updating copyrights and manual with current features
+ - changing dons mail address to don.h@free.fr
+ - using NppParameters to detect isLocal config
+ - move custom colors to main to allow modifications also from Options dialog
+ - enabling finally FEATURE_RESVIEW_POS_KEEP_AT_SEARCH
+ - adding Options... to context menus
+ - adding feature wordwrap in result window
+ - adding context menu for toggeling the linenumber setting
+ - adding context for opening options dialog
+ - fixing bug 56 (bookmark restore)
+ - fixing context menu position when RClick on table head line
+ - syncing sources with NPP version 7.6.1
+ - ensure build in new directory structure (plugins in subfolder with plugin name)
+ - fixing bug #60 Incorrect search results when text file contains a NULL character
+ - replacing npp_defines by npp_exceptions
+ - custom color selection and persisting the same is functional now
 Changes since 1.11
  - bugfix positioning ColorPopup on left side multi screen (negative coordinates)
  - bugfix scrambling with "Toggle this" context menu option
@@ -6,7 +26,7 @@ Changes since 1.11
  - added version information in Windows properties dialog
  - synced with source from Notepad++ v7.4.1
  - added package for both systems 32/64 in one 
-Changes sonce 1.11-preview
+Changes since 1.11-preview
  - added 64bit support and package for both systems 32/64 in one 
 Changes since 1.10
  - bugfix ensure stop of searching if max length of scintilla search window reached

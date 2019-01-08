@@ -1,8 +1,8 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
-Don HO donho(at)altern.org 
+Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -64,16 +64,25 @@ void FindDlg::setConfigFileName(const generic_string str) {
 bool FindDlg::loadConfigFile(const TCHAR* file, bool bAppend, bool bLoadNew) {
    FindConfigDoc doc(file); 
    if(doc.readPatternList(mResultList, bAppend, bLoadNew)) {
-      refillTable();
+      refillTable(true);
       _pParent->updateSearchPatterns();
       return true;
    }
    return false;
 }
-bool FindDlg::saveConfigFile(const TCHAR* file) {
-      FindConfigDoc doc(file);
-      return doc.writePatternList(mResultList);
+
+bool FindDlg::saveConfigFile(const TCHAR* file, bool bWithHits) {
+   FindConfigDoc doc(file);
+   bool bRes;
+   if (bWithHits) {
+      bRes = doc.writePatternHitsList(mResultList);
+   }
+   else {
+      bRes = doc.writePatternList(mResultList);
+   }
+   return bRes;
 }
+
 void FindDlg::setNumOfCfgFiles(unsigned u) {
    if (u > 0) {
       _maxConfigFiles = u;
@@ -127,6 +136,7 @@ void FindDlg::doSearch() {
    }
    // start search
    _pParent->doSearch(mResultList);
+   mTableView.setHitsRowVisible(true, mResultList);
    // set the modification notification for this window if not already on
    int mode = (int)_pParent->execute(scnActiveHandle,SCI_GETMODEVENTMASK);
    if ((mode & (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT)) != (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT)) {
@@ -148,8 +158,17 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
       }
    }
 
-   switch (message) 
+   switch (message)
    {
+   // testing for drag feature
+   case WM_DROPFILES:
+   {  
+      TCHAR buf[10000];
+      unsigned int buffsize = 0;
+      HDROP hDropInfo = (HDROP)wParam;
+      DragQueryFile(hDropInfo, 0, buf, buffsize);
+      break;
+   }
    case IDC_DO_CHECK_CONF: 
       {
          tclPattern* p = (tclPattern*)lParam;
@@ -274,12 +293,19 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
                doStoreConfigFile();
                return TRUE;
             }
+         case IDC_DO_SAVCFG_HITS:
+            {
+               DBG0("IDC_DO_SAVCFG_HITS");
+               doStoreConfigFile(true);
+               return TRUE;
+            }
          case IDC_BUT_CLEAR:
             {
                DBG0("IDC_BUT_CLEAR");
                _pParent->clearResult();
                mResultList.clear();
                mTableView.refillTable(mResultList);
+               mTableView.setHitsRowVisible(false, mResultList);
                setDialogData(getDefaultPattern());
                _pParent->updateSearchPatterns();
                return TRUE;
@@ -410,6 +436,11 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
                }
                return TRUE;
             }
+         case IDC_SHOW_OPTIONS:
+            {
+               _pParent->showConfigDlg();
+               return TRUE;
+            }
          default :
             {
                if(wParam >= IDC_CTXCFG_LOADX_0 && wParam < IDC_CTXCFG_LOADX_E) {
@@ -424,12 +455,12 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
                // color picker messages
                switch (HIWORD(wParam))
                {
-               case CPN_COLOURPICKED:	
+               case CPN_COLOURPICKED:
                   {
                      if ((HWND)lParam == _pFgColour->getHSelf())
                      {  
 						DBGDEF(unsigned long u = _pFgColour->getColour();)
-                        DBG2("run_dlgProc() COLOURPICKED 0x%X", u, tclPattern::convColor2Str(tclPattern::convColorNum2Enum(u)));
+                        DBG1("run_dlgProc() COLOURPICKED 0x%X", u);
                         //updateColour(C_FOREGROUND);
                         //notifyDataModified();
                         //int tabColourIndex;
@@ -445,7 +476,7 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
                      else if ((HWND)lParam == _pBgColour->getHSelf())
                      {
 						DBGDEF(unsigned long u = _pBgColour->getColour();)
-                        DBG2("run_dlgProc() COLOURPICKED 0x%X", u, tclPattern::convColor2Str(tclPattern::convColorNum2Enum(u)));
+                        DBG1("run_dlgProc() COLOURPICKED 0x%X", u);
                         //	updateColour(C_BACKGROUND);
                         //	notifyDataModified();
                         //	int tabColourIndex;
@@ -535,9 +566,10 @@ void FindDlg::moveResult(tPatId oldPattId, tPatId newPattId) {
    mResultList.moveResult(oldPattId, newPattId);
 }
 
-void FindDlg::refillTable() {
-   _pParent->clearResult();
+void FindDlg::refillTable(bool initial) {
+   _pParent->clearResult(initial);
    mTableView.refillTable(mResultList);
+   mTableView.setHitsRowVisible(false, mResultList);
    mTableView.setSelectedRow(0);
    // update view to table
    doCopyLineToDialog();
@@ -573,7 +605,7 @@ bool FindDlg::doLoadConfigFile(bool bAppend, bool bLoadNew) {
    return false;
 }
 
-bool FindDlg::doStoreConfigFile(){
+bool FindDlg::doStoreConfigFile(bool bWithHits){
    OPENFILENAME ofn;       // common dialog box structure
    TCHAR szFile[MAX_PATH]=TEXT("");       // buffer for file name
    (void)generic_strncpy(szFile, getszConfigFileName(), COUNTCHAR(szFile));
@@ -611,7 +643,7 @@ bool FindDlg::doStoreConfigFile(){
          }
       }
       setConfigFileName(ofn.lpstrFile);
-      return saveConfigFile(ofn.lpstrFile);
+      return saveConfigFile(ofn.lpstrFile, bWithHits);
    }
    return false;
 }
@@ -622,12 +654,22 @@ BOOL FindDlg::notify(SCNotification *notification) {
 
    switch (notification->nmhdr.code) 
    {
+   // testing for drag feature
+   case TVN_BEGINDRAG:
+   case LVN_BEGINDRAG:
+   {
+      LPNMITEMACTIVATE pItem = (LPNMITEMACTIVATE)notification;
+      DBG1("BEGINDRAG row %d", pItem->iItem);
+      break;
+   }
    case NM_RCLICK:
       {
          LPNMITEMACTIVATE pItem = (LPNMITEMACTIVATE) notification;
          DBG1("NM_RCLICK row %d", pItem->iItem);
          POINT pt = pItem->ptAction;
-         ::ClientToScreen(mTableView.getListViewHandle(), &pt);
+         if (pt.x < 0) pt.x = 0;
+         if (pt.y < 0) pt.y = 0;
+         ::ClientToScreen(mTableView.getListViewHandle(), &pt); // 
          ContextMenu contextmenu;
          std::vector<MenuItemUnit> tmp;
          if(pItem->iItem >= 0) {
@@ -640,9 +682,12 @@ BOOL FindDlg::notify(SCNotification *notification) {
          tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
          tmp.push_back(MenuItemUnit(IDC_DO_ENABLE_ALL, TEXT("Enable All")));
          tmp.push_back(MenuItemUnit(IDC_DO_DISABLE_ALL, TEXT("Disable All")));
-         tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
          tmp.push_back(MenuItemUnit(IDC_BUT_CLEAR, TEXT("Clear All")));
-
+         tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
+         tmp.push_back(MenuItemUnit(IDC_SHOW_OPTIONS, TEXT("Options...")));
+         if (mTableView.isHitsRowVisible()) {
+            tmp.push_back(MenuItemUnit(IDC_DO_SAVCFG_HITS, TEXT("Save Config with Hits...")));
+         }
          contextmenu.create(_hSelf, tmp);
          contextmenu.display(pt);
          ret = false; // we want rclick to still continue with selection
@@ -1006,9 +1051,9 @@ void FindDlg::doCopyLineToDialog() {
 #endif
 #ifdef RESULT_COLORING
 //      mCmbColor.addText2Combo(mTableView.getColorStr().c_str(), false);
-      _pFgColour->setColour(tclPattern::convColorStr2Num(mTableView.getColorStr()));
+      _pFgColour->setColour(tclPattern::convColorStr2Rgb(mTableView.getColorStr()));
       _pFgColour->redraw();
-      _pBgColour->setColour(tclPattern::convColorStr2Num(mTableView.getBgColorStr()));
+      _pBgColour->setColour(tclPattern::convColorStr2Rgb(mTableView.getBgColorStr()));
       _pBgColour->redraw();
 #endif
    }
@@ -1033,8 +1078,8 @@ void FindDlg::doCopyDialogToLine() {
 #endif
 #ifdef RESULT_COLORING
       //p.setColorStr(mCmbColor.getTextFromCombo(false));
-      p.setColor(p.convColorNum2Enum(_pFgColour->getColour()));
-      p.setBgColor(p.convColorNum2Enum(_pBgColour->getColour()));
+      p.setColor(_pFgColour->getColour());
+      p.setBgColor(_pBgColour->getColour());
 #endif
       mTableView.setRowItems(p);
       mResultList.setPattern(mResultList.getPatternId(mTableView.getSelectedRow()), p);
@@ -1140,6 +1185,8 @@ void FindDlg::create(tTbData * data, bool isRTL){
    _pBgColour->init(_hInst, _hSelf);
    _pFgColour->setColour(mDefPat.getColorNum());
    _pBgColour->setColour(mDefPat.getBgColorNum());
+   _pFgColour->setCustomColors(_pParent->refCustomColors());
+   _pBgColour->setCustomColors(_pParent->refCustomColors());
 
    POINT p1, p2;
 
@@ -1158,8 +1205,10 @@ void FindDlg::create(tTbData * data, bool isRTL){
    setDialogData(mDefPat);
 
    _pPlsWait = new PleaseWaitDlg(_hSelf);
-
+   // testing for drag feature
+   DragAcceptFiles(_hSelf, TRUE);
 }
+
 void FindDlg::setDialogData(const tclPattern& p) {
    // fill combos
    mCmbSearchType.addInitialText2Combo(p.getDefSearchTypeListSize(), p.getDefSearchTypeList(), false);
@@ -1200,7 +1249,6 @@ void FindDlg::display(bool toShow) const {
 }
 
 void FindDlg::setAllDoSearch(bool bOn) {
-   
    tclPatternList::iterator iPatt = refPatternList().begin();
    for (; iPatt != refPatternList().end(); ++iPatt) {
       iPatt.refPattern().setDoSearch(bOn);
@@ -1220,7 +1268,7 @@ void FindDlg::SetModified(bool bModified) {
                SetTimer(_ModifiedHwnd,IDT_ANALYSEPLG_TIMER, 500, (TIMERPROC) &FindDlg::MyTimerProc);
                DBG0("FindDlg::SetModified started");
             } else {
-               DBG0("FindDlg::SetModified started");
+               DBG0("FindDlg::SetModified started cont.");
             }
          } else if(_ModifiedMode == 1) {
             // set for wating

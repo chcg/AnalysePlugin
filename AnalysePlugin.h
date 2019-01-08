@@ -1,8 +1,8 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
-Don HO donho(at)altern.org 
+Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -42,6 +42,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define FINDDLG_SCINTILLAFINFERUNCOLLAPSE (WM_USER + 9)
 #define FINDDLG_SCINTILLAFINFERCOPY       (WM_USER + 16)
 #define FINDDLG_SCINTILLAFINFERSELECTALL  (WM_USER + 17)
+#define NUM_CUSTOM_COLORS 16
 
 #define vstr(a) __vstr(a)
 #define __vstr(a) #a
@@ -102,6 +103,9 @@ public:
       mVersionString += TEXT(SVNMIXED);
       mVersionString += (sizeof(void *) == 8) ? TEXT(" (64bit)") : TEXT(" (32bit)");
       _helpDlg.setVersion(mVersionString);
+      for (int i = 0; i < NUM_CUSTOM_COLORS; ++i) {
+         _acrCustClr[i] = RGB(0xff, 0xff, 0xff);
+      }
    }
 
    virtual ~AnalysePlugin() {
@@ -146,7 +150,7 @@ public:
    /** apply styles for the different patterns
    * this is done for findresults and for main window
    */ 
-   void doStyleFormating(HWND hCurrentView, int startPos, int endPos);
+   //void doStyleFormating(HWND hCurrentView, int startPos, int endPos);
    
    /**
    * returns the name of the file being used for analysis
@@ -159,10 +163,11 @@ public:
    * set the search file being analysed
    */
    virtual void setSearchFileName(const generic_string& file); 
+   virtual void setDisplayLineNo(bool bOn);
 
    virtual void removeUnusedResultLines(tPatId pattId, const tclResult& oldResult, const tclResult& newResult);
    
-   virtual void clearResult();
+   virtual void clearResult(bool initial = false);
    virtual void moveResult(tPatId oldPattId, tPatId newPattId);
 
    virtual BOOL doSearch(tclResultList& resultList);
@@ -173,10 +178,12 @@ public:
    virtual const generic_string& getResultFontName() const;
    virtual unsigned getResultFontSize() const;
    virtual int getUseBookmark() const;
+   virtual bool getResultWrapMode() const;
+   virtual void setResultWrapMode(bool bOn);
    virtual int getDisplayLineNo() const;
    virtual bool getIsSyncScroll() const;
    virtual bool getDblClickJumps2EditView() const;
-
+   virtual void showConfigDlg();
    LRESULT messageProc(UINT Message, WPARAM wParam, LPARAM lParam);
 
    // scintilla notifications
@@ -218,13 +225,28 @@ public:
       return ::SendMessage(hwnd, Msg, wParam, lParam);
    }
 
-   void showMargin(int witchMarge, bool willBeShown = true);
+   //void showMargin(int witchMarge, bool willBeShown = true);
 
    void displaySectionCentered(int posStart, int posEnd, bool isDownwards = true);
 
+   /**
+   * sets find result window into read only mode
+   */
+   void setFinderReadOnly(bool isReadOnly) {
+      execute(scnSecondHandle, SCI_SETREADONLY, isReadOnly);
+   }
+
+   COLORREF* refCustomColors() {  
+      // intentioally r/w because custome colors are modified by different instances of color dialog
+      return static_cast<COLORREF*>(_acrCustClr);
+   }
+
+
 protected:
 
-   generic_string convertExtendedToString(const generic_string& query);	
+   void setCustomColorsStr(const TCHAR* options);
+   generic_string getCustomColorsStr();
+   generic_string convertExtendedToString(const generic_string& query);
    bool readBase(const generic_string& str, int curPos, int * value, int base, int size) ;
    int doFindPattern(const tclPattern& pattern, tclResult& result);
 
@@ -247,16 +269,6 @@ protected:
       return (unsigned)execute(scnSecondHandle, SCI_LINEFROMPOSITION, curpos);
     }
 
-public:
-
-   /**
-   * sets find result window into read only mode
-   */
-   void setFinderReadOnly(bool isReadOnly) {
-      execute(scnSecondHandle, SCI_SETREADONLY, isReadOnly);
-   }
-
-protected:
 
    static const TCHAR PLUGIN_NAME[];
    static const TCHAR ADDITIONALINFO[];
@@ -266,6 +278,7 @@ protected:
    static const TCHAR KEYCOMMENTHISTORY[];
    static const TCHAR KEYDEFAULTOPTIONS[];
    static const TCHAR KEYUSEBOOKMARK[];
+   static const TCHAR KEYRESWINWORDWRAP[];
    static const TCHAR KEYDISPLAYLINENO[];
    static const TCHAR KEYONAUTOUPDATE[];
    static const TCHAR KEYSYNCEDSCORLL[];
@@ -277,6 +290,7 @@ protected:
    static const TCHAR KEYMAXNUMOFCFGFILES[];
    static const TCHAR KEYLASTSRCHCFGFILE[];
    static const TCHAR KEYNUMOFLASTCFGFILES[];
+   static const TCHAR KEYCUSTOMCOLORS[];
    static const TCHAR SECTIONNAME[];
    static const TCHAR LOCALCONFFILE[];
    static const TCHAR ANALYSE_INIFILE[];
@@ -331,7 +345,8 @@ protected:
    bool _FindProcessCancelled;
    bool _bIgnoreBufferModify;
    // LexAnalyseResult mLex;
-
+   static COLORREF _acrCustClr[NUM_CUSTOM_COLORS];
+//   HWND mCurScnHandle = NULL;
 };
 
 

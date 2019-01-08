@@ -2,6 +2,7 @@
 // Microsoft Visual C++ generated include file.
 // Used by analyse.rc
 //
+#include "../version.h"
 #define IDOK2                           3
 #define IDC_DO_CLOSE                    1001
 #define IDC_DO_SEARCH                   1002
@@ -74,6 +75,7 @@
 #define IDC_STATIC17                    1065
 #define IDC_STATIC18                    1066
 #define IDC_TITLE_TEXT                  1067
+#define IDC_CHK_RESWORDWRAP             1068
 #define IDC_CTXCFG_LOADX_0              1070
 #define IDC_CTXCFG_LOADX_E              1100
 #define IDC_BTN_ADDCONTEXT              1102
@@ -106,6 +108,8 @@
 #define IDR_MANUAL                      3012
 #define IDR_CHANGES                     3013
 #define IDS_RUNSEARCH                   3014
+#define IDC_SHOW_OPTIONS                3015
+#define IDC_DO_SAVCFG_HITS              3016
 #define IDC_DO_UPDATE_SCROLL            5003
 #define IDC_RADIO_DIRUP                 20405
 #define IDC_RADIO_DIRDOWN               20406
@@ -117,7 +121,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        3015
+#define _APS_NEXT_RESOURCE_VALUE        3017
 #define _APS_NEXT_COMMAND_VALUE         5004
 #define _APS_NEXT_CONTROL_VALUE         1108
 #define _APS_NEXT_SYMED_VALUE           6003

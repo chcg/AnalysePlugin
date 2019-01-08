@@ -1,8 +1,8 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
-Don HO donho(at)altern.org 
+Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -115,18 +115,19 @@ LRESULT ColourPicker2::runProc(UINT Message, WPARAM wParam, LPARAM lParam)
             p.y = rc.top + rc.bottom;
 
             ::ClientToScreen(_hSelf, &p);
-			if (!_pColourPopup)
-			{
+            if (!_pColourPopup)
+            {
             _pColourPopup = new ColourPopup(_currentColour);
             _pColourPopup->init(_hInst, _hSelf);
             _pColourPopup->doDialog(p);
+            _pColourPopup->setCustomColors(_pCustomColors);
          }
-			else
-			{
-				_pColourPopup->setColour(_currentColour);
-				_pColourPopup->doDialog(p);
-				_pColourPopup->display(true);
-			}
+            else
+            {
+               _pColourPopup->setColour(_currentColour);
+               _pColourPopup->doDialog(p);
+               _pColourPopup->display(true);
+            }
          return TRUE;
       }
    //case WM_RBUTTONDOWN:
@@ -142,7 +143,6 @@ LRESULT ColourPicker2::runProc(UINT Message, WPARAM wParam, LPARAM lParam)
          HDC dc = (HDC)wParam;
          drawBackground(dc);
          return TRUE;
-         break;
       }
 
    case WM_PAINT :
@@ -159,30 +159,34 @@ LRESULT ColourPicker2::runProc(UINT Message, WPARAM wParam, LPARAM lParam)
          _currentColour = (COLORREF)wParam;
          redraw();
 
-			_pColourPopup->display(false);
+         _pColourPopup->display(false);
          ::SendMessage(_hParent, WM_COMMAND, MAKELONG(0, CPN_COLOURPICKED), (LPARAM)_hSelf);
          return TRUE;
       }
 
    case WM_ENABLE :
       {
-         //if ((BOOL)wParam == FALSE)
-         //{
-         //   _currentColour = ::GetSysColor(COLOR_3DFACE);
-         //   redraw();
-         //}
+         if ((BOOL)wParam == FALSE)
+         {
+            _currentColour = ::GetSysColor(COLOR_3DFACE);
+            redraw();
+         }
          return TRUE;
       }
 
    case WM_PICKUP_CANCEL :
       {
-			_pColourPopup->display(false);
-
+         _pColourPopup->display(false);
             return TRUE;
          }
 
    default :
       return ::CallWindowProc(_buttonDefaultProc, _hSelf, Message, wParam, lParam);
    }
-   // unreachable code ... return FALSE;
+   // unreachable code ...
+   // return FALSE;
+}
+
+void ColourPicker2::setCustomColors(COLORREF* p) {
+   _pCustomColors = p;
 }
