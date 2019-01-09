@@ -1,6 +1,7 @@
 #include "tclMainViewLexer.h"
 #include "Common.h"
 
+#ifdef AP_LEXER_SUPPORT
 #define AP_LEXER_EXPORT __declspec(dllexport) 
 #define AP_LEXER_DECL __cdecl // __stdcall
 #define AP_LEXER_NAME_LEN 16
@@ -24,3 +25,5 @@ extern "C" {
       wcscpy(desc, TEXT("Analyse Result Visualization"));
    }
 }
+
+#endif // AP_LEXER_SUPPORT
