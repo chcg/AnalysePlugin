@@ -18,10 +18,9 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
-//#include "stdafx.h"
+#include <iostream>
 #include "ColourPicker2.h"
 #include "ColourPopup.h"
-#include <iostream>
 
 void ColourPicker2::init(HINSTANCE hInst, HWND parent)
 {
@@ -160,7 +159,7 @@ LRESULT ColourPicker2::runProc(UINT Message, WPARAM wParam, LPARAM lParam)
          redraw();
 
          _pColourPopup->display(false);
-         ::SendMessage(_hParent, WM_COMMAND, MAKELONG(0, CPN_COLOURPICKED), (LPARAM)_hSelf);
+		 ::SendMessage(_hParent, WM_COMMAND, MAKELONG(0, CPN_COLOURPICKED), reinterpret_cast<LPARAM>(_hSelf));
          return TRUE;
       }
 

@@ -1,3 +1,13 @@
+Changes since 1.12-preview2
+ - sync with NPP 7.8.2 ++ (includes update to latest Scintilla Version 4.x!)
+ - change toolchain to v10.x and compiler to v14.2
+ - bugfix Synchronize view scrolling is not working 
+ - change loading config from NPPM_GETPLUGINSCONFIGDIR
+ - change a "Hits" column gets added to pattern list showing the count of hits
+ - change Hits to be empty when a filter is not enabled
+ - change clipboard copy of results to also maintain background colors
+ - add feature store result window as rtf to a file
+ - add feature to adjust the columns of the search patterns by drag width and order
 Changes since 1.12-preview
  - starting use of lexer, no yet active
  - adding possibility to save the hits into configfile
@@ -17,7 +27,7 @@ Changes since 1.12-preview
  - ensure build in new directory structure (plugins in subfolder with plugin name)
  - fixing bug #60 Incorrect search results when text file contains a NULL character
  - replacing npp_defines by npp_exceptions
- - custom color selection and persisting the same is functional now
+ - add feature custom colors selection and persisting the same is functional now
 Changes since 1.11
  - bugfix positioning ColorPopup on left side multi screen (negative coordinates)
  - bugfix scrambling with "Toggle this" context menu option
@@ -88,9 +98,9 @@ Changes since 1.7
  - add additional files from NPP 5.9.6.2
  - bug fix search working also on sub view
  - new feature OnAutoUpdate search
-     When a recently searched file changes in the edit window the search becomes repeated
-     unfortunately this causes a full re-searching. If you don't like this feature, it can 
-     be deactivated in AnalyseConfiguration.
+     When a recently searched file changes in the edit window the search becomes
+     repeated. Unfortunately this causes a full re-searching. If you don't like
+     this feature, it can be deactivated in AnalysePlugin Options.
  - feature useBookmark config switch added
  - bugfix MY_STYLE_MAX increased to 7 bit
  - bugfix default patten also in find result search dialog

@@ -23,27 +23,27 @@
     <ProjectGuid>{7B52D98A-285B-4B3A-BD7B-D551A75438E8}</ProjectGuid>
     <RootNamespace>AnalysePlugin</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -101,13 +101,13 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>.\DockingFeature;.\;.\scintilla\lexlib;.\scintilla\src;.\scintilla\include;.\PowerEditor\src;.\PowerEditor\src\MISC\Common;.\PowerEditor\src\MISC\PluginsManager;.\PowerEditor\src\MISC\SysMsg;.\PowerEditor\src\ScitillaComponent;.\PowerEditor\src\TinyXml;.\PowerEditor\src\TinyXml\tinyXmlA;.\PowerEditor\src\WinControls;.\PowerEditor\src\WinControls\ColourPicker;.\PowerEditor\src\WinControls\ContextMenu;.\PowerEditor\src\WinControls\DockingWnd;.\PowerEditor\src\WinControls\ImageListSet;.\PowerEditor\src\WinControls\shortcut;.\PowerEditor\src\WinControls\StaticDialog;.\PowerEditor\src\WinControls\TabBar;.\PowerEditor\src\WinControls\ToolBar;.\PowerEditor\src\WinControls\AboutDlg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>FEATURE_RESVIEW_POS_KEEP_AT_SEARCH;__STDC_WANT_SECURE_LIB__=1;_UNICODE;UNICODE;CONFIG_DIALOG;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS;WIN32;_DEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
+      <PreprocessorDefinitions>_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;FEATURE_RESVIEW_POS_KEEP_AT_SEARCH;__STDC_WANT_SECURE_LIB__=1;_UNICODE;UNICODE;CONFIG_DIALOG;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS;WIN32;_DEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>shlwapi.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -135,13 +135,14 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>.\DockingFeature;.\;.\scintilla\lexlib;.\scintilla\src;.\scintilla\include;.\PowerEditor\src;.\PowerEditor\src\MISC\Common;.\PowerEditor\src\MISC\PluginsManager;.\PowerEditor\src\MISC\SysMsg;.\PowerEditor\src\ScitillaComponent;.\PowerEditor\src\TinyXml;.\PowerEditor\src\TinyXml\tinyXmlA;.\PowerEditor\src\WinControls;.\PowerEditor\src\WinControls\ColourPicker;.\PowerEditor\src\WinControls\ContextMenu;.\PowerEditor\src\WinControls\DockingWnd;.\PowerEditor\src\WinControls\ImageListSet;.\PowerEditor\src\WinControls\shortcut;.\PowerEditor\src\WinControls\StaticDialog;.\PowerEditor\src\WinControls\TabBar;.\PowerEditor\src\WinControls\ToolBar;.\PowerEditor\src\WinControls\AboutDlg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>FEATURE_RESVIEW_POS_KEEP_AT_SEARCH;__STDC_WANT_SECURE_LIB__=1;_UNICODE;UNICODE;CONFIG_DIALOG;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS;WIN32;_DEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;FEATURE_RESVIEW_POS_KEEP_AT_SEARCH;__STDC_WANT_SECURE_LIB__=1;_UNICODE;UNICODE;CONFIG_DIALOG;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS;WIN32;_DEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>shlwapi.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -166,11 +167,12 @@
     <ClCompile>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <AdditionalIncludeDirectories>.\DockingFeature;.\;.\scintilla\lexlib;.\scintilla\src;.\scintilla\include;.\PowerEditor\src;.\PowerEditor\src\MISC\Common;.\PowerEditor\src\MISC\PluginsManager;.\PowerEditor\src\MISC\SysMsg;.\PowerEditor\src\ScitillaComponent;.\PowerEditor\src\TinyXml;.\PowerEditor\src\TinyXml\tinyXmlA;.\PowerEditor\src\WinControls;.\PowerEditor\src\WinControls\ColourPicker;.\PowerEditor\src\WinControls\ContextMenu;.\PowerEditor\src\WinControls\DockingWnd;.\PowerEditor\src\WinControls\ImageListSet;.\PowerEditor\src\WinControls\shortcut;.\PowerEditor\src\WinControls\StaticDialog;.\PowerEditor\src\WinControls\TabBar;.\PowerEditor\src\WinControls\ToolBar;.\PowerEditor\src\WinControls\AboutDlg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>FEATURE_RESVIEW_POS_KEEP_AT_SEARCH;_UNICODE;_CRT_SECURE_NO_WARNINGS;__STDC_WANT_SECURE_LIB__=1;_CRT_NON_CONFORMING_SWPRINTFS;UNICODE;CONFIG_DIALOG;WIN32;NDEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;FEATURE_RESVIEW_POS_KEEP_AT_SEARCH;_UNICODE;_CRT_SECURE_NO_WARNINGS;__STDC_WANT_SECURE_LIB__=1;_CRT_NON_CONFORMING_SWPRINTFS;UNICODE;CONFIG_DIALOG;WIN32;NDEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader />
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>shlwapi.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -197,12 +199,13 @@
     <ClCompile>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <AdditionalIncludeDirectories>.\DockingFeature;.\;.\scintilla\lexlib;.\scintilla\src;.\scintilla\include;.\PowerEditor\src;.\PowerEditor\src\MISC\Common;.\PowerEditor\src\MISC\PluginsManager;.\PowerEditor\src\MISC\SysMsg;.\PowerEditor\src\ScitillaComponent;.\PowerEditor\src\TinyXml;.\PowerEditor\src\TinyXml\tinyXmlA;.\PowerEditor\src\WinControls;.\PowerEditor\src\WinControls\ColourPicker;.\PowerEditor\src\WinControls\ContextMenu;.\PowerEditor\src\WinControls\DockingWnd;.\PowerEditor\src\WinControls\ImageListSet;.\PowerEditor\src\WinControls\shortcut;.\PowerEditor\src\WinControls\StaticDialog;.\PowerEditor\src\WinControls\TabBar;.\PowerEditor\src\WinControls\ToolBar;.\PowerEditor\src\WinControls\AboutDlg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>FEATURE_RESVIEW_POS_KEEP_AT_SEARCH;_UNICODE;_CRT_SECURE_NO_WARNINGS;__STDC_WANT_SECURE_LIB__=1;_CRT_NON_CONFORMING_SWPRINTFS;UNICODE;CONFIG_DIALOG;WIN32;NDEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;FEATURE_RESVIEW_POS_KEEP_AT_SEARCH;_UNICODE;_CRT_SECURE_NO_WARNINGS;__STDC_WANT_SECURE_LIB__=1;_CRT_NON_CONFORMING_SWPRINTFS;UNICODE;CONFIG_DIALOG;WIN32;NDEBUG;_WINDOWS;_USRDLL;AnalysePlugin_EXPORTS;RESULT_COLORING;TIXML_USE_STL;TIXMLA_USE_STL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>shlwapi.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -277,7 +280,7 @@
     <ClInclude Include="HelpDialog.h" />
     <ClInclude Include="myDebug.h" />
     <ClInclude Include="MyPlugin.h" />
-    <ClInclude Include="Notepad_plus_msgs.h" />
+    <ClInclude Include="PowerEditor\src\MISC\PluginsManager\Notepad_plus_msgs.h" />
     <ClInclude Include="DockingFeature\PleaseWaitDlg.h" />
     <ClInclude Include="PluginInterface.h" />
     <ClInclude Include="DockingFeature\resource.h" />
@@ -316,6 +319,7 @@
   <ItemGroup>
     <Text Include="changes.txt" />
     <Text Include="manual.txt" />
+    <Text Include="todo.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

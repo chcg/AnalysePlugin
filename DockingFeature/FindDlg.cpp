@@ -21,12 +21,14 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 //#include "stdafx.h"
 #include "resource.h"
 
+#include <string_view>
+#include "UniConversion.h"
+
 #include "FindDlg.h"
 #include <vector>
 #include "ContextMenu.h"
 #include "MyPlugin.h"
 #include "menuCmdID.h"
-#include "UniConversion.h"
 #include "tclPattern.h"
 #include "FindConfigDoc.h"
 #include "SciLexer.h"
@@ -441,6 +443,11 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
                _pParent->showConfigDlg();
                return TRUE;
             }
+         case IDC_RESET_TABLE_COLS:
+         {
+            mTableView.resetTableColumns(true);
+            return TRUE;
+         }
          default :
             {
                if(wParam >= IDC_CTXCFG_LOADX_0 && wParam < IDC_CTXCFG_LOADX_E) {
@@ -662,14 +669,29 @@ BOOL FindDlg::notify(SCNotification *notification) {
       DBG1("BEGINDRAG row %d", pItem->iItem);
       break;
    }
+   case HDN_ENDDRAG:
+   {
+      LPNMHEADER p = (LPNMHEADER)notification;
+      DBG3("HDN_ENDDRAG: iButton %d, iItem %d, iOrder %d", p->iButton, p->iItem, p->pitem->iOrder);
+      break;
+   }
    case NM_RCLICK:
       {
          LPNMITEMACTIVATE pItem = (LPNMITEMACTIVATE) notification;
-         DBG1("NM_RCLICK row %d", pItem->iItem);
+         DBG2("NM_RCLICK row %d wparam %d", pItem->iItem, notification->wParam);
+         HWND msgHeader = (HWND)notification->nmhdr.hwndFrom;
+         HWND tableHeader = ListView_GetHeader(mTableView.getListViewHandle());
+         if (msgHeader == tableHeader) {
+            // we are in list header
+            DBG0("We are inside the header!");
+            ret = false; // we want rclick to still continue with selection
+            break;
+         }
          POINT pt = pItem->ptAction;
          if (pt.x < 0) pt.x = 0;
          if (pt.y < 0) pt.y = 0;
          ::ClientToScreen(mTableView.getListViewHandle(), &pt); // 
+         DBG2("NM_RCLICK: context menu position x:%d, y:%d", pt.x, pt.x);
          ContextMenu contextmenu;
          std::vector<MenuItemUnit> tmp;
          if(pItem->iItem >= 0) {
@@ -688,6 +710,7 @@ BOOL FindDlg::notify(SCNotification *notification) {
          if (mTableView.isHitsRowVisible()) {
             tmp.push_back(MenuItemUnit(IDC_DO_SAVCFG_HITS, TEXT("Save Config with Hits...")));
          }
+         tmp.push_back(MenuItemUnit(IDC_RESET_TABLE_COLS, TEXT("Reset column layout")));
          contextmenu.create(_hSelf, tmp);
          contextmenu.display(pt);
          ret = false; // we want rclick to still continue with selection
@@ -842,7 +865,7 @@ BOOL FindDlg::notify(SCNotification *notification) {
       
       default                : code=itoa(notification->nmhdr.code, num, 16); break;
    };
-   DBG2("notify() %s returns 0x%x", code, ret);
+   DBGA2("notify() %s returns 0x%x", code, ret);
 #endif
    return ret;
 }

@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO donho(at)altern.org 
 
@@ -18,8 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
-#ifndef COLOUR_POPUP_RESOURCE_H
+#pragma once
 
 #define COLOURPOPUP_USER   (WM_USER + 6000)
 
-#endif //COLOUR_POPUP_RESOURCE_H

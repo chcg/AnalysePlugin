@@ -19,13 +19,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
 
-#ifndef COLOUR_PICKER2_H
-#define COLOUR_PICKER2_H
+#pragma once
+
+#include "Window.h"
 #include "ColourPopupResource.h"
 class ColourPopup;
-#include "Window.h"
 
-//#define CP_CLASS_NAME "ColourPicker2Button"
 #define CPN_COLOURPICKED (BN_CLICKED)
 
 class ColourPicker2 : public Window
@@ -61,4 +60,3 @@ private :
 	void drawBackground(HDC hDC);
 };
 
-#endif // COLOUR_PICKER2_H

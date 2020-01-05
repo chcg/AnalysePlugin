@@ -19,12 +19,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
 
-#ifndef COLOUR_POPUP_H
-#define COLOUR_POPUP_H
+#pragma once
 
-#ifndef RESOURCE_H
 #include "resource.h"
-#endif //RESOURCE_H
 #include "Window.h"
 
 #define COLOURPOPUP_USER   (WM_USER + 6000)
@@ -38,7 +35,8 @@ public :
    ColourPopup(COLORREF defaultColor) : Window(), /*isColourChooserLaunched(false),*/ _colour(defaultColor), _pacCustomColors(0){};
    virtual ~ColourPopup(){}
 
-   bool isCreated() const {
+	bool isCreated() const
+	{
       return (_hSelf != NULL);
    }
 
@@ -46,7 +44,8 @@ public :
     
    void doDialog(POINT p) ;
 
-   virtual void destroy() {
+	virtual void destroy()
+	{
       ::DestroyWindow(_hSelf);
 	}
 
@@ -71,6 +70,5 @@ private :
    INT_PTR CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
 };
 
-#endif //COLOUR_POPUP_H
 
 

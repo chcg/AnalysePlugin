@@ -43,6 +43,8 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define FINDDLG_SCINTILLAFINFERCOPY       (WM_USER + 16)
 #define FINDDLG_SCINTILLAFINFERSELECTALL  (WM_USER + 17)
 #define NUM_CUSTOM_COLORS 16
+// allow longer paths as old winnt coding 
+#define AP_MAX_PATH 1024
 
 #define vstr(a) __vstr(a)
 #define __vstr(a) #a
@@ -191,6 +193,7 @@ public:
 
    // main entry to the dll
    BOOL dllmain(HANDLE hModule, DWORD  reasonForCall, LPVOID lpReserved);
+   BOOL FileExists(LPCTSTR szPath);
 
    // configure checks for ini files and presets al internal setting from it
    // dllPath is the position of the dll being used to find the ini-file
@@ -290,14 +293,16 @@ protected:
    static const TCHAR KEYMAXNUMOFCFGFILES[];
    static const TCHAR KEYLASTSRCHCFGFILE[];
    static const TCHAR KEYNUMOFLASTCFGFILES[];
+   static const TCHAR KEYCONFIGLISTCOLUMNS[];
+   static const TCHAR KEYCONFIGLISTCOLORDER[];
    static const TCHAR KEYCUSTOMCOLORS[];
    static const TCHAR SECTIONNAME[];
    static const TCHAR LOCALCONFFILE[];
    static const TCHAR ANALYSE_INIFILE[];
 
-   TCHAR iniFilePath[MAX_PATH];
-   TCHAR xmlFilePath[MAX_PATH];
-   TCHAR _szPluginFileName[MAX_PATH];
+   TCHAR iniFilePath[AP_MAX_PATH];
+   TCHAR xmlFilePath[AP_MAX_PATH];
+   TCHAR _szPluginFileName[AP_MAX_PATH];
 
    /** handles of notpepad++ */
    NppData nppData;

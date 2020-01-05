@@ -2,7 +2,7 @@
 This file is part of AnalysePlugin for NotePad++ 
 Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
-Don HO donho(at)altern.org 
+Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -140,7 +140,7 @@ int tclFindResultSearchDlg::doFindText(int start, int end/*, bool bDownWards*/) 
 
    int targetStart=-1;
 #ifdef UNICODE
-   WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
+   WcharMbcsConvertor *wmc = &WcharMbcsConvertor::getInstance();
    unsigned int cp = (unsigned int)_pSearchResultView->execute(SCI_GETCODEPAGE); 
    const char *text2FindA = wmc->wchar2char(p.getSearchText().c_str(), cp);
    size_t text2FindALen = strlen(text2FindA);

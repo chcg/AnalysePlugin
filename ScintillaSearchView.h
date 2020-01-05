@@ -33,7 +33,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define RTF_COL_G(g) ((BYTE)(g>>8)) // mask short
 #define RTF_COL_B(b) ((BYTE)(b>>16)) // mask third byte
 
-#define MY_STYLE_MASK 0x7f  // 7 bits
+#define MY_STYLE_MASK 0x7f  // 7 bits //TODO scintilla now always 8 style bits
 #define MY_STYLE_BITS 7    
 
 // see ~\scintilla\src\ScintillaBase.h
@@ -44,9 +44,10 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define FNDRESDLG_SCINTILLAFINFER_SEARCH   (FNDRESDLG_BASE + 1)
 #define FNDRESDLG_SCINTILLAFINFER_SAVEFILE (FNDRESDLG_BASE + 2)
 #define FNDRESDLG_SCINTILLAFINFER_SAVE_CLR (FNDRESDLG_BASE + 3)
-#define FNDRESDLG_WRAP_MODE                (FNDRESDLG_BASE + 4)
-#define FNDRESDLG_SHOW_LINE_NUMBERS        (FNDRESDLG_BASE + 5)
-#define FNDRESDLG_SHOW_OPTIONS             (FNDRESDLG_BASE + 6)
+#define FNDRESDLG_SCINTILLAFINFER_SAVE_RTF (FNDRESDLG_BASE + 4)
+#define FNDRESDLG_WRAP_MODE                (FNDRESDLG_BASE + 5)
+#define FNDRESDLG_SHOW_LINE_NUMBERS        (FNDRESDLG_BASE + 6)
+#define FNDRESDLG_SHOW_OPTIONS             (FNDRESDLG_BASE + 7)
 
 class ScintillaSearchView : public ScintillaEditView
 {
@@ -71,7 +72,7 @@ public:
 
 
    void setRtfColorTable(const char* pColortbl);
-   bool doRichTextCopy();
+   bool doRichTextCopy(const TCHAR* filename=NULL);
    void setWrapMode(bool bOn);
    bool getWrapMode() const;
    std::vector<MenuItemUnit> getContextMenu() const;
@@ -85,11 +86,12 @@ public:
 protected:
    static const int transStylePos[MY_STYLE_MASK+1];
 
-   int countColorChanges(const TextRange& rtr);
-   int countLinefeeds(const TextRange& rtr);
-   int countEscapeChars(const TextRange& rtr);
-   bool prepareRtfClip(char *pGlobalText, int iClipLength, char* lpSelText, int iSelTextLength);
-   
+   int countColorChanges(const Sci_TextRange& rtr);
+   int countLinefeeds(const Sci_TextRange& rtr);
+   int countEscapeChars(const Sci_TextRange& rtr);
+   bool prepareRtfClip(char *pGlobalText, int& iClipLength, char* lpSelText, int iSelTextLength);
+   void doSaveRichtext();
+
    std::string _RtfHeader;
    std::string _RtfFooter;
 

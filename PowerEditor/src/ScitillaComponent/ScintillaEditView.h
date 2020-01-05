@@ -54,7 +54,9 @@
 #define GET_APPCOMMAND_LPARAM(lParam) ((short)(HIWORD(lParam) & ~FAPPCOMMAND_MASK))
 #endif //WM_APPCOMMAND
 
-// Mattes don't use Parameter class: class NppParameters; 
+#if 0 // Mattes don't use Parameter Class
+class NppParameters;
+#endif // Mattes
 
 #define NB_WORD_LIST 4
 #define WORD_LIST_LEN 256
@@ -95,9 +97,12 @@ const int CP_GREEK = 1253;
 #define LIST_4 16
 #define LIST_5 32
 #define LIST_6 64
+#define LIST_7 128
+#define LIST_8 256
 
 const bool fold_uncollapse = true;
 const bool fold_collapse = false;
+#define MAX_FOLD_COLLAPSE_LEVEL	8
 
 enum TextCase : UCHAR
 {
@@ -200,14 +205,18 @@ public:
 
 		if ((!_refCount)/*&&(_hLib)*/) // Mattes not in AP
 		{
-			// Mattes not in AP ::FreeLibrary(_hLib);
+#if 0 // Mattes don't use Parameter Class
+			::FreeLibrary(_hLib);
+#endif // Mattes
 
 			for (BufferStyleMap::iterator it(_hotspotStyles.begin()); it != _hotspotStyles.end(); ++it )
 			{
 				for (StyleMap::iterator it2(it->second->begin()) ; it2 != it->second->end() ; ++it2)
 				{
-					if (it2->second._fontName != NULL)
+					if (it2->second._fontName != NULL) { // Mattes
 						delete [] it2->second._fontName;
+						it2->second._fontName = NULL;
+					}
 				}
 				delete it->second;
 			}
@@ -223,7 +232,13 @@ public:
 	virtual void init(HINSTANCE hInst, HWND hPere);
 
 	LRESULT execute(UINT Msg, WPARAM wParam=0, LPARAM lParam=0) const {
-      return (_pScintillaFunc)?_pScintillaFunc(_pScintillaPtr, Msg, wParam, lParam):0; // Mattes first chance message comes before init()
+		try {
+			return _pScintillaFunc?_pScintillaFunc(_pScintillaPtr, Msg, wParam, lParam):-1;
+		}
+		catch (...)
+		{
+			return -1;
+		}
 	};
 
 	void activateBuffer(BufferID buffer);
@@ -239,7 +254,7 @@ public:
 	void replaceSelWith(const char * replaceText);
 
 	int getSelectedTextCount() {
-		CharacterRange range = getSelection();
+		Sci_CharacterRange range = getSelection();
 		return (range.cpMax - range.cpMin);
 	};
 
@@ -276,8 +291,8 @@ public:
 		return int(execute(SCI_GETLENGTH));
 	};
 
-	CharacterRange getSelection() const {
-		CharacterRange crange;
+	Sci_CharacterRange getSelection() const {
+		Sci_CharacterRange crange;
 		crange.cpMin = long(execute(SCI_GETSELECTIONSTART));
 		crange.cpMax = long(execute(SCI_GETSELECTIONEND));
 		return crange;
@@ -306,7 +321,9 @@ public:
     };
 
 	void beSwitched() {
-      // Mattes _userDefineDlg.setScintilla(this);
+#if 0 // Mattes
+		_userDefineDlg.setScintilla(this);
+#endif // Mattes
 	};
 
     //Marge member and method
@@ -322,9 +339,9 @@ public:
 		{
 			int width = 3;
 			if (whichMarge == _SC_MARGE_SYBOLE)
-				width = 16; //Mattes NppParameters::getInstance()->_dpiManager.scaleX(100) >= 150 ? 20 : 16;
+				width = 16; //Mattes NppParameters::getInstance()._dpiManager.scaleX(100) >= 150 ? 20 : 16;
 			else if (whichMarge == _SC_MARGE_FOLDER)
-				width = 14; //Mattes NppParameters::getInstance()->_dpiManager.scaleX(100) >= 150 ? 18 : 14;
+				width = 14; //Mattes NppParameters::getInstance()._dpiManager.scaleX(100) >= 150 ? 18 : 14;
 			execute(SCI_SETMARGINWIDTHN, whichMarge, willBeShowed ? width : 0);
 		}
     };
@@ -333,8 +350,8 @@ public:
 		return (execute(SCI_GETMARGINWIDTHN, witchMarge, 0) != 0);
     };
 
-    void updateBeginEndSelectPosition(const bool is_insert, const int position, const int length);
-    void marginClick(int position, int modifiers);
+    void updateBeginEndSelectPosition(bool is_insert, size_t position, size_t length);
+    void marginClick(Sci_Position position, int modifiers);
 
     void setMakerStyle(folderStyle style) {
 		bool display;
@@ -385,9 +402,7 @@ public:
 		return (execute(SCI_GETVIEWWS) != 0);
 	};
 
-	void showIndentGuideLine(bool willBeShowed = true) {
-		execute(SCI_SETINDENTATIONGUIDES, willBeShowed ? SC_IV_LOOKBOTH : SC_IV_NONE);
-	};
+	void showIndentGuideLine(bool willBeShowed = true);
 
 	bool isShownIndentGuide() const {
 		return (execute(SCI_GETINDENTATIONGUIDES) != 0);
@@ -474,20 +489,13 @@ public:
 		// return -1 if it's multi-selection or rectangle selection
 		if ((execute(SCI_GETSELECTIONS) > 1) || execute(SCI_SELECTIONISRECTANGLE))
 			return -1;
-		auto size_selected = execute(SCI_GETSELTEXT);
-		char *selected = new char[size_selected + 1];
-		execute(SCI_GETSELTEXT, 0, reinterpret_cast<LPARAM>(selected));
-		char *c = selected;
-		long length = 0;
-		while(*c != '\0')
-		{
-			if( (*c & 0xC0) != 0x80)
-				++length;
-			++c;
-		}
-		delete [] selected;
+
+		long start = long(execute(SCI_GETSELECTIONSTART));
+		long end = long(execute(SCI_GETSELECTIONEND));
+		long length = long(execute(SCI_COUNTCHARACTERS, start, end));
+
 		return length;
-    }
+	};
 
 
 	long getLineLength(int line) const {
@@ -529,7 +537,7 @@ public:
 
 	void performGlobalStyles();
 
-	void expand(int &line, bool doExpand, bool force = false, int visLevels = 0, int level = -1);
+	void expand(size_t& line, bool doExpand, bool force = false, int visLevels = 0, int level = -1);
 
 	std::pair<int, int> getSelectionLinesRange() const;
     void currentLinesUp() const;
@@ -542,7 +550,7 @@ public:
     void convertSelectedTextToLowerCase() {
 		// if system is w2k or xp
 #if 0 // Mattes
-		if ((NppParameters::getInstance())->isTransparentAvailable())
+		if ((NppParameters::getInstance()).isTransparentAvailable())
 			convertSelectedTextTo(LOWERCASE);
 		else
 #endif // Mattes
@@ -552,7 +560,7 @@ public:
     void convertSelectedTextToUpperCase() {
 		// if system is w2k or xp
 #if 0 // Mattes
-		if ((NppParameters::getInstance())->isTransparentAvailable())
+		if ((NppParameters::getInstance()).isTransparentAvailable())
 			convertSelectedTextTo(UPPERCASE);
 		else
 #endif // Mattes
@@ -562,32 +570,30 @@ public:
 	void convertSelectedTextToNewerCase(const TextCase & caseToConvert) {
 		// if system is w2k or xp
 #if 0 // Mattes
-		if ((NppParameters::getInstance())->isTransparentAvailable())
+		if ((NppParameters::getInstance()).isTransparentAvailable())
 			convertSelectedTextTo(caseToConvert);
 		else
 #endif // Mattes
 			::MessageBox(_hSelf, TEXT("This function needs a newer OS version."), TEXT("Change Case Error"), MB_OK | MB_ICONHAND);
 	};
 
+	bool isFoldIndentationBased() const;
+	void collapseFoldIndentationBased(int level2Collapse, bool mode);
 	void collapse(int level2Collapse, bool mode);
 	void foldAll(bool mode);
 	void fold(size_t line, bool mode);
-	bool isFolded(int line){
+	bool isFolded(size_t line) {
 		return (execute(SCI_GETFOLDEXPANDED, line) != 0);
 	};
 	void foldCurrentPos(bool mode);
 	int getCodepage() const {return _codepage;};
-
-	NppParameters * getParameter() {
-		return _pParameter;
-	};
 
 	ColumnModeInfos getColumnModeSelectInfo();
 
 	void columnReplace(ColumnModeInfos & cmi, const TCHAR *str);
 	void columnReplace(ColumnModeInfos & cmi, int initial, int incr, int repeat, UCHAR format);
 
-	void foldChanged(int line, int levelNow, int levelPrev);
+	void foldChanged(size_t line, int levelNow, int levelPrev);
 	void clearIndicator(int indicatorNumber) {
 		int docStart = 0;
 		int docEnd = getCurrentDocLen();
@@ -607,11 +613,11 @@ public:
 
 	bool markerMarginClick(int lineNumber);	//true if it did something
 	void notifyMarkers(Buffer * buf, bool isHide, int location, bool del);
-	void runMarkers(bool doHide, int searchStart, bool endOfDoc, bool doDelete);
+	void runMarkers(bool doHide, size_t searchStart, bool endOfDoc, bool doDelete);
 
 	bool isSelecting() const {
-		static CharacterRange previousSelRange = getSelection();
-		CharacterRange currentSelRange = getSelection();
+		static Sci_CharacterRange previousSelRange = getSelection();
+		Sci_CharacterRange currentSelRange = getSelection();
 
 		if (currentSelRange.cpMin == currentSelRange.cpMax)
 		{
@@ -656,10 +662,14 @@ public:
 	bool isTextDirectionRTL() const;
 
 protected:
-	// Mattes not in AP static HINSTANCE _hLib;
+#if 0 // Mattes
+	static HINSTANCE _hLib;
+#endif // Mattes
 	static int _refCount;
 
-    // Mattes not in AP: static UserDefineDialog _userDefineDlg; 
+#if 0 // Mattes
+    static UserDefineDialog _userDefineDlg;
+#endif // Mattes
 
     static const int _markersArray[][NB_FOLDER_STATE];
 
@@ -676,7 +686,6 @@ protected:
 	BufferID _currentBufferID = nullptr;
 	Buffer * _currentBuffer = nullptr;
 
-    NppParameters *_pParameter = nullptr;
 	int _codepage = CP_ACP;
 	bool _lineNumbersShown = false;
 	bool _wrapRestoreNeeded = false;
@@ -685,7 +694,7 @@ protected:
 	typedef std::unordered_map<BufferID, StyleMap*> BufferStyleMap;
 	BufferStyleMap _hotspotStyles;
 
-	int _beginSelectPosition = -1;
+	long long _beginSelectPosition = -1;
 
 	static std::string _defaultCharList;
 
@@ -694,7 +703,7 @@ protected:
 	const char * getCompleteKeywordList(std::basic_string<char> & kwl, LangType langType, int keywordIndex);
 	void setKeywords(LangType langType, const char *keywords, int index);
 	void setLexer(int lexerID, LangType langType, int whichList);
-	inline void makeStyle(LangType langType, const TCHAR **keywordArray = NULL);
+	void makeStyle(LangType langType, const TCHAR **keywordArray = NULL);
 	void setStyle(Style styleToSet);			//NOT by reference	(style edited)
 	void setSpecialStyle(const Style & styleToSet);	//by reference
 	void setSpecialIndicator(const Style & styleToSet) {
@@ -737,8 +746,8 @@ protected:
 
 
 	void setSqlLexer() {
-		const bool kbBackSlash = true; // Mattes  NppParameters::getInstance()->getNppGUI()._backSlashIsEscapeCharacterForSql;
-		setLexer(SCLEX_SQL, L_SQL, LIST_0);
+		const bool kbBackSlash = true; // Mattes NppParameters::getInstance().getNppGUI()._backSlashIsEscapeCharacterForSql;
+		setLexer(SCLEX_SQL, L_SQL, LIST_0 | LIST_1 | LIST_4);
 		execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("sql.backslash.escapes"), reinterpret_cast<LPARAM>(kbBackSlash ? "1" : "0"));
 	};
 
@@ -888,8 +897,15 @@ protected:
 	};
 
 	void setBaanCLexer() {
-		setLexer(SCLEX_BAAN, L_BAANC, LIST_0 | LIST_1);
-		execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("styling.within.preprocessor"), reinterpret_cast<LPARAM>("1"));
+		setLexer(SCLEX_BAAN, L_BAANC, LIST_0 | LIST_1 | LIST_2 | LIST_3 | LIST_4 | LIST_5 | LIST_6 | LIST_7 | LIST_8);
+		execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("lexer.baan.styling.within.preprocessor"), reinterpret_cast<LPARAM>("1"));
+		execute(SCI_SETWORDCHARS, 0, reinterpret_cast<LPARAM>("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$:"));
+		execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold.preprocessor"), reinterpret_cast<LPARAM>("1"));
+		execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold.baan.syntax.based"), reinterpret_cast<LPARAM>("1"));
+		execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold.baan.keywords.based"), reinterpret_cast<LPARAM>("1"));
+		execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold.baan.sections"), reinterpret_cast<LPARAM>("1"));
+		execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold.baan.inner.level"), reinterpret_cast<LPARAM>("1"));
+		execute(SCI_STYLESETEOLFILLED, SCE_BAAN_STRINGEOL, true);
 	};
 
 	void setSrecLexer() {

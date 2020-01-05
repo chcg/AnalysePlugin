@@ -67,12 +67,15 @@ public:
       TBLVIEW_COL_MAX
    };
 
-   tclTableview():mhList(0){}
+   tclTableview():mhList(0){
+      resetTableColumns();
+   }
 
    ~tclTableview(){
       mhList=0;
    }
 
+   void resetTableColumns(bool bUpdateWindow=false);
    void setListViewHandle(HWND hwnd){
       mhList = hwnd;
    }
@@ -129,6 +132,12 @@ public:
       return getCell(getSelectedRow(), column);
    }
 
+   void setTableColumns(const generic_string& str);
+   generic_string getTableColumns() const;
+
+   void setTableColumnOrder(const generic_string& str);
+   generic_string getTableColumnOrder() const;
+
    void setRowItems(const tclPattern& pattern);
    int insertRow();
    int insertAfterRow();
@@ -145,5 +154,8 @@ protected:
 
    HWND mhList;
    bool mbHitsVisible = false;
+   int miHitsCountColSize = 0;
+   int mColumnWidth[TBLVIEW_COL_MAX];
+   int mColumnOrder[TBLVIEW_COL_MAX];
 };
 #endif //TCLTABLEVIEW_H

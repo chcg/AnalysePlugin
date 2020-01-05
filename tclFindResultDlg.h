@@ -120,6 +120,9 @@ public:
    const TCHAR* getszFileName() const {
       return mSearchFileName.c_str();
    }
+   const generic_string& getSearchResultFileName() const {
+      return mSearchResultFile;
+   }
 #ifdef FEATURE_RESVIEW_POS_KEEP_AT_SEARCH
    // CurrentViewPos can be modified to avoid moving content in result window
    void saveCurrentViewPos();
@@ -149,7 +152,7 @@ protected :
    void setDefaultStyle(int iBeginPos, int iLength);
 
    // callback from scintilla to colorize the search window
-   void doStyle(int startResultLineNo, int startStyleNeeded, int endStyleNeeded); 
+   void doStyle(int startResultLineNo, int startStyleNeeded, int endStyleNeeded);
 
    bool notify(SCNotification *notification);
    

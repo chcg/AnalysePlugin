@@ -19,8 +19,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ------------------------------------- */
 //#include "stdafx.h"
+#include <windows.h>
 #include "AnalysePlugin.h"
-#include "SciLexer.h"
 #include "tclFindResultDoc.h"
 #include "chardefines.h"
 #include "PleaseWaitDlg.h"
@@ -51,6 +51,8 @@ const TCHAR AnalysePlugin::KEYFONTSIZE[] = TEXT("resultFontSize");
 const TCHAR AnalysePlugin::KEYMAXNUMOFCFGFILES[] = TEXT("maxNumOfConfigFiles");
 const TCHAR AnalysePlugin::KEYLASTSRCHCFGFILE[] = TEXT("lastSearchConfigFile");
 const TCHAR AnalysePlugin::KEYNUMOFLASTCFGFILES[] = TEXT("numberOfLastConfigFiles");
+const TCHAR AnalysePlugin::KEYCONFIGLISTCOLUMNS[] = TEXT("configListColumnWidths");
+const TCHAR AnalysePlugin::KEYCONFIGLISTCOLORDER[] = TEXT("configListColumnOrder");
 const TCHAR AnalysePlugin::KEYCUSTOMCOLORS[] = TEXT("customColors");
 const TCHAR AnalysePlugin::SECTIONNAME[] = TEXT("Analyse Plugin");
 const TCHAR AnalysePlugin::LOCALCONFFILE[] = TEXT("doLocalConf.xml");
@@ -133,13 +135,13 @@ BOOL AnalysePlugin::dllmain(HANDLE hModule,
 #endif
          funcItem[SHOWHELPDLG]._pFunc = MenuShowHelpDialog;
 
-         ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_DIAG, funcItem[SHOWFINDDLG]._itemName, cnbChar);
-         ::LoadString((HINSTANCE)_hModule, IDS_ADDSELTOPATT, funcItem[ADDSELTOPATT]._itemName, cnbChar);
-         ::LoadString((HINSTANCE)_hModule, IDS_RUNSEARCH, funcItem[RUNSEARCH]._itemName, cnbChar);
+         ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_DIAG, funcItem[SHOWFINDDLG]._itemName, nbChar);
+         ::LoadString((HINSTANCE)_hModule, IDS_ADDSELTOPATT, funcItem[ADDSELTOPATT]._itemName, nbChar);
+         ::LoadString((HINSTANCE)_hModule, IDS_RUNSEARCH, funcItem[RUNSEARCH]._itemName, nbChar);
 #ifdef CONFIG_DIALOG
-         ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_CONFIG, funcItem[SHOWCNFGDLG]._itemName, cnbChar);
+         ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_CONFIG, funcItem[SHOWCNFGDLG]._itemName, nbChar);
 #endif
-         ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_HELP, funcItem[SHOWHELPDLG]._itemName, cnbChar);
+         ::LoadString((HINSTANCE)_hModule, IDS_SHOW_ANALYSE_HELP, funcItem[SHOWHELPDLG]._itemName, nbChar);
          // Shortcut :
          // Following code makes the first command
          // bind to the shortcut Ctrl-Alt-F
@@ -174,29 +176,80 @@ BOOL AnalysePlugin::dllmain(HANDLE hModule,
    return TRUE;
 }
 
+BOOL AnalysePlugin::FileExists(LPCTSTR szPath)
+{
+   DWORD dwAttrib = GetFileAttributes(szPath);
+
+   return (dwAttrib != INVALID_FILE_ATTRIBUTES &&
+      !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
 void AnalysePlugin::loadSettings() 
 {
    DBG0("loadSettings()");
-   (NppParameters::getInstance())->load();
-   bool isLocal = (NppParameters::getInstance())->isLocal();
+/*
+check for NPP API path 
+if not take old method
+in case new path and old path are different and in new path ini is not there load once old path and save it in new path 
+*/
 
-   if (isLocal) 
-   {
-      generic_string nppConfigPath = (NppParameters::getInstance())->getNppPath();
-      generic_strncpy(iniFilePath, nppConfigPath.c_str(), MAX_PATH);
-      generic_strncpy(xmlFilePath, nppConfigPath.c_str(), MAX_PATH);
-      PathAppend(iniFilePath, TEXT("plugins\\config\\AnalysePlugin.ini"));
-      PathAppend(xmlFilePath, TEXT("plugins\\config\\AnalysePlugin.xml"));
+   bool migration = false; // this feature will be removed after some versions
+   TCHAR configBase[AP_MAX_PATH];
+   configBase[0] = 0;
+   TCHAR configBase2[AP_MAX_PATH];
+   configBase2[0] = 0;
+   TCHAR iniFilePath2[AP_MAX_PATH];
+   iniFilePath2[0] = 0;
+   TCHAR xmlFilePath2[AP_MAX_PATH];
+   xmlFilePath2[0] = 0;
+   if (execute(nppHandle, NPPM_GETPLUGINSCONFIGDIR)) {
+      // new way loading since NPP version ...
+      execute(nppHandle, NPPM_GETPLUGINSCONFIGDIR, (WPARAM)AP_MAX_PATH, (LPARAM)configBase2);
+      generic_strncpy(iniFilePath2, configBase2, AP_MAX_PATH);
+      PathAppend(iniFilePath2, TEXT("\\AnalysePlugin.ini"));
+      generic_strncpy(xmlFilePath2, configBase2, AP_MAX_PATH);
+      PathAppend(xmlFilePath2, TEXT("\\AnalysePlugin.xml"));
    }
-   else 
+   // old way of loading
+   (NppParameters::getInstance()).load();
+   bool isLocal = (NppParameters::getInstance()).isLocal();
+   if (isLocal) {
+      generic_string nppConfigPath = (NppParameters::getInstance()).getNppPath();
+      generic_strncpy(configBase, nppConfigPath.c_str(), AP_MAX_PATH);
+      PathAppend(configBase, TEXT("plugins\\Config"));
+   }
+   else
    {
-      ITEMIDLIST *pidl;
+      ITEMIDLIST* pidl;
       SHGetSpecialFolderLocation(NULL, CSIDL_APPDATA, &pidl);
-      SHGetPathFromIDList(pidl, iniFilePath);
-      generic_strncpy(xmlFilePath, iniFilePath, MAX_PATH);
-      PathAppend(iniFilePath, TEXT("NotePad++\\plugins\\config\\AnalysePlugin.ini"));
-      PathAppend(xmlFilePath, TEXT("NotePad++\\plugins\\config\\AnalysePlugin.xml"));
+      SHGetPathFromIDList(pidl, configBase);
+      PathAppend(configBase, TEXT("NotePad++\\plugins\\Config"));
    }
+   generic_strncpy(iniFilePath, configBase, AP_MAX_PATH);
+   PathAppend(iniFilePath, TEXT("\\AnalysePlugin.ini"));
+   generic_strncpy(xmlFilePath, configBase, AP_MAX_PATH);
+   PathAppend(xmlFilePath, TEXT("\\AnalysePlugin.xml"));
+   // migration support
+   if (generic_strncmp(iniFilePath, iniFilePath2, AP_MAX_PATH) != 0) {
+      if ((FileExists(iniFilePath)) && (!FileExists(iniFilePath2))) {
+         // the paths are different, old file is there and in new place file is not there
+         // use one time loading the data from old place
+         if (CopyFile(iniFilePath, iniFilePath2, false)) {
+            DeleteFile(iniFilePath);
+         }
+         if (generic_strncmp(xmlFilePath, xmlFilePath2, AP_MAX_PATH) != 0) {
+            if ( (FileExists(xmlFilePath)) && (!FileExists(xmlFilePath2))) {
+               if (CopyFile(xmlFilePath, xmlFilePath2, false)) {
+                  DeleteFile(xmlFilePath);
+               }
+            }
+            // we prefer the new path from API
+            generic_strncpy(xmlFilePath, xmlFilePath2, AP_MAX_PATH);
+         }
+      }
+      // we prefer the new path from API
+      generic_strncpy(iniFilePath, iniFilePath2, AP_MAX_PATH);
+   }
+
    TCHAR tmp[MAX_CHAR_CELL];
    gbPluginVisible = (0 != ::GetPrivateProfileInt(SECTIONNAME, KEYNAME, 0, iniFilePath));
    funcItem[SHOWFINDDLG]._init2Check = gbPluginVisible;  
@@ -249,6 +302,10 @@ void AnalysePlugin::loadSettings()
          _findDlg.setConfigFileName(tmp);
       }
    }
+   ::GetPrivateProfileString(SECTIONNAME, KEYCONFIGLISTCOLUMNS, TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
+   _findDlg.setTableColumns(tmp);
+   ::GetPrivateProfileString(SECTIONNAME, KEYCONFIGLISTCOLORDER, TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
+   _findDlg.setTableColumnOrder(tmp);
    ::GetPrivateProfileString(SECTIONNAME, KEYLASTSRCHCFGFILE, TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
    if(generic_strlen(tmp)){
       _findDlg.setConfigFileName(tmp);
@@ -259,6 +316,7 @@ void AnalysePlugin::loadSettings()
    //   // load the patterns from last run
    //   _findDlg.loadConfigFile(xmlFilePath);
    //}
+
    HRSRC resourceHandle1 = ::FindResource(_hModule, MAKEINTRESOURCE(IDR_MANUAL), RT_HTML);
    HGLOBAL dataHandle1 = ::LoadResource(_hModule, resourceHandle1);
    const char* data1 = (const char*)::LockResource(dataHandle1);
@@ -304,7 +362,9 @@ void AnalysePlugin::saveSettings() {
    generic_itoa(_configDlg.getFontSize(), tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYFONTSIZE, tmp, iniFilePath);
    ::WritePrivateProfileString(SECTIONNAME, KEYCUSTOMCOLORS, getCustomColorsStr().c_str(), iniFilePath);
-   ::WritePrivateProfileString(SECTIONNAME, KEYMAXNUMOFCFGFILES, _configDlg.getNumOfCfgFilesStr().c_str(), iniFilePath);   
+   ::WritePrivateProfileString(SECTIONNAME, KEYMAXNUMOFCFGFILES, _configDlg.getNumOfCfgFilesStr().c_str(), iniFilePath);
+   ::WritePrivateProfileString(SECTIONNAME, KEYCONFIGLISTCOLUMNS, _findDlg.getTableColumns().c_str(), iniFilePath);
+   ::WritePrivateProfileString(SECTIONNAME, KEYCONFIGLISTCOLORDER, _findDlg.getTableColumnOrder().c_str(), iniFilePath);
    int maxFiles = static_cast<int>(_findDlg.getLastConfigFiles().size());
    generic_itoa(maxFiles, tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYNUMOFLASTCFGFILES, tmp, iniFilePath);
@@ -504,7 +564,7 @@ BOOL AnalysePlugin::doSearch(tclResultList& resultList)
          //int erasedLen = 0;
          int lcount = (int)execute(scnActiveHandle, SCI_GETLINECOUNT);
          unsigned cp = (unsigned)execute(scnActiveHandle, SCI_GETCODEPAGE);
-         WcharMbcsConvertor* wmc = WcharMbcsConvertor::getInstance();
+         WcharMbcsConvertor* wmc = &WcharMbcsConvertor::getInstance();
          std::string comment;
          if (wmc) {
             comment = wmc->wchar2char(pattern.getComment().c_str(), cp);
@@ -938,7 +998,7 @@ int AnalysePlugin::doFindPattern(const tclPattern& pattern, tclResult& result)
       return nbProcessed;
    }
 #ifdef UNICODE
-    WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
+    WcharMbcsConvertor *wmc = &WcharMbcsConvertor::getInstance();
     unsigned int cp = (unsigned int)execute(scnActiveHandle, SCI_GETCODEPAGE); 
     const char *text2FindA = wmc->wchar2char(text.c_str(), cp);
     size_t text2FindALen = strlen(text2FindA);
@@ -1271,7 +1331,7 @@ void AnalysePlugin::addSelectionToPatterns() {
    char* pc = new char[textLength];
    execute(scnActiveHandle, SCI_GETSELTEXT, 0, (LPARAM)pc);
     
-   WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
+   WcharMbcsConvertor *wmc = &WcharMbcsConvertor::getInstance();
     unsigned int cp = (unsigned int)execute(scnActiveHandle, SCI_GETCODEPAGE); 
 #ifdef UNICODE
    WCHAR* selText = const_cast<WCHAR*>(wmc->char2wchar(pc, cp));

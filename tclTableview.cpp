@@ -27,6 +27,7 @@ in the find config dock window
 #include "tclResultList.h"
 #include "chardefines.h"
 #include <commctrl.h>// For ListView control APIs
+#include "myDebug.h"
 
 #define MAX_CHAR_CELL 1000 // max chars in a cell including \0
 
@@ -151,13 +152,14 @@ void tclTableview::updateCell(int item, int column, const generic_string& s){
 
 void tclTableview::setHitsRowVisible(bool bVisible, const tclResultList& results) {
    mbHitsVisible = bVisible;
-   size_t max = 0;
+   int max = 0; // TODO change to size_t and check max line numbers in Scintilla
    TCHAR num[20];
    int row = 0;
    for (tclResultList::const_iterator it = results.begin(); it != results.end(); ++it , ++row) {
-      if (bVisible) {
+      if (bVisible && (results.getPattern(it.getPatId()).getDoSearch())) {
          const tclResult& r = it.getResult();
          int n = (int)r.getPositions().size();
+		 // TODO insert check for value overrun 
          generic_itoa(n, num, 10);
          updateCell(row, TBLVIEW_COL_HITS, num);
          max = (n > max) ? n : max;
@@ -166,11 +168,11 @@ void tclTableview::setHitsRowVisible(bool bVisible, const tclResultList& results
          updateCell(row, TBLVIEW_COL_HITS, TEXT(""));
       }
    }
-   int iLineNumColSize =   (max<10) ? 20 :
+   miHitsCountColSize =   (max<10) ? 20 :
                            (max<1000) ? 30 :
                            (max<10000) ? 35 :
                            (max<100000) ? 40 : 50;
-   ListView_SetColumnWidth(mhList, TBLVIEW_COL_HITS, bVisible ? iLineNumColSize : 0);
+   ListView_SetColumnWidth(mhList, TBLVIEW_COL_HITS, bVisible ? miHitsCountColSize : 0);
 }
 
 generic_string tclTableview::getHitCountStr(int row) const {
@@ -181,18 +183,97 @@ void tclTableview::create(){
    if(mhList == 0) {
       return; // not initialized
    }
-
    ListView_SetExtendedListViewStyle(mhList,
-      LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES );
+      LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_HEADERDRAGDROP);
    //::SendMessage(mhList,GWL_STYLE,lngOldStyle | LVS_SHOWSELALWAYS );
    LVCOLUMN lvc = {0};
    lvc.mask = LVCF_TEXT  | LVCF_WIDTH;
    for (int col = 0; col < TBLVIEW_COL_MAX; ++col) {
       lvc.pszText = gPatternConfTab[col].szColumnName;
-      lvc.cx = gPatternConfTab[col].iColumnSize;
+      lvc.cx = mColumnWidth[col];
       ListView_InsertColumn(mhList, col, &lvc);
    }
+   ListView_SetColumnOrderArray(mhList, TBLVIEW_COL_MAX, mColumnOrder);
 }
+
+void tclTableview::resetTableColumns(bool bUpdateWindow) {
+   for (int i = 0; i < TBLVIEW_COL_MAX; ++i) {
+      mColumnWidth[i] = gPatternConfTab[i].iColumnSize;
+      mColumnOrder[i] = i;
+   }
+   if (bUpdateWindow) {
+      ListView_SetColumnOrderArray(mhList, TBLVIEW_COL_MAX, mColumnOrder);
+      for (int i = 0; i < TBLVIEW_COL_MAX; ++i) {
+         if (i != TBLVIEW_COL_HITS) {
+            ListView_SetColumnWidth(mhList, i, mColumnWidth[i]);
+         }
+      }
+      ListView_SetColumnWidth(mhList, TBLVIEW_COL_HITS, isHitsRowVisible() ? miHitsCountColSize : 0);
+      ::InvalidateRgn(mhList, 0, TRUE);
+      ::UpdateWindow(mhList);
+   }
+}
+
+// has to be called before create()
+void tclTableview::setTableColumns(const generic_string& str) {
+   TCHAR tmp[MAX_CHAR_CELL];
+   generic_strncpy(tmp, str.c_str(), MAX_CHAR_CELL);
+   TCHAR* colWidth = generic_strtok(tmp, TEXT(","));
+   int col = 0;
+   while (colWidth && col < TBLVIEW_COL_MAX) {
+      mColumnWidth[col] = generic_atoi(colWidth);
+      colWidth = generic_strtok(NULL, TEXT(","));
+      ++col;
+   }
+}
+
+generic_string tclTableview::getTableColumns() const {
+   generic_string res;
+   TCHAR tmp[10];
+   for (int col = 0; col < TBLVIEW_COL_MAX; ++col) {
+      tmp[0] = 0;
+      int width = (int)(mhList?ListView_GetColumnWidth(mhList, col):gPatternConfTab[col].iColumnSize);
+      generic_itoa(width, tmp, 10);
+      res += tmp;
+      if (col < (TBLVIEW_COL_MAX-1)) {
+         //no comma at end
+         res += generic_string(TEXT(","));
+      }
+   }
+   return res;
+}
+
+// ListView_SetColumnOrderArray(mTableView.getListViewHandle(), tclTableview::TBLVIEW_ITM_MAX, order);
+void tclTableview::setTableColumnOrder(const generic_string& str) {
+   TCHAR tmp[MAX_CHAR_CELL];
+   generic_strncpy(tmp, str.c_str(), MAX_CHAR_CELL);
+   TCHAR* colOrder = generic_strtok(tmp, TEXT(","));
+   int col = 0;
+   while (colOrder && col < TBLVIEW_COL_MAX) {
+      mColumnOrder[col] = generic_atoi(colOrder);
+      colOrder = generic_strtok(NULL, TEXT(","));
+      ++col;
+   }
+   DBG1("setTableColumnOrder: done %s", str.c_str());
+}
+
+generic_string tclTableview::getTableColumnOrder() const {
+   generic_string res;
+   TCHAR tmp[10];
+   int order[TBLVIEW_COL_MAX];
+   ListView_GetColumnOrderArray(mhList, TBLVIEW_COL_MAX, order);
+   for (int col = 0; col < TBLVIEW_COL_MAX; ++col) {
+      tmp[0] = 0;
+      generic_itoa(order[col], tmp, 10);
+      res += tmp;
+      if (col < (TBLVIEW_COL_MAX - 1)) {
+         //no comma at end
+         res += generic_string(TEXT(","));
+      }
+   }
+   return res;
+}
+
 
 #ifdef COL_NUMBERING
 generic_string tclTableview::getItemNumStr() const { return getItem(TBLVIEW_COL_NUM);}

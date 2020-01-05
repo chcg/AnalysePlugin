@@ -47,6 +47,8 @@ search result string cache
 #else
 #define filestat _stat
 #endif
+// available style id -> sub sequent 0-based index
+// counter definition is ScintillaSearchView::transStylePos
 const int tclFindResultDlg::transStyleId[MY_STYLE_COUNT] = {
         1,  2,  3,  4,  5,  6,  7,  8,  9, // 0 is for default color
    10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
@@ -114,7 +116,7 @@ void tclFindResultDlg::initEdit(const tclPattern& defaultPattern) {
    //_scintView.execute(SCI_SETCODEPAGE, SC_CP_UTF8);
    // let window parent (this class) do the styling
    _scintView.execute(SCI_SETLEXER,SCLEX_CONTAINER);
-   _scintView.execute(SCI_SETSTYLEBITS, MY_STYLE_BITS); // maximum possible
+// deprecated, always 8   _scintView.execute(SCI_SETSTYLEBITS, MY_STYLE_BITS); // maximum possible
    mFindResultSearchDlg.init(_hInst, _hParent, &_scintView);
    mFindResultSearchDlg.setdefaultPattern(defaultPattern);
    mFindResultSearchDlg.create(IDD_FIND_RES_DLG_SEARCH);
@@ -302,7 +304,7 @@ void tclFindResultDlg::setPatternFonts() {
    unsigned iPat = FNDRESDLG_DEFAULT_STYLE;
    const char *fontName;
 #ifdef UNICODE
-   WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
+   WcharMbcsConvertor *wmc = &WcharMbcsConvertor::getInstance();
    unsigned int cp = (unsigned int)_scintView.execute(SCI_GETCODEPAGE); 
    fontName = wmc->wchar2char(mFontName.c_str(), cp);
 #else
@@ -422,12 +424,20 @@ void tclFindResultDlg::setPatternStyles(const tclPatternList& list)
    _scintView.execute(SCI_STYLESETFORE, iPat, defPat.getColorNum());
    _scintView.execute(SCI_STYLESETBACK, iPat, defPat.getBgColorNum());
    _scintView.execute(SCI_STYLESETEOLFILLED, iPat, (defPat.getSelectionType()==tclPattern::line));
+   // prepare rtfColTbl as color table for richtext support
    rtfColTbl += RTF_COLTAG_RED;
    rtfColTbl += _itoa(RTF_COL_R(defPat.getColorNum()),styleNum, 10);
    rtfColTbl += RTF_COLTAG_GREEN;
    rtfColTbl += _itoa(RTF_COL_G(defPat.getColorNum()),styleNum, 10);
    rtfColTbl += RTF_COLTAG_BLUE;
    rtfColTbl += _itoa(RTF_COL_B(defPat.getColorNum()),styleNum, 10);
+   rtfColTbl += RTF_COLTAG_END;
+   rtfColTbl += RTF_COLTAG_RED;
+   rtfColTbl += _itoa(RTF_COL_R(defPat.getBgColorNum()), styleNum, 10);
+   rtfColTbl += RTF_COLTAG_GREEN;
+   rtfColTbl += _itoa(RTF_COL_G(defPat.getBgColorNum()), styleNum, 10);
+   rtfColTbl += RTF_COLTAG_BLUE;
+   rtfColTbl += _itoa(RTF_COL_B(defPat.getBgColorNum()), styleNum, 10);
    rtfColTbl += RTF_COLTAG_END;
    // copy styles into result window cache because while painting
    // user may have removed a pattern already
@@ -443,11 +453,18 @@ void tclFindResultDlg::setPatternStyles(const tclPatternList& list)
       _scintView.execute(SCI_STYLESETBACK, transStyleId[i], rPat.getBgColorNum());
       _scintView.execute(SCI_STYLESETEOLFILLED, transStyleId[i], (rPat.getSelectionType()==tclPattern::line));
       rtfColTbl += RTF_COLTAG_RED;
-      rtfColTbl += _itoa(RTF_COL_R(rPat.getColorNum()),styleNum, 10);
+      rtfColTbl += _itoa(RTF_COL_R(rPat.getColorNum()), styleNum, 10);
       rtfColTbl += RTF_COLTAG_GREEN;
-      rtfColTbl += _itoa(RTF_COL_G(rPat.getColorNum()),styleNum, 10);
+      rtfColTbl += _itoa(RTF_COL_G(rPat.getColorNum()), styleNum, 10);
       rtfColTbl += RTF_COLTAG_BLUE;
-      rtfColTbl += _itoa(RTF_COL_B(rPat.getColorNum()),styleNum, 10);
+      rtfColTbl += _itoa(RTF_COL_B(rPat.getColorNum()), styleNum, 10);
+      rtfColTbl += RTF_COLTAG_END;
+      rtfColTbl += RTF_COLTAG_RED;
+      rtfColTbl += _itoa(RTF_COL_R(rPat.getBgColorNum()), styleNum, 10);
+      rtfColTbl += RTF_COLTAG_GREEN;
+      rtfColTbl += _itoa(RTF_COL_G(rPat.getBgColorNum()), styleNum, 10);
+      rtfColTbl += RTF_COLTAG_BLUE;
+      rtfColTbl += _itoa(RTF_COL_B(rPat.getBgColorNum()), styleNum, 10);
       rtfColTbl += RTF_COLTAG_END;
    } // for
    
@@ -704,7 +721,7 @@ void tclFindResultDlg::setDefaultStyle(int iBeginPos, int iLength)
 }
 
 // callback from scintilla to colorize the search window
-void tclFindResultDlg::doStyle(int startResultLineNo, int startStyleNeeded, int endStyleNeeded) 
+void tclFindResultDlg::doStyle(int startResultLineNo, int startStyleNeeded, int endStyleNeeded)
 {
    DBG3("doStyle() startResultLineNo %d startStyleNeeded %d endStyleNeeded %d", 
       startResultLineNo, startStyleNeeded, endStyleNeeded);
@@ -825,7 +842,7 @@ bool tclFindResultDlg::notify(SCNotification *notification)
          int startPos = (int)_scintView.execute(SCI_GETENDSTYLED);
          int lineNumber = (int)_scintView.execute(SCI_LINEFROMPOSITION,startPos);
          startPos = (int)_scintView.execute(SCI_POSITIONFROMLINE,lineNumber);
-         doStyle(lineNumber, startPos, notification->position);
+         doStyle(lineNumber, startPos, (int)notification->position);
          ret = true;
          break;
       }

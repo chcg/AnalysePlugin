@@ -1,8 +1,8 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2012-2018 Matthias H. mattesh(at)gmx.net
+Copyright (C)2012-2019 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
-Don HO donho(at)altern.org 
+Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

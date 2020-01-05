@@ -263,6 +263,19 @@ public :
    const std::vector<generic_string>& getLastConfigFiles() const {
       return _lastConfigFiles;
    }
+   // setting the last time used column widht
+   void setTableColumns(const TCHAR* str) {
+      mTableView.setTableColumns(str);
+   }
+   generic_string getTableColumns() const {
+      return mTableView.getTableColumns();
+   }
+   void setTableColumnOrder(const generic_string& str) {
+      mTableView.setTableColumnOrder(str);
+   }
+   generic_string getTableColumnOrder() const {
+      return mTableView.getTableColumnOrder();
+   }
 
 //ScintillaEditView **_ppEditView;    // access to the editor window
 // find result cache

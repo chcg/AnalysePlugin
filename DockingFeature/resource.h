@@ -110,6 +110,7 @@
 #define IDS_RUNSEARCH                   3014
 #define IDC_SHOW_OPTIONS                3015
 #define IDC_DO_SAVCFG_HITS              3016
+#define IDC_RESET_TABLE_COLS            3017
 #define IDC_DO_UPDATE_SCROLL            5003
 #define IDC_RADIO_DIRUP                 20405
 #define IDC_RADIO_DIRDOWN               20406
@@ -121,7 +122,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        3017
+#define _APS_NEXT_RESOURCE_VALUE        3018
 #define _APS_NEXT_COMMAND_VALUE         5004
 #define _APS_NEXT_CONTROL_VALUE         1108
 #define _APS_NEXT_SYMED_VALUE           6003

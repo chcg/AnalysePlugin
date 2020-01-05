@@ -30,6 +30,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include <tchar.h>
 #include <crtdbg.h>
+
 #ifdef UNICODE
 #define DBG0 DBGW0      
 #define DBG1 DBGW1      
@@ -43,6 +44,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define DBG3 DBGA3      
 #define DBG4 DBGA4      
 #endif
+
 #define DBGA0(msg)                               _RPT1(_CRT_WARN, MDBG_COMP msg "\t" __FILE__ "(%d)\n", __LINE__)
 #define DBGA1(msg, arg1)                         _RPT2(_CRT_WARN, MDBG_COMP msg "\t" __FILE__ "(%d)\n", arg1, __LINE__)
 #define DBGA2(msg, arg1, arg2)                   _RPT3(_CRT_WARN, MDBG_COMP msg "\t" __FILE__ "(%d)\n", arg1, arg2, __LINE__)
@@ -75,4 +77,5 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define DBGA3(msg, arg1, arg2, arg3)       
 #define DBGA4(msg, arg1, arg2, arg3, arg4) 
 #endif
+
 #endif

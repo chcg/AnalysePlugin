@@ -23,18 +23,24 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include <ShellAPI.h>
 #include <string.h>
 #include "ScintillaSearchView.h"
+#include "chardefines.h"
+#include "Common.h"
 //#include "resource.h"
 
 #define MDBG_COMP "SSView:" 
 #include "myDebug.h"
 
 
-#define RTF_HEADER "{\\rtf1\\ansi\\ansicpg\\lang1024\\noproof1252\\uc1 \\deff0{\\fonttbl{\\f0\\fnil\\fcharset0\\fprq1 Courier New;}}\n{\\colortbl" // end
-#define RTF_CRLF "\\par " // end
-#define RTF_FOOTER "\\par }" // end
-#define RTF_COLNUM "\\cf" // end
+#define RTF_HEADER_BEGIN "{\\rtf1\\ansi\\ansicpg\\lang1024\\noproof1252\\uc1 \\deff0{\\fonttbl{\\f0\\fnil\\fcharset0\\fprq1 Courier New;}}\n{\\colortbl"
+// inbetween color table
+#define RTF_HEADER_END "}\n\\fs20\\sa0\\sl0\n" // ensure line spacing 1-line
+#define RTF_CRLF "\\par " // eol
+#define RTF_FOOTER "\\par }" // end doc
+#define RTF_COLNUM "\\cf" // fg color
+#define RTF_BGCOLNUM "\\highlight" // bg color
 
-// style number to rtf color position code
+// available style id -> sub sequent 0-based index
+// counter definition is tclFindResultDlg::transStyleId
 const int ScintillaSearchView::transStylePos[MY_STYLE_MASK+1] = {
     0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 
    10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
@@ -158,12 +164,12 @@ void ScintillaSearchView::init(HINSTANCE hInst, HWND hPere)
 
 void ScintillaSearchView::setRtfColorTable(const char* pColortbl) {
    _RtfFooter = RTF_FOOTER;
-   _RtfHeader = RTF_HEADER;
+   _RtfHeader = RTF_HEADER_BEGIN;
    _RtfHeader += pColortbl;
-   _RtfHeader += "}\n\\fs20\n";
+   _RtfHeader += RTF_HEADER_END;
 }
 
-bool ScintillaSearchView::doRichTextCopy() {
+bool ScintillaSearchView::doRichTextCopy(const TCHAR* filename) {
    /*
    as in the control symbols \\, \{, and \}
    as CRLF \par
@@ -177,9 +183,17 @@ bool ScintillaSearchView::doRichTextCopy() {
       \cf1 void \cf0 ScintillaSearchView::doRichTextCopy() \{\par
    }   
    */
-   int iEnd = (int)execute(SCI_GETSELECTIONEND);
-   int iBegin = (int)execute(SCI_GETSELECTIONSTART);
-   TextRange tr;
+   int iEnd;
+   int iBegin;
+   if (!filename) {
+      iEnd = (int)execute(SCI_GETSELECTIONEND);
+      iBegin = (int)execute(SCI_GETSELECTIONSTART);
+   }
+   else {
+      iBegin = 0;
+      iEnd = (int)execute(SCI_GETLENGTH);
+   }
+   Sci_TextRange tr;
    tr.chrg.cpMin = (long)iBegin;
    tr.chrg.cpMax = (long)iEnd;
    assert(iEnd>=iBegin);
@@ -195,68 +209,81 @@ bool ScintillaSearchView::doRichTextCopy() {
    int iParCount = countLinefeeds(tr);
 
    //expand size of allocated text by iColCount*expected length per COL + header and footer
-   int iClipLength = (iColCount*6)                 // color control words
+   int iClipLength = (iColCount*17)                // fg and bg color control words with two digets index
                      +(iParCount*5)                // count of crlf
                      +iSelTextLength               // the text
                      +iEscapeCount                 // \ { } escaping
                      +(int)_RtfHeader.length()     // rtf header including color table
                      +(int)_RtfFooter.length();    // rtf footer
-        
-   UINT uClipFormatId = RegisterClipboardFormat(TEXT("Rich Text Format")); 
-   if(uClipFormatId == 0) {
-      DBG0("doRichTextCopy() ERROR enumerate clipboard format RTF");
-      return false; 
+      
+   // first create local mem to prepare the buffer
+   char* pClip = new char[iClipLength];
+   int iClipLengthRtfText = iClipLength;
+   bool bRtfBufferOk = prepareRtfClip(pClip, iClipLength, tr.lpstrText, iSelTextLength);
+   delete[] tr.lpstrText;
+   DBG1("doRichTextCopy() estimated size delta (must be positive) %d",(iClipLengthRtfText - iClipLength));
+
+   if (filename) {
+      writeFileContent(filename, pClip);
+      DBG1("doRichTextCopy() Wrote text to file as RTF %s", filename);
    }
-   
-   if (!::OpenClipboard(_hSelf)){
-        ::CloseClipboard(); // try a second time
-      ::Sleep(100);
-      if (!::OpenClipboard(_hSelf)){
-         DBG0("doRichTextCopy() ERROR could not open clipboard");
-         return false; 
+   else {
+      UINT uClipFormatId = RegisterClipboardFormat(TEXT("Rich Text Format"));
+      if (uClipFormatId == 0) {
+         DBG0("doRichTextCopy() ERROR enumerate clipboard format RTF");
+         return false;
       }
+
+      if (!::OpenClipboard(_hSelf)) {
+         ::CloseClipboard(); // try a second time
+         ::Sleep(100);
+         if (!::OpenClipboard(_hSelf)) {
+            DBG0("doRichTextCopy() ERROR could not open clipboard");
+            return false;
+         }
+      }
+
+      // ::EmptyClipboard(); CF_TEXT is already in
+
+      HGLOBAL hglbCopy = ::GlobalAlloc(GMEM_MOVEABLE, iClipLength);
+
+      if (hglbCopy == NULL) {
+         DBG0("doRichTextCopy() ERROR could not GlobalAlloc");
+         ::CloseClipboard();
+         return false;
+      }
+      // Lock the handle and copy the text to the buffer. 
+      char* pStr = (char*)::GlobalLock(hglbCopy);
+      if (pStr == 0) {
+         DBG0("doRichTextCopy() ERROR could not GlobalLock");
+         return false;
+      }
+      //strcpy(pStr, str2cpy);
+      (void)memcpy(pStr, pClip, iClipLength);
+      //FI* f = fopen("c:\\temp\\notepad_text.rtf", "wt");
+      //fwrite(pStr, 1, strlen(pStr), f);
+      //fclose(f);
+
+      ::GlobalUnlock(hglbCopy);
+
+      // Place the handle on the clipboard. 
+      if (bRtfBufferOk) {
+         ::SetClipboardData(uClipFormatId, hglbCopy);
+      }
+      else {
+         GlobalFree(hglbCopy);
+      }
+      ::CloseClipboard();
    }
-
-    // ::EmptyClipboard(); CF_TEXT is already in
-    
-    HGLOBAL hglbCopy = ::GlobalAlloc(GMEM_MOVEABLE, iClipLength);
-    
-    if (hglbCopy == NULL) { 
-      DBG0("doRichTextCopy() ERROR could not GlobalAlloc");
-        ::CloseClipboard(); 
-        return false; 
-    } 
-
-    // Lock the handle and copy the text to the buffer. 
-    char* pStr = (char*)::GlobalLock(hglbCopy);
-   if(pStr == 0) {
-      DBG0("doRichTextCopy() ERROR could not GlobalLock");
-      return false;
-   }
-   bool bOk = prepareRtfClip(pStr, iClipLength, tr.lpstrText, iSelTextLength);
-    //strcpy(pStr, str2cpy);
-
-   //FILE* f = fopen("c:\\temp\\notepad_text.rtf", "wt");
-   //fwrite(pStr, 1, strlen(pStr), f);
-   //fclose(f);
-    
-   ::GlobalUnlock(hglbCopy); 
-
-    // Place the handle on the clipboard. 
-   if (bOk) {
-      ::SetClipboardData(uClipFormatId, hglbCopy);
-   } else {
-      GlobalFree(hglbCopy);
-   }
-    ::CloseClipboard();
-    return true;
+   delete[] pClip;
+   return true;
 }
 
-int ScintillaSearchView::countColorChanges(const TextRange& rtr){
+int ScintillaSearchView::countColorChanges(const Sci_TextRange& rtr){
    int iCount=0;
    short* pwChar= (short*)rtr.lpstrText;
-   register char prevStyle = -1;
-   register char style = -1;
+   char prevStyle = -1;
+   char style = -1;
    short* pwEnd = (short*)rtr.lpstrText + rtr.chrg.cpMax - rtr.chrg.cpMin;
    for(; pwChar < pwEnd; ++pwChar) {
       if(prevStyle !=(style = ((*pwChar)>>8))) {
@@ -268,7 +295,7 @@ int ScintillaSearchView::countColorChanges(const TextRange& rtr){
 }
 
 
-int ScintillaSearchView::countLinefeeds(const TextRange& rtr){
+int ScintillaSearchView::countLinefeeds(const Sci_TextRange& rtr){
    int iCount=0;
    short* pwChar= (short*)rtr.lpstrText;
    short* pwEnd = (short*)rtr.lpstrText + rtr.chrg.cpMax - rtr.chrg.cpMin;
@@ -284,7 +311,7 @@ int ScintillaSearchView::countLinefeeds(const TextRange& rtr){
    return iCount;
 }
 
-int ScintillaSearchView::countEscapeChars(const TextRange& rtr){
+int ScintillaSearchView::countEscapeChars(const Sci_TextRange& rtr){
    int iCount=0;
    short* pwChar= (short*)rtr.lpstrText;
    short* pwEnd = (short*)rtr.lpstrText + rtr.chrg.cpMax - rtr.chrg.cpMin;
@@ -302,12 +329,12 @@ int ScintillaSearchView::countEscapeChars(const TextRange& rtr){
    return iCount;
 }
 
-bool ScintillaSearchView::prepareRtfClip(char *pGlobalText, int iClipLength, char* lpSelText, int iSelTextLength){
+bool ScintillaSearchView::prepareRtfClip(char *pGlobalText, int& iClipLength, char* lpSelText, int iSelTextLength){
    char* pDest = pGlobalText;
    memset(pDest, 0, iClipLength);
    // RTF Header
    iClipLength -= (int)_RtfHeader.length();
-   if(iClipLength <= 0) { assert(0); return false; }
+   if(iClipLength <= 0) { assert(iClipLength > 0); return false; }
    strncpy(pDest, _RtfHeader.c_str(), _RtfHeader.length());
    pDest += _RtfHeader.length();
    // text
@@ -321,16 +348,25 @@ bool ScintillaSearchView::prepareRtfClip(char *pGlobalText, int iClipLength, cha
       if ((style = ((*pChar)>>8))!=prevStyle) {
          // add style
          iClipLength -= (int)strlen(RTF_COLNUM);
-         if(iClipLength <= 0) { assert(0); return false; }
+         if(iClipLength <= 0) { assert(iClipLength > 0); return false; }
          strcpy(pDest, RTF_COLNUM);
          pDest += strlen(RTF_COLNUM);
-         _itoa(transStylePos[style], styleNum, 10);
+         _itoa(transStylePos[(style*2)], styleNum, 10); // every first of two is fgColor
          iClipLength -= (int)strlen(styleNum);
-         if(iClipLength <= 0) { assert(0); return false; }
+         if (iClipLength <= 0) { assert(iClipLength > 0); return false; }
+         strcpy(pDest, styleNum);
+         pDest += strlen(styleNum); 
+         iClipLength -= (int)strlen(RTF_BGCOLNUM);
+         if (iClipLength <= 0) { assert(iClipLength > 0); return false; }
+         strcpy(pDest, RTF_BGCOLNUM);
+         pDest += strlen(RTF_BGCOLNUM);
+         _itoa(transStylePos[(style*2)+1], styleNum, 10); // every second color is bgColor
+         iClipLength -= (int)strlen(styleNum);
+         if(iClipLength <= 0) { assert(iClipLength > 0); return false; }
          strcpy(pDest, styleNum);
          pDest += strlen(styleNum);
          --iClipLength;
-         if(iClipLength <= 0) { assert(0); return false; }
+         if(iClipLength <= 0) { assert(iClipLength > 0); return false; }
          strcpy(pDest++, " ");
          prevStyle = style;
       }
@@ -340,7 +376,7 @@ bool ScintillaSearchView::prepareRtfClip(char *pGlobalText, int iClipLength, cha
          case '{':
          case '}':
             --iClipLength;
-            if(iClipLength <= 0) { assert(0); return false; }
+            if(iClipLength <= 0) { assert(iClipLength > 0); return false; }
             strcpy(pDest++, "\\"); 
             break;
          case 0x0d:
@@ -351,7 +387,7 @@ bool ScintillaSearchView::prepareRtfClip(char *pGlobalText, int iClipLength, cha
                ++pChar;
             }
             iClipLength -= (int)strlen(RTF_CRLF);
-            if(iClipLength <= 0) { assert(0); return false; }
+            if(iClipLength <= 0) { assert(iClipLength > 0); return false; }
             strcpy(pDest, RTF_CRLF);
             pDest += (int)strlen(RTF_CRLF);
             continue; // because char is ready
@@ -365,15 +401,40 @@ bool ScintillaSearchView::prepareRtfClip(char *pGlobalText, int iClipLength, cha
       };
       // copy the char
       --iClipLength;
-      if(iClipLength <= 0) { assert(0); return false; }
+      if(iClipLength <= 0) { assert(iClipLength > 0); return false; }
       *pDest++ = ((*pChar)&0xff);
       ++pChar;
    }
    iClipLength -= (int)_RtfFooter.length();
-   if(iClipLength <= 0) { assert(0); return false; }
+   if(iClipLength < 0) { assert(iClipLength > 0); return false; }
    strcpy(pDest, _RtfFooter.c_str());
+   iClipLength = (int)strlen(pGlobalText)+1; // expected to be same or shorter as at begin
    return true;
 }
+
+void ScintillaSearchView::doSaveRichtext() {
+   OPENFILENAME ofn;       // common dialog box structure
+   TCHAR szFile[MAX_PATH] = TEXT("");       // buffer for file name
+
+   // Initialize OPENFILENAME
+   ZeroMemory(&ofn, sizeof(ofn));
+   ofn.lStructSize = sizeof(ofn);
+   ofn.hwndOwner = _hSelf;
+   ofn.lpstrFile = szFile;
+   ofn.nMaxFile = COUNTCHAR(szFile);
+   ofn.lpstrFilter = TEXT("Richtext\0*.rtf\0");
+   ofn.nFilterIndex = 2;
+   ofn.lpstrFileTitle = TEXT("Save Analyse Search Result once as Richtext File");
+   ofn.nMaxFileTitle = 0;// strlen("Open Analyse Config File")+1;
+   ofn.lpstrInitialDir = szFile;
+   ofn.Flags = OFN_OVERWRITEPROMPT; // OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+   if (GetSaveFileName(&ofn) == TRUE)
+   {
+      doRichTextCopy(szFile);
+   }
+}
+
 void ScintillaSearchView::setWrapMode(bool bOn) {
    if (bOn) {
       execute(SCI_SETWRAPMODE, SC_WRAP_WORD);
@@ -396,6 +457,7 @@ std::vector<MenuItemUnit> ScintillaSearchView::getContextMenu() const {
    tmp.push_back(MenuItemUnit(FNDRESDLG_SCINTILLAFINFER_SEARCH, TEXT("Find... [Ctrl+F]")));
    tmp.push_back(MenuItemUnit(FNDRESDLG_SCINTILLAFINFER_SAVEFILE, TEXT("Save to file...")));
    tmp.push_back(MenuItemUnit(FNDRESDLG_SCINTILLAFINFER_SAVE_CLR, TEXT("Reset save file")));
+   tmp.push_back(MenuItemUnit(FNDRESDLG_SCINTILLAFINFER_SAVE_RTF, TEXT("Save once as Richtext...")));
    tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
    tmp.push_back(MenuItemUnit(FNDRESDLG_WRAP_MODE, TEXT("Word Wrap")));
    tmp.push_back(MenuItemUnit(FNDRESDLG_SHOW_LINE_NUMBERS, TEXT("Show line numbers")));
@@ -426,6 +488,9 @@ LRESULT ScintillaSearchView::scintillaNew_Proc(HWND hwnd, UINT Message, WPARAM w
             case FNDRESDLG_SHOW_OPTIONS:
                // deferre to parent window
                ::SendMessage(_hParent, WM_COMMAND, wParam, (LPARAM)0);
+               break;
+            case FNDRESDLG_SCINTILLAFINFER_SAVE_RTF:
+               doSaveRichtext();
                break;
             case FNDRESDLG_WRAP_MODE:
                setWrapMode(!getWrapMode());

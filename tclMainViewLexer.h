@@ -23,16 +23,14 @@
 #include "CharacterSet.h"
 #include "LexerModule.h"
 
-#ifdef SCI_NAMESPACE
 using namespace Scintilla;
-#endif
 
 // Extended to accept accented characters
 static inline bool IsAWordChar(int ch) {
    return ch >= 0x80 || isalnum(ch) || ch == '-' || ch == '_';
 }
 
-static void ColouriseAnalyseResult(unsigned int startPos, int length, int initStyle,
+static void ColouriseAnalyseResult(Sci_PositionU startPos, Sci_Position length, int initStyle,
    WordList *keywordlists[], Accessor &styler) {
 
    WordList &keywords = *keywordlists[0];
@@ -181,12 +179,12 @@ static void ColouriseAnalyseResult(unsigned int startPos, int length, int initSt
 // Store both the current line's fold level and the next lines in the
 // level store to make it easy to pick up with each increment
 // and to make it possible to fiddle the current level for "} else {".
-static void FoldAnalyseResult(unsigned int startPos, int length, int initStyle,
+static void FoldAnalyseResult(Sci_PositionU startPos, Sci_Position length, int initStyle,
    WordList *[], Accessor &styler) {
    bool foldComment = styler.GetPropertyInt("fold.comment") != 0;
    bool foldCompact = styler.GetPropertyInt("fold.compact", 1) != 0;
    bool foldAtElse = styler.GetPropertyInt("fold.at.else", 0) != 0;
-   unsigned int endPos = startPos + length;
+   Sci_PositionU endPos = startPos + length;
    int visibleChars = 0;
    int lineCurrent = styler.GetLine(startPos);
    int levelCurrent = SC_FOLDLEVELBASE;
@@ -197,13 +195,13 @@ static void FoldAnalyseResult(unsigned int startPos, int length, int initStyle,
    char chNext = styler[startPos];
    int styleNext = styler.StyleAt(startPos);
    int style = initStyle;
-   for (unsigned int i = startPos; i < endPos; i++) {
+   for (Sci_PositionU i = startPos; i < endPos; i++) {
       char ch = chNext;
       chNext = styler.SafeGetCharAt(i + 1);
       int stylePrev = style;
       style = styleNext;
       styleNext = styler.StyleAt(i + 1);
-      bool atEOL = (ch == '\r' && chNext != '\n') || (ch == '\n');
+      bool atEOL = ((ch == '\r' && chNext != '\n') || (ch == '\n'));
       if (style == SCE_POWERSHELL_OPERATOR) {
          if (ch == '{') {
             // Measure the minimum before a '{' to allow
@@ -227,7 +225,7 @@ static void FoldAnalyseResult(unsigned int startPos, int length, int initStyle,
       }
       else if (foldComment && style == SCE_POWERSHELL_COMMENT) {
          if (ch == '#') {
-            unsigned int j = i + 1;
+            Sci_PositionU j = i + 1;
             while ((j < endPos) && IsASpaceOrTab(styler.SafeGetCharAt(j))) {
                j++;
             }
@@ -272,5 +270,5 @@ static const char * const analyseResultWordLists[] = {
    0
 };
 
-LexerModule lmAnalyseResult(SCLEX_POWERSHELL, ColouriseAnalyseResult, "analyseresult", FoldAnalyseResult, analyseResultWordLists);
+LexerModule lmAnalyseResult(SCLEX_POWERSHELL, ColouriseAnalyseResult, "analyseresult", FoldAnalyseResult, analyseResultWordLists, 0, 0);
 
