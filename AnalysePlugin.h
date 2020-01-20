@@ -243,6 +243,10 @@ public:
       // intentioally r/w because custome colors are modified by different instances of color dialog
       return static_cast<COLORREF*>(_acrCustClr);
    }
+   
+   int getPatternIndex(tPatId id) const;
+   generic_string getPatternSearchText(tPatId id) const;
+   void setSelectedPattern(int index);
 
 
 protected:
@@ -279,6 +283,7 @@ protected:
    static const TCHAR KEYSHOWSEARCH[];
    static const TCHAR KEYSEARCHHISTORY[];
    static const TCHAR KEYCOMMENTHISTORY[];
+   static const TCHAR KEYGROUPHISTORY[];
    static const TCHAR KEYDEFAULTOPTIONS[];
    static const TCHAR KEYUSEBOOKMARK[];
    static const TCHAR KEYRESWINWORDWRAP[];
@@ -334,6 +339,7 @@ protected:
    generic_string mSearchPatternFileName;
    generic_string mSearchHistory;
    generic_string mCommentHistory;
+   generic_string mGroupHistory;
    generic_string mVersionString;
    generic_string mDefaultOptions;
    generic_string mLastSearchedFileName; // used to find out if window has changed

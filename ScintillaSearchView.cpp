@@ -29,6 +29,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #define MDBG_COMP "SSView:" 
 #include "myDebug.h"
+#include <Shlwapi.h>
 
 
 #define RTF_HEADER_BEGIN "{\\rtf1\\ansi\\ansicpg\\lang1024\\noproof1252\\uc1 \\deff0{\\fonttbl{\\f0\\fnil\\fcharset0\\fprq1 Courier New;}}\n{\\colortbl"
@@ -351,7 +352,7 @@ bool ScintillaSearchView::prepareRtfClip(char *pGlobalText, int& iClipLength, ch
          if(iClipLength <= 0) { assert(iClipLength > 0); return false; }
          strcpy(pDest, RTF_COLNUM);
          pDest += strlen(RTF_COLNUM);
-         _itoa(transStylePos[(style*2)], styleNum, 10); // every first of two is fgColor
+         _itoa((transStylePos[style] * 2), styleNum, 10); // every first of two is fgColor
          iClipLength -= (int)strlen(styleNum);
          if (iClipLength <= 0) { assert(iClipLength > 0); return false; }
          strcpy(pDest, styleNum);
@@ -360,7 +361,7 @@ bool ScintillaSearchView::prepareRtfClip(char *pGlobalText, int& iClipLength, ch
          if (iClipLength <= 0) { assert(iClipLength > 0); return false; }
          strcpy(pDest, RTF_BGCOLNUM);
          pDest += strlen(RTF_BGCOLNUM);
-         _itoa(transStylePos[(style*2)+1], styleNum, 10); // every second color is bgColor
+         _itoa((transStylePos[style] * 2) + 1, styleNum, 10); // every second color is bgColor
          iClipLength -= (int)strlen(styleNum);
          if(iClipLength <= 0) { assert(iClipLength > 0); return false; }
          strcpy(pDest, styleNum);
@@ -431,6 +432,10 @@ void ScintillaSearchView::doSaveRichtext() {
 
    if (GetSaveFileName(&ofn) == TRUE)
    {
+      generic_string dot = PathFindExtension(szFile);
+      if (dot == TEXT("")) {
+         generic_strncat(szFile, TEXT(".rtf"), 5);
+      }
       doRichTextCopy(szFile);
    }
 }
@@ -515,13 +520,9 @@ LRESULT ScintillaSearchView::scintillaNew_Proc(HWND hwnd, UINT Message, WPARAM w
             ::ClientToScreen(_hSelf, &spt);
                 pt = spt;
             }
-
-         ContextMenu scintillaContextmenu;
-         scintillaContextmenu.create(_hSelf, getContextMenu());
-         scintillaContextmenu.checkItem(FNDRESDLG_WRAP_MODE, getWrapMode());
-         scintillaContextmenu.checkItem(FNDRESDLG_SHOW_LINE_NUMBERS, getLineNumbersInResult());
-         scintillaContextmenu.display(pt);
-         
+            LPARAM lp = MAKELONG(pt.x, pt.y);
+            ::SendMessage(_hParent, WM_COMMAND, FNDRESDLG_SHOW_CONTEXTMENU, lp);
+        
             return 0;
       }
       case WM_KEYDOWN: 
@@ -535,7 +536,6 @@ LRESULT ScintillaSearchView::scintillaNew_Proc(HWND hwnd, UINT Message, WPARAM w
             } 
          }
          break; // let base win work
-         
       }
       case EM_SETSEL:
       {
@@ -547,9 +547,6 @@ LRESULT ScintillaSearchView::scintillaNew_Proc(HWND hwnd, UINT Message, WPARAM w
    }
    return ScintillaEditView::scintillaNew_Proc(hwnd, Message, wParam, lParam);
 }
-
-
-
 
 void ScintillaSearchView::updateLineNumberWidth(bool lineNumbersShown) 
 {

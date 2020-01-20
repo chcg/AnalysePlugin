@@ -154,6 +154,9 @@ public:
    virtual bool getDblClickJumps2EditView() const = 0;
    virtual void showConfigDlg() = 0;
    virtual COLORREF* refCustomColors() = 0;
+   virtual int getPatternIndex(tPatId id) const = 0;
+   virtual generic_string getPatternSearchText(tPatId id) const = 0;
+   virtual void setSelectedPattern(int index) = 0;
 };
 #endif //MYPLUGIN_H
 

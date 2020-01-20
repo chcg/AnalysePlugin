@@ -49,6 +49,7 @@ public:
       TBLVIEW_COL_HITS,
       TBLVIEW_COL_DO_SEARCH,    
       TBLVIEW_COL_SEARCH_TEXT,
+      TBLVIEW_COL_GROUP,
    #ifdef RESULT_COLORING
       TBLVIEW_COL_COLOR,
       TBLVIEW_COL_BGCOLOR,
@@ -108,7 +109,8 @@ public:
    generic_string getWholeWordStr() const ;
    generic_string getSelectStr() const ;
    generic_string getHideStr() const ;
-   generic_string getCommentStr() const ;
+   generic_string getCommentStr() const;
+   generic_string getGroupStr() const ;
    generic_string getDoSearchStr() const ;
    generic_string getHitsStr() const;
 #ifdef COL_NUMBERING

@@ -76,6 +76,7 @@ public:
       mDoReplace = right.mDoReplace;
       mSelectionType = right.mSelectionType;
       mComment = right.mComment;
+      mGroup = right.mGroup;
    }
 
    virtual ~tclPattern();
@@ -99,6 +100,7 @@ public:
       mDoReplace = right.mDoReplace;
       mSelectionType = right.mSelectionType;
       mComment = right.mComment;
+      mGroup = right.mGroup;
       return *this;
    }
 
@@ -120,7 +122,8 @@ public:
                   (mHideText == right.mHideText) &&
                   (mDoReplace == right.mDoReplace) &&
                   (mSelectionType == right.mSelectionType) &&
-                  (mComment == right.mComment));
+                  (mComment == right.mComment) &&
+                  (mGroup == right.mGroup));
       return bRet;
    }
 
@@ -317,7 +320,12 @@ public:
    void setSelectionType(int selectionType) ;
 
    void setSelectionTypeStr(const generic_string& type);
-
+   generic_string getGroup() const {
+      return mGroup;
+   }
+   void setGroup(const generic_string& str) {
+      mGroup = str;
+   }
 protected:
    /** function is original copy from NPP project to be in syncwith their options */
    generic_string convertExtendedToString() const;
@@ -356,5 +364,7 @@ protected:
    teSelectionType mSelectionType;
    /** the comment as entered by the user */
    generic_string mComment;
+   /** defines the group to which this pattern belongs */
+   generic_string mGroup;
 };
 #endif //TCLPATTERN_H

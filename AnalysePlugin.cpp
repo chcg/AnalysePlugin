@@ -37,6 +37,7 @@ const TCHAR AnalysePlugin::KEYNAME[] = TEXT("doAnalyse");
 const TCHAR AnalysePlugin::KEYSHOWSEARCH[] = TEXT("showSearch");
 const TCHAR AnalysePlugin::KEYSEARCHHISTORY[] = TEXT("searchHistory");
 const TCHAR AnalysePlugin::KEYCOMMENTHISTORY[] = TEXT("commentHistory");
+const TCHAR AnalysePlugin::KEYGROUPHISTORY[] = TEXT("groupHistory");
 const TCHAR AnalysePlugin::KEYDEFAULTOPTIONS[] = TEXT("defaultOptions");
 const TCHAR AnalysePlugin::KEYONAUTOUPDATE[] = TEXT("onAutoUpdate");
 const TCHAR AnalysePlugin::KEYSYNCEDSCORLL[] = TEXT("syncedScrolling");
@@ -261,6 +262,8 @@ in case new path and old path are different and in new path ini is not there loa
    mSearchHistory = tmp;
    ::GetPrivateProfileString(SECTIONNAME, KEYCOMMENTHISTORY, TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
    mCommentHistory = tmp;
+   ::GetPrivateProfileString(SECTIONNAME, KEYGROUPHISTORY, TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
+   mGroupHistory = tmp;
    ::GetPrivateProfileString(SECTIONNAME, KEYDEFAULTOPTIONS, TEXT(""), tmp, COUNTCHAR(tmp), iniFilePath);
    mDefaultOptions = tmp;
    ::GetPrivateProfileString(SECTIONNAME, KEYUSEBOOKMARK, TEXT("1"), tmp, COUNTCHAR(tmp), iniFilePath);
@@ -335,12 +338,14 @@ void AnalysePlugin::saveSettings() {
    DBG0("saveSettings()");
    _findDlg.getSearchHistory(mSearchHistory);
    _findDlg.getCommentHistory(mCommentHistory);
+   _findDlg.getGroupHistory(mGroupHistory);
    _findDlg.getDefaultOptions(mDefaultOptions);
    ::WritePrivateProfileString(SECTIONNAME, KEYNAME, (_findDlg.isVisible()?TEXT("1"):TEXT("0")), iniFilePath);
    ::WritePrivateProfileString(SECTIONNAME, KEYSHOWSEARCH, (_findResult.isVisible()?TEXT("1"):TEXT("0")), iniFilePath);
    ::WritePrivateProfileString(SECTIONNAME, KEYLASTFILENAME, _findDlg.getFileName().c_str(), iniFilePath);
    ::WritePrivateProfileString(SECTIONNAME, KEYSEARCHHISTORY, mSearchHistory.c_str(), iniFilePath);
    ::WritePrivateProfileString(SECTIONNAME, KEYCOMMENTHISTORY, mCommentHistory.c_str(), iniFilePath);
+   ::WritePrivateProfileString(SECTIONNAME, KEYGROUPHISTORY, mGroupHistory.c_str(), iniFilePath);
    ::WritePrivateProfileString(SECTIONNAME, KEYDEFAULTOPTIONS, mDefaultOptions.c_str(), iniFilePath);
    TCHAR tmp[10];
    generic_itoa(_configDlg.getUseBookmark(), tmp, 10);
@@ -427,6 +432,15 @@ void AnalysePlugin::displaySectionCentered(int posStart, int posEnd, bool isDown
    execute(scnActiveHandle, SCI_GOTOPOS, posStart);
    execute(scnActiveHandle, SCI_GOTOPOS, posEnd);
    execute(scnActiveHandle, SCI_SETANCHOR, posStart);
+}
+int AnalysePlugin::getPatternIndex(tPatId id) const {
+   return _findDlg.getPatternList().getPatternIndex(id);
+}
+generic_string AnalysePlugin::getPatternSearchText(tPatId id) const {
+   return _findDlg.getPatternList().getPattern(id).getSearchText();
+}
+void AnalysePlugin::setSelectedPattern(int index) {
+   _findDlg.setSelectedPattern(index);
 }
 
 void AnalysePlugin::setSearchFileName(const generic_string& file) {
@@ -1224,6 +1238,7 @@ void AnalysePlugin::createFindDlg()
    // set the diag 
    _findDlg.setSearchHistory(mSearchHistory.c_str());
    _findDlg.setCommentHistory(mCommentHistory.c_str());
+   _findDlg.setGroupHistory(mGroupHistory.c_str());
    // let finddialog decode the string from the ini file
    _findDlg.setDefaultOptions(mDefaultOptions.c_str());
    if (PathFileExists(xmlFilePath) == TRUE) {

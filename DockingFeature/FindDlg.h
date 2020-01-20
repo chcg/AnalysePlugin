@@ -145,6 +145,7 @@ public :
    void display(bool toShow = true) const ;
 
    void setAllDoSearch(bool bOn) ;
+   void setGroupDoSearch(const generic_string& group, bool bEnable);
 
    void setAllDirty() 
    {
@@ -167,6 +168,8 @@ public :
 
    void setNumOfCfgFiles(unsigned u);
    void setNumOfCfgFilesStr(const generic_string& str);
+   
+   void setSelectedPattern(int index);
 
    void doSearch();
 
@@ -210,9 +213,10 @@ public :
 
    void setCommentHistory(const TCHAR* hist);
    //void setCommentHistory(const char* hist, int charSize=1);
-   generic_string getCommentHistory() const;
    void getCommentHistory(generic_string& str) const ;
    //void getCommentHistory(std::wstring& str) const ;
+   void setGroupHistory(const TCHAR* hist);
+   void getGroupHistory(generic_string& str) const;
 
    void setCmbHistory(tclComboBoxCtrl& thisCmb, const TCHAR* hist, int charSize);
 
@@ -305,6 +309,7 @@ protected:
    tclComboBoxCtrl mCmbSearchType;
    tclComboBoxCtrl mCmbSelType;
    tclComboBoxCtrl mCmbComment;
+   tclComboBoxCtrl mCmbGroup;
 //   tclComboBoxCtrl mCmbColor;
    generic_string _FileName;        // buffer for file name
    TCHAR _ConfigFileName[MAX_HEADLINE]; // buffer for config file name

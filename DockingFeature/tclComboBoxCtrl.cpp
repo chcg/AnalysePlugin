@@ -45,12 +45,25 @@ void tclComboBoxCtrl::addText2Combo(const TCHAR * txt2add, bool /*isUTF8*/, bool
 {   
    if (!mhMyCtrl) return;
    if ((txt2add==0)) return; 
-   LRESULT i = 0;
+   LRESULT i;
    if(*txt2add==0) {
       DBG1("addText2Combo() adding zero length text! in %d", ::GetDlgCtrlID(mhMyCtrl));
+      int count = (int)::SendMessage(mhMyCtrl, CB_GETCOUNT, 0, 0);
+      int n;
+      i = -1;
+      // in case of empty string CB_FINDSTRINGEXACT returns -1 instead of correct index to avoid adding the same string twice
+      TCHAR text[MAX_CHAR_CELL];
+      for (n=0; n < count; ++n)
+      {
+         ::SendMessage(mhMyCtrl, CB_GETLBTEXT, n, (LPARAM)text);
+         if (*text == 0) {
+            i = n;
+         }
+      }
+   }  else {
+      // add even if empty!  if (!lstrcmp(txt2add, TEXT(""))) return;
+      i = ::SendMessage(mhMyCtrl, CB_FINDSTRINGEXACT, (WPARAM)-1, (LPARAM)txt2add);
    }
-   // add even if empty!  if (!lstrcmp(txt2add, TEXT(""))) return;
-   i = ::SendMessage(mhMyCtrl, CB_FINDSTRINGEXACT, (WPARAM)-1, (LPARAM)txt2add);
    if (addAlways) {
       if (i != CB_ERR) { // found
          ::SendMessage(mhMyCtrl, CB_DELETESTRING, i, 0);

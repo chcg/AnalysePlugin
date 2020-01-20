@@ -27,6 +27,7 @@ search result string cache
 #include "SciLexer.h"
 #include "MyPlugin.h"
 #include "ScintillaSearchView.h"
+#include "ContextMenu.h"
 #include "tclFindResultDoc.h"
 #include "tclFindResultDlg.h"
 #include <commdlg.h>// For fileopen dialog.
@@ -605,6 +606,15 @@ INT_PTR CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPAR
       {
          switch (wParam)
          {
+         case FNDRESDLG_WRAP_MODE:
+            setWrapMode(!getWrapMode());
+            break;
+
+         case FNDRESDLG_SCINTILLAFINFER_SAVE_RTF:
+            {
+            _scintView.doSaveRichtext();
+            return TRUE;
+         }
          case FNDRESDLG_SCINTILLAFINFER_COPY :
             {
                _scintView.execute(SCI_COPY);
@@ -646,8 +656,47 @@ INT_PTR CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPAR
             _pParent->showConfigDlg();
             return TRUE;
          }
-         default :
+         case FNDRESDLG_SHOW_CONTEXTMENU:
+         {
+            POINT pt = { static_cast<short>(LOWORD(lParam)),
+                        static_cast<short>(HIWORD(lParam)) };
+            std::vector<MenuItemUnit> tmp = _scintView.getContextMenu();
+            tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
+            tmp.push_back(MenuItemUnit(FNDRESDLG_ACTIVATE_PATTERN_LIST, TEXT("matching patterns:")));
             {
+               TCHAR index[5];
+               int pos = (int)_scintView.execute(SCI_GETCURRENTPOS);
+               int line = (int)_scintView.execute(SCI_LINEFROMPOSITION, pos);
+               const tlmIdxPosInfo& p = mFindResults.getLineAtRes(line).second.posInfos();
+               tlmIdxPosInfo::const_iterator it = p.begin();
+               for (; it != p.end(); ++it) {
+                  int idx = _pParent->getPatternIndex(it->first);
+                  generic_itoa(idx, index, 10);
+                  generic_string s = index;
+                  s += TEXT(":");
+                  s += _pParent->getPatternSearchText(it->first);
+                  DBG4("Line %d has pattern %f index %d text %s", line, it->first, idx, s.c_str());
+                  int range = (FNDRESDLG_ACTIVATE_PATTERN_END - FNDRESDLG_ACTIVATE_PATTERN_BASE);
+                  if (idx > range) {
+                     break;
+                  }
+                  tmp.push_back(MenuItemUnit((FNDRESDLG_ACTIVATE_PATTERN_BASE + idx), s));
+               }
+            }
+            // create the menu
+            ContextMenu scintillaContextmenu;
+            scintillaContextmenu.create(getHSelf(), tmp);
+            scintillaContextmenu.enableItem(FNDRESDLG_ACTIVATE_PATTERN_LIST, false); // disable it because it's headline text
+            scintillaContextmenu.checkItem(FNDRESDLG_WRAP_MODE, _scintView.getWrapMode());
+            scintillaContextmenu.checkItem(FNDRESDLG_SHOW_LINE_NUMBERS, _scintView.getLineNumbersInResult());
+            scintillaContextmenu.display(pt);
+            return TRUE;
+         }
+         default :
+            if ((wParam >= FNDRESDLG_ACTIVATE_PATTERN_BASE) && (wParam < FNDRESDLG_ACTIVATE_PATTERN_END)) {
+               int index = (wParam & (FNDRESDLG_ACTIVATE_PATTERN_END - FNDRESDLG_ACTIVATE_PATTERN_BASE));
+               _pParent->setSelectedPattern(index);
+            } else {
                break;
             }
          }; // switch
@@ -655,16 +704,10 @@ INT_PTR CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPAR
       }
    case WM_CONTEXTMENU :
       {
-         if (HWND(wParam) == _scintView.getHSelf())
-         {
-            POINT p;
-            ::GetCursorPos(&p);
-            ContextMenu scintillaContextmenu;
-            scintillaContextmenu.create(_scintView.getHSelf(), _scintView.getContextMenu());
-            scintillaContextmenu.display(p);
-            return TRUE;
-         }
-         return (BOOL)::DefWindowProc(_hSelf, message, wParam, lParam);
+         POINT p;
+         ::GetCursorPos(&p);
+         ::SendMessage(getHSelf(), WM_COMMAND, FNDRESDLG_SHOW_CONTEXTMENU, MAKELONG(p.x, p.y));
+         return TRUE;
       }
 
    case WM_SIZE :
@@ -862,7 +905,6 @@ bool tclFindResultDlg::notify(SCNotification *notification)
          ret = true;
          break;
       }
-
    case SCN_DOUBLECLICK :
       {
          NPP_TRY {

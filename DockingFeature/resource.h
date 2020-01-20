@@ -77,12 +77,15 @@
 #define IDC_TITLE_TEXT                  1067
 #define IDC_CHK_RESWORDWRAP             1068
 #define IDC_CTXCFG_LOADX_0              1070
+#define IDC_DO_DISABLE_GROUP            1071
+#define IDC_DO_ENABLE_GROUP             1072
 #define IDC_CTXCFG_LOADX_E              1100
 #define IDC_BTN_ADDCONTEXT              1102
 #define IDC_EDT_COPYTEXT                1103
 #define IDT_ANALYSE_SCROLL_TIMER        1104
 #define IDC_BTN_CHANGES                 1106
 #define IDC_BTN_MANUAL                  1107
+#define IDC_CMB_GROUP                   1108
 #define IDI_ANALYSE                     1204
 #define IDB_TB_ANALYSE                  1206
 #define IDC_WRAP                        1606
@@ -124,7 +127,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        3018
 #define _APS_NEXT_COMMAND_VALUE         5004
-#define _APS_NEXT_CONTROL_VALUE         1108
+#define _APS_NEXT_CONTROL_VALUE         1109
 #define _APS_NEXT_SYMED_VALUE           6003
 #endif
 #endif

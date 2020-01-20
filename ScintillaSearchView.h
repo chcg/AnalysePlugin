@@ -40,7 +40,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define FNDRESDLG_SCINTILLAFINFER_COPY (13) 
 #define FNDRESDLG_SCINTILLAFINFER_SELECTALL (16)
 
-#define FNDRESDLG_BASE (WM_USER + 0100)
+#define FNDRESDLG_BASE                     (WM_USER + 0x60)
 #define FNDRESDLG_SCINTILLAFINFER_SEARCH   (FNDRESDLG_BASE + 1)
 #define FNDRESDLG_SCINTILLAFINFER_SAVEFILE (FNDRESDLG_BASE + 2)
 #define FNDRESDLG_SCINTILLAFINFER_SAVE_CLR (FNDRESDLG_BASE + 3)
@@ -48,6 +48,10 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define FNDRESDLG_WRAP_MODE                (FNDRESDLG_BASE + 5)
 #define FNDRESDLG_SHOW_LINE_NUMBERS        (FNDRESDLG_BASE + 6)
 #define FNDRESDLG_SHOW_OPTIONS             (FNDRESDLG_BASE + 7)
+#define FNDRESDLG_SHOW_CONTEXTMENU         (FNDRESDLG_BASE + 8)
+#define FNDRESDLG_ACTIVATE_PATTERN_LIST    (FNDRESDLG_BASE + 9)
+#define FNDRESDLG_ACTIVATE_PATTERN_BASE    (FNDRESDLG_BASE + 0x0f00)
+#define FNDRESDLG_ACTIVATE_PATTERN_END     (FNDRESDLG_BASE + 0x0fff)
 
 class ScintillaSearchView : public ScintillaEditView
 {
@@ -83,6 +87,7 @@ public:
    bool getLineNumbersInResult() const {
       return _bLineNumbersInResult;
    }
+   void doSaveRichtext();
 protected:
    static const int transStylePos[MY_STYLE_MASK+1];
 
@@ -90,7 +95,6 @@ protected:
    int countLinefeeds(const Sci_TextRange& rtr);
    int countEscapeChars(const Sci_TextRange& rtr);
    bool prepareRtfClip(char *pGlobalText, int& iClipLength, char* lpSelText, int iSelTextLength);
-   void doSaveRichtext();
 
    std::string _RtfHeader;
    std::string _RtfFooter;

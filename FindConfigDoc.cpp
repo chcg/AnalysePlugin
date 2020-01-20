@@ -43,6 +43,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define FNDDOC_COLOR TEXT("color")
 #define FNDDOC_BGCOLOR TEXT("bgColor")
 #define FNDDOC_COMMENT TEXT("comment")
+#define FNDDOC_GROUP TEXT("group")
 #define FNDDOC_HITS TEXT("hits")
 
 FindConfigDoc::FindConfigDoc(const TCHAR * filename)
@@ -146,6 +147,10 @@ bool FindConfigDoc::readPatternList(tclPatternList& pl, bool bAppend, bool bLoad
             if(pc!=0 && *pc!=0) {
                p.setComment(pc);
             }
+            pc = elem->Attribute(FNDDOC_GROUP);
+            if (pc != 0 && *pc != 0) {
+               p.setGroup(pc);
+            }
             if(bAppend) {
                pl.push_back(p);
             } else {
@@ -227,6 +232,9 @@ bool FindConfigDoc::writePatternList(tclPatternList& pl){
             }
             if (!rp.getComment().empty()) {
                e2->SetAttribute(FNDDOC_COMMENT, rp.getComment().c_str());
+            }
+            if (!rp.getGroup().empty()) {
+               e2->SetAttribute(FNDDOC_GROUP, rp.getGroup().c_str());
             }
          }
       } // for

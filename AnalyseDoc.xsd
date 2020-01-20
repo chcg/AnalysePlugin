@@ -28,6 +28,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
                      <xs:simpleContent>
                         <xs:extension base="xs:string">
                            <xs:attribute name="hits" type="xs:unsignedInt" />
+                           <xs:attribute name="group" type="xs:string" />
                            <xs:attribute name="searchType" type="tSearchType" default="normal" />
                            <xs:attribute name="matchCase" type="xs:boolean" default="false" />
                            <xs:attribute name="wholeWord" type="xs:boolean" default="false" />

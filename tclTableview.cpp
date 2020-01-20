@@ -39,6 +39,7 @@ const tstPatternConfTab tclTableview::gPatternConfTab[tclTableview::TBLVIEW_COL_
     {TEXT("Hits"),   0 }
    ,{TEXT("Active"), 20 }
    ,{TEXT("Search"), 100}
+   ,{TEXT("Group"),50 }
 #ifdef RESULT_COLORING
    ,{TEXT("Color"),  40 }
    ,{TEXT("BgCol"),  40 }
@@ -131,6 +132,7 @@ void tclTableview::updateRow(int item, const tclPattern& rp) {
    updateCell(item, TBLVIEW_COL_SELECT, rp.getSelectionTypeStr());
    updateCell(item, TBLVIEW_COL_HIDE, rp.getIsHideText()?TEXT("X"):TEXT(""));
    updateCell(item, TBLVIEW_COL_COMMENT, rp.getComment());
+   updateCell(item, TBLVIEW_COL_GROUP, rp.getGroup());
 #ifdef RESULT_STYLING
    updateCell(item, TBLVIEW_COL_BOLD, rp.getIsBold()?TEXT("X"):TEXT(""));
    updateCell(item, TBLVIEW_COL_ITALIC, rp.getIsItalic()?TEXT("X"):TEXT(""));
@@ -286,7 +288,8 @@ generic_string tclTableview::getMatchCaseStr() const {return getItem(TBLVIEW_COL
 generic_string tclTableview::getWholeWordStr() const {return getItem(TBLVIEW_COL_WHOLEWORD);}
 generic_string tclTableview::getSelectStr() const {return getItem(TBLVIEW_COL_SELECT );}
 generic_string tclTableview::getHideStr() const {return getItem(TBLVIEW_COL_HIDE);}
-generic_string tclTableview::getCommentStr() const { return getItem(TBLVIEW_COL_COMMENT);}
+generic_string tclTableview::getCommentStr() const {return getItem(TBLVIEW_COL_COMMENT);}
+generic_string tclTableview::getGroupStr() const { return getItem(TBLVIEW_COL_GROUP);}
 #ifdef RESULT_STYLING
 generic_string tclTableview::getBoldStr() const {return getItem(TBLVIEW_COL_BOLD);}
 generic_string tclTableview::getItalicStr() const {return getItem(TBLVIEW_COL_ITALIC );}
