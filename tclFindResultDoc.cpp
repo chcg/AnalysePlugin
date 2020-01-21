@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -112,13 +112,14 @@ void tclFindResultDoc::moveResult(tPatId oldPattId, tPatId newPattId)
 
 /** make sure function is not called with resultWinLine >= size() */
 const tlpLinePosInfo& tclFindResultDoc::getLineAtRes(int resultWinLine) const {
-   if(resultWinLine > size()) {
-      assert(resultWinLine < size()); // index out of range
-      return mDefLineInfo;
-   }
-   if (resultWinLine == size() && resultWinLine > 0) {
-      // special case click in CR from last line
-      --resultWinLine;
+   if(resultWinLine >= size()) {
+      if (resultWinLine == size() && resultWinLine > 0) {
+         // special case click in CR from last line
+         --resultWinLine;
+      } else {
+         assert(resultWinLine < size()); // index out of range
+         return mDefLineInfo;
+      }
    }
    tiLine foundLine = mReslines[resultWinLine];
    tlmLinePosInfo::const_iterator it = mLines.lower_bound(foundLine);

@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO don.h(at)free.fr 
 
@@ -50,8 +50,8 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define FNDRESDLG_SHOW_OPTIONS             (FNDRESDLG_BASE + 7)
 #define FNDRESDLG_SHOW_CONTEXTMENU         (FNDRESDLG_BASE + 8)
 #define FNDRESDLG_ACTIVATE_PATTERN_LIST    (FNDRESDLG_BASE + 9)
-#define FNDRESDLG_ACTIVATE_PATTERN_BASE    (FNDRESDLG_BASE + 0x0f00)
-#define FNDRESDLG_ACTIVATE_PATTERN_END     (FNDRESDLG_BASE + 0x0fff)
+#define FNDRESDLG_ACTIVATE_PATTERN_BASE    (FNDRESDLG_BASE + 0x0100)
+#define FNDRESDLG_ACTIVATE_PATTERN_END     (FNDRESDLG_BASE + 0x01ff)
 
 class ScintillaSearchView : public ScintillaEditView
 {

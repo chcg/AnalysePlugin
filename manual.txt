@@ -1,4 +1,4 @@
-Analyse Plugin for Notepad++                                             DE 2019-12
+Analyse Plugin for Notepad++                                             DE 2020-01
 
 This Plugin will help you to search for more than one search pattern at a time.
 
@@ -82,16 +82,34 @@ Double click:       Moves the main window cursor position to the corresponding l
                     Via option you ca decide if the text cursor shall be in the
                     edit window or in the search result win.
 Right mouse click:  Opens the context menu.
-Ctx: Save to file:  Binds the result window to a text file
+Ctx: Copy           Copies the selected text into clip board in two formats:
+                    1. clear text 2. RTF format if a receiving app e.g. WordPad
+                    is capable for RTF the text will preserve the fg and bg colors.
+Ctx: Select All     Puts the selection on the complete result text.
+Ctx: Find...        The find dialog in result window is optimized for the search 
+                    patterns. Click on one of the currently defined patterns right
+                    to search for exactly this instances here.
 
-The find dialog in result window is optimized for the search patterns.
-Click on one of the currently defined patterns to search for this here.
+Ctx: Save to file...  Binds the result window to a text file as ascii. Whenever the
+                    search result changes it gets written into the text file.
+Ctx: Save once as Richtext... Saves the current colored results in .rtf format
+Ctx: Word Wrap      Enables / disables the word wrap in the result window. This setting
+                    get persisted over sessions.
+Ctx: Show line numbers Enables / disables the visualization of line numbers. Due to
+                    that line numbers are embedded into text it requires a research.
+Ctx: Options...     Allows easy access to the AP option dialog.
+Ctx: matching patterns  This is a listing section with as many entries of patterns
+                    which have been matching on this line in the order as defined in
+                    pattern list -> last entry defines the colors
 
----- Analyse Plugin Configuration ----
-The Analyse Plugin has an additional dialog for setting the config.
+---- Analyse Plugin Options Dialog ----
+The Analyse Plugin has an additional dialog for setting the config. All config
+data is getting persisted into AnalysePlugin.ini in the plugin-config folder.
+
 The options are:
  - Default Values -      Defines the default values used in the find config 
-                         when creating new patterns.
+                         when creating new patterns. Also custom colors in the
+                         color picker are stored persistently.
  - Behaviour -
 Use Bookmarks in text:   Toggles creation of bookmarks in edit window.
 Auto update on modify:   Toggles if changes shall be detected (e.g. in monitored
@@ -116,6 +134,7 @@ Editor context menu [add command]: Is actually not a config in AP but in Notepad
      The button opens an extra window that describes the proposed content of the 
      context menu config file from Notepad++. Read this automatically opened file 
      to understand more about this Notepad++ feature.
+
  - Result Window Font -
 Name: This combobox allows to explicitly select the font that shall be used for the 
      result window. E.g. select Courier to have the window mono spaced formatting. 

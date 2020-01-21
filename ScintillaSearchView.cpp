@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO don.h(at)free.fr 
 
@@ -210,7 +210,7 @@ bool ScintillaSearchView::doRichTextCopy(const TCHAR* filename) {
    int iParCount = countLinefeeds(tr);
 
    //expand size of allocated text by iColCount*expected length per COL + header and footer
-   int iClipLength = (iColCount*17)                // fg and bg color control words with two digets index
+   int iClipLength = (iColCount*20)+2              // fg and bg color control words with three digets index + CRLF
                      +(iParCount*5)                // count of crlf
                      +iSelTextLength               // the text
                      +iEscapeCount                 // \ { } escaping

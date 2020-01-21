@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO don.h(at)free.fr 
 
@@ -106,7 +106,9 @@ void FindDlg::setNumOfCfgFilesStr(const generic_string& str) {
 
 void FindDlg::setSelectedPattern(int index) {
    mTableView.setSelectedRow(index);
+   DBG1("setSelectedPattern(%d) calling doCopyLineToDialog()...", index);
    doCopyLineToDialog();
+   DBG1("setSelectedPattern(%d) calling updateDockingDlg()...", index);
    updateDockingDlg();
 }
 

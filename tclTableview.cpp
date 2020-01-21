@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -313,6 +313,7 @@ int tclTableview::setSelectedRow(int index) const {
    if(mhList) {
       int prevPos = ListView_SetSelectionMark(mhList, index); // 0-n entry ; -1 nothing      
       ListView_SetItemState(mhList, index, (LVIS_FOCUSED|LVIS_SELECTED),(LVIS_FOCUSED|LVIS_SELECTED));
+      ListView_EnsureVisible(mhList, index, FALSE);
       return prevPos;
    } else {
       return -1; // nothing selected

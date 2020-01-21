@@ -1,4 +1,9 @@
-Changes since 1.12-preview2
+Changes since 1.12
+   since 1.12-preview-3
+ - adding feature 51: group attribute to act on multiple elements
+ - adding feature 19: show matching patterns in context menu for edit / back match
+ - bugfix richtext get black
+   since 1.12-preview-2
  - sync with NPP 7.8.2 ++ (includes update to latest Scintilla Version 4.x!)
  - change toolchain to v10.x and compiler to v14.2
  - bugfix Synchronize view scrolling is not working 
@@ -6,9 +11,9 @@ Changes since 1.12-preview2
  - change a "Hits" column gets added to pattern list showing the count of hits
  - change Hits to be empty when a filter is not enabled
  - change clipboard copy of results to also maintain background colors
- - add feature store result window as rtf to a file
- - add feature to adjust the columns of the search patterns by drag width and order
-Changes since 1.12-preview
+ - adding feature store result window as rtf to a file
+ - adding feature to adjust the columns of the search patterns by drag width and order
+   since 1.12-preview
  - starting use of lexer, no yet active
  - adding possibility to save the hits into configfile
  - adding feature search results statistic

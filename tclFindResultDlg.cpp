@@ -1,6 +1,6 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
+Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -694,7 +694,8 @@ INT_PTR CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPAR
          }
          default :
             if ((wParam >= FNDRESDLG_ACTIVATE_PATTERN_BASE) && (wParam < FNDRESDLG_ACTIVATE_PATTERN_END)) {
-               int index = (wParam & (FNDRESDLG_ACTIVATE_PATTERN_END - FNDRESDLG_ACTIVATE_PATTERN_BASE));
+               int index = (int)(wParam - FNDRESDLG_ACTIVATE_PATTERN_BASE);
+               DBG1("FNDRESDLG_ACTIVATE_PATTERN for index %d", index);
                _pParent->setSelectedPattern(index);
             } else {
                break;
