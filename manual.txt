@@ -40,7 +40,7 @@ Search Type:    Same as in find dialog; chose the type how to search.
                 Here an interesting feature is that \r\n can be used to search for 
                 more than one line! Test it with normal find dialog in the editor 
                 and use the option "escaped".
-                All types are the same as in normal NotePad++ find see also the help
+                All types are the same in normal NotePad++ find see also the help
                 manual in menu "?" of NotePad++. NPP uses regex features that can
                 search beyond end of a line. Use rgx_multiline to enable this mode. 
 Case:           Same as in find dialog; case sensitive or not.
@@ -78,7 +78,7 @@ Right mouse click:  Opens the context menu.
                     The context menu works on the currently marked line.
 
  - Result window -
-Double click:       Moves the main window cursor position to the corresponding line.
+Double click:       Moves the main window cursor position to the corresponding line
                     Via option you ca decide if the text cursor shall be in the
                     edit window or in the search result win.
 Right mouse click:  Opens the context menu.
@@ -93,14 +93,14 @@ Ctx: Find...        The find dialog in result window is optimized for the search
 Ctx: Save to file...  Binds the result window to a text file as ascii. Whenever the
                     search result changes it gets written into the text file.
 Ctx: Save once as Richtext... Saves the current colored results in .rtf format
-Ctx: Word Wrap      Enables / disables the word wrap in the result window. This setting
-                    get persisted over sessions.
+Ctx: Word Wrap      Enables / disables the word wrap in the result window. This
+                    setting get persisted over sessions.
 Ctx: Show line numbers Enables / disables the visualization of line numbers. Due to
                     that line numbers are embedded into text it requires a research.
 Ctx: Options...     Allows easy access to the AP option dialog.
 Ctx: matching patterns  This is a listing section with as many entries of patterns
-                    which have been matching on this line in the order as defined in
-                    pattern list -> last entry defines the colors
+                    which have been matching on this line in the order as defined
+                    in pattern list -> last entry defines the colors
 
 ---- Analyse Plugin Options Dialog ----
 The Analyse Plugin has an additional dialog for setting the config. All config

@@ -264,9 +264,19 @@ generic_string tclTableview::getTableColumnOrder() const {
    TCHAR tmp[10];
    int order[TBLVIEW_COL_MAX];
    ListView_GetColumnOrderArray(mhList, TBLVIEW_COL_MAX, order);
+   bool valid = true;
+   for (int col = 0; col < TBLVIEW_COL_MAX; ++col) {
+      if (order[col] < 0) {
+         valid = false;
+      }
+   }
    for (int col = 0; col < TBLVIEW_COL_MAX; ++col) {
       tmp[0] = 0;
-      generic_itoa(order[col], tmp, 10);
+      if(valid) {
+         generic_itoa(order[col], tmp, 10);
+      } else {
+         generic_itoa(col, tmp, 10);
+      }
       res += tmp;
       if (col < (TBLVIEW_COL_MAX - 1)) {
          //no comma at end

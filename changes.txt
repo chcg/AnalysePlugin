@@ -12,7 +12,7 @@ Changes since 1.12
  - change Hits to be empty when a filter is not enabled
  - change clipboard copy of results to also maintain background colors
  - adding feature store result window as rtf to a file
- - adding feature to adjust the columns of the search patterns by drag width and order
+ - adding feature to adjust columns of the search patterns by drag width and order
    since 1.12-preview
  - starting use of lexer, no yet active
  - adding possibility to save the hits into configfile
@@ -59,7 +59,7 @@ Changes since 1.10
  - bugfix redo search when line number-display in changed
  - feature synced scrolling from both sides result <-> main
  - adding handling for errors in scintilla
- - bugfix avoid jumping cursor by replacing gotoline to ensure visible in main window 
+ - bugfix avoid jumping cursor by replacing gotoline to main window 
  - rename rgx_dotnewln to rgx_multiline
  - bugfix redraw after ColorPicker is closed
  - adding menu entry "Search now" to allow short cut setting for this function
