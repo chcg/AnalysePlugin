@@ -416,7 +416,7 @@ bool ScintillaSearchView::prepareRtfClip(char *pGlobalText, int& iClipLength, ch
 void ScintillaSearchView::doSaveRichtext() {
    OPENFILENAME ofn;       // common dialog box structure
    TCHAR szFile[MAX_PATH] = TEXT("");       // buffer for file name
-
+   generic_strncpy(szFile, _lastRtfFilename.c_str(), MAX_PATH);
    // Initialize OPENFILENAME
    ZeroMemory(&ofn, sizeof(ofn));
    ofn.lStructSize = sizeof(ofn);
@@ -433,9 +433,10 @@ void ScintillaSearchView::doSaveRichtext() {
    if (GetSaveFileName(&ofn) == TRUE)
    {
       generic_string dot = PathFindExtension(szFile);
-      if (dot == TEXT("")) {
+      if (dot == TEXT("") && ((generic_strlen(szFile)+4) < MAX_PATH)){
          generic_strncat(szFile, TEXT(".rtf"), 5);
       }
+      _lastRtfFilename = szFile;
       doRichTextCopy(szFile);
    }
 }

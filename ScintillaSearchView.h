@@ -105,7 +105,7 @@ protected:
 
     int _oemCodepage;
     bool _bLineNumbersInResult = true;
-
+    generic_string _lastRtfFilename;
 
 };
 
