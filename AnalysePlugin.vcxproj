@@ -96,7 +96,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
       <Message>Version info...</Message>
-      <Command>"$(SVNDIR)\SubWCRev.exe" $(ProjectDir) versionInfo.tags .\versionInfo.inc</Command>
+      <Command>versionInfo.bat $(ProjectDir)</Command>
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
@@ -130,7 +130,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
       <Message>Version info...</Message>
-      <Command>"$(SVNDIR)\SubWCRev.exe" $(ProjectDir) versionInfo.tags .\versionInfo.inc</Command>
+      <Command>versionInfo.bat $(ProjectDir)</Command>
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
@@ -162,7 +162,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
       <Message>Version info...</Message>
-      <Command>"$(SVNDIR)\SubWCRev.exe" $(ProjectDir) versionInfo.tags .\versionInfo.inc</Command>
+      <Command>versionInfo.bat $(ProjectDir)</Command>
     </PreBuildEvent>
     <ClCompile>
       <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -194,7 +194,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PreBuildEvent>
       <Message>Version info...</Message>
-      <Command>"$(SVNDIR)\SubWCRev.exe" $(ProjectDir) versionInfo.tags .\versionInfo.inc</Command>
+      <Command>versionInfo.bat $(ProjectDir)</Command>
     </PreBuildEvent>
     <ClCompile>
       <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -307,7 +307,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="icons\text1.bin" />
+    <None Include="versionInfo.bat" />
     <None Include="versionInfo.tags" />
+    <None Include="versionInfo.dummy" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="icons\analyse.bmp" />
