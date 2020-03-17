@@ -231,10 +231,13 @@ void tclTableview::setTableColumns(const generic_string& str) {
 
 generic_string tclTableview::getTableColumns() const {
    generic_string res;
-   TCHAR tmp[10];
+   TCHAR tmp[20];
    for (int col = 0; col < TBLVIEW_COL_MAX; ++col) {
       tmp[0] = 0;
       int width = (int)(mhList?ListView_GetColumnWidth(mhList, col):gPatternConfTab[col].iColumnSize);
+      if (width > 90000) {
+         width = 90000;
+      }
       generic_itoa(width, tmp, 10);
       res += tmp;
       if (col < (TBLVIEW_COL_MAX-1)) {
@@ -261,8 +264,9 @@ void tclTableview::setTableColumnOrder(const generic_string& str) {
 
 generic_string tclTableview::getTableColumnOrder() const {
    generic_string res;
-   TCHAR tmp[10];
+   TCHAR tmp[20];
    int order[TBLVIEW_COL_MAX];
+   memset(order, 0, sizeof(int) * TBLVIEW_COL_MAX);
    ListView_GetColumnOrderArray(mhList, TBLVIEW_COL_MAX, order);
    bool valid = true;
    for (int col = 0; col < TBLVIEW_COL_MAX; ++col) {
