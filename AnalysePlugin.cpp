@@ -210,9 +210,11 @@ in case new path and old path are different and in new path ini is not there loa
       generic_strncpy(xmlFilePath2, configBase2, AP_MAX_PATH);
       PathAppend(xmlFilePath2, TEXT("\\AnalysePlugin.xml"));
    }
+   DBG1("loadSettings NPPM_GETPLUGINSCONFIGDIR iniFilePath2 '%s'", iniFilePath2);
    // old way of loading
    (NppParameters::getInstance()).load();
    bool isLocal = (NppParameters::getInstance()).isLocal();
+   DBG1("loadSettings isLocal %d", isLocal);
    if (isLocal) {
       generic_string nppConfigPath = (NppParameters::getInstance()).getNppPath();
       generic_strncpy(configBase, nppConfigPath.c_str(), AP_MAX_PATH);
@@ -225,12 +227,14 @@ in case new path and old path are different and in new path ini is not there loa
       SHGetPathFromIDList(pidl, configBase);
       PathAppend(configBase, TEXT("NotePad++\\plugins\\Config"));
    }
+   DBG1("loadSettings configBase '%s'", configBase);
    generic_strncpy(iniFilePath, configBase, AP_MAX_PATH);
    PathAppend(iniFilePath, TEXT("\\AnalysePlugin.ini"));
    generic_strncpy(xmlFilePath, configBase, AP_MAX_PATH);
    PathAppend(xmlFilePath, TEXT("\\AnalysePlugin.xml"));
+   DBG1("loadSettings before migration support iniFilePath %s", iniFilePath);
    // migration support
-   if (generic_strncmp(iniFilePath, iniFilePath2, AP_MAX_PATH) != 0) {
+   if (generic_strncmp(iniFilePath, iniFilePath2, AP_MAX_PATH) != 0 && generic_strlen(iniFilePath2) > 0) {
       if ((FileExists(iniFilePath)) && (!FileExists(iniFilePath2))) {
          // the paths are different, old file is there and in new place file is not there
          // use one time loading the data from old place
@@ -250,6 +254,7 @@ in case new path and old path are different and in new path ini is not there loa
       // we prefer the new path from API
       generic_strncpy(iniFilePath, iniFilePath2, AP_MAX_PATH);
    }
+   DBG1("loadSettings iniFilePath '%s'", iniFilePath);
 
    TCHAR tmp[MAX_CHAR_CELL];
    gbPluginVisible = (0 != ::GetPrivateProfileInt(SECTIONNAME, KEYNAME, 0, iniFilePath));
@@ -335,7 +340,7 @@ in case new path and old path are different and in new path ini is not there loa
 }
 
 void AnalysePlugin::saveSettings() {
-   DBG0("saveSettings()");
+   DBG1("saveSettings iniFilePath '%s'", iniFilePath);
    _findDlg.getSearchHistory(mSearchHistory);
    _findDlg.getCommentHistory(mCommentHistory);
    _findDlg.getGroupHistory(mGroupHistory);
