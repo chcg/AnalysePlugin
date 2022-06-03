@@ -5,7 +5,7 @@
 #include "../version.h"
 #define IDOK2                           3
 #define IDC_DO_CLOSE                    1001
-#define IDC_DO_SEARCH                   1002
+#define IDC_BUT_SEARCH                  1002
 #define IDC_FINDFIRST                   1003
 #define IDC_FINDNEXT                    1004
 #define IDC_LIST_CONF                   1005
@@ -29,7 +29,6 @@
 #define IDC_CMB_NUMOFCFGFILES           1023
 #define IDC_CMB_ONENTERACT              1024
 #define IDC_FINDPREV                    1025
-#define IDC_BTN_FINDPREV                1025
 #define IDC_CMB_SEARCH_DIR              1026
 #define IDC_STATIC                      1027
 #define IDC_CMB_FONTNAME                1028
@@ -60,11 +59,8 @@
 #define IDC_CHK_AUTOUPDT                1053
 #define IDC_CHK_USEBOOKMARK             1054
 #define IDC_CHK_DISPLINENO              1055
-#define IDC_PROGRESS_SEARCH             1056
 #define IDC_CHK_SYNCSCROLL              1056
 #define IDC_DO_CHECK_CONF               1057
-#define IDC_CHK_SYNCSCROLL2             1057
-#define IDC_CHK_JUMP2EDIT               1057
 #define IDC_DO_TOGGLE_SEARCH            1058
 #define IDC_DO_DISABLE_ALL              1059
 #define IDC_DO_ENABLE_ALL               1060
@@ -76,18 +72,34 @@
 #define IDC_STATIC18                    1066
 #define IDC_TITLE_TEXT                  1067
 #define IDC_CHK_RESWORDWRAP             1068
+#define IDC_BUT_ORDER                   1069
 #define IDC_CTXCFG_LOADX_0              1070
 // 1070 - 1100 is reserved for loading files
 #define IDC_CTXCFG_LOADX_E              1100
+#define IDC_CHK_JUMP2EDIT               1101
 #define IDC_BTN_ADDCONTEXT              1102
 #define IDC_EDT_COPYTEXT                1103
 #define IDT_ANALYSE_SCROLL_TIMER        1104
 #define IDC_BTN_CHANGES                 1106
 #define IDC_BTN_MANUAL                  1107
 #define IDC_CMB_GROUP                   1108
-#define IDC_DO_DISABLE_GROUP            1109
+#define IDC_ORDER_NUM                   1109
 #define IDC_DO_ENABLE_GROUP             1110
-#define IDI_ANALYSE                     1204
+#define IDC_DO_SAVCFG                   1111
+#define IDC_PROGRESS_SEARCH             1112
+#define IDC_DO_DISABLE_GROUP            1113
+#define IDC_CTXCFG_SORT_ORDER_ASC       1114
+#define IDC_CTXCFG_SORT_ORDER_DSC       1115
+#define IDC_CTXCFG_SORT_STEXT_ASC       1116
+#define IDC_CTXCFG_SORT_STEXT_DSC       1117
+#define IDC_CTXCFG_SORT_COMMENT_ASC     1118
+#define IDC_CTXCFG_SORT_COMMENT_DSC     1119
+#define IDC_CTXCFG_SORT_GROUP_ASC       1120
+#define IDC_CTXCFG_SORT_GROUP_DSC       1121
+#define IDC_CTXCFG_APPLY_ORDER_NUM      1122
+#define IDI_ANALYSE                     1203
+#define IDI_ANALYSE_NEW                 1204
+#define IDI_ANALYSE_NEW_DRK             1205
 #define IDB_TB_ANALYSE                  1206
 #define IDC_WRAP                        1606
 #define IDC_CHK_WRAP                    1606
@@ -128,7 +140,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        3018
 #define _APS_NEXT_COMMAND_VALUE         5004
-#define _APS_NEXT_CONTROL_VALUE         1109
+#define _APS_NEXT_CONTROL_VALUE         1123
 #define _APS_NEXT_SYMED_VALUE           6003
 #endif
 #endif

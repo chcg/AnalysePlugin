@@ -1,13 +1,13 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2012-2019 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 #include "PleaseWaitDlg.h"
 #include "resource.h"
@@ -30,9 +29,18 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 DWORD WINAPI AsyncPleaseWaitFunc(LPVOID phWnd) {
    ::Sleep(1000); // wait a bit before showing the popup 
-   MessageBox((HWND)NULL, 
-      TEXT("Finding patterns ...\nPress OK to cancel."), 
-      TEXT("Analyse Plugin"), MB_OK);
+   int nButtonPressed = 0;
+   TaskDialog(NULL, NULL,
+      TEXT("Analyse Plugin"),
+      TEXT("Finding patterns ..."),
+      TEXT("Press [cancel] to stopp search."),
+      TDCBF_CANCEL_BUTTON,
+      TD_INFORMATION_ICON,
+      &nButtonPressed);
+
+   //MessageBox((HWND)NULL, 
+   //   TEXT("Finding patterns ...\nPress OK to cancel."), 
+   //   TEXT("Analyse Plugin"), MB_OKCANCEL);
    ::PostMessage(*(HWND*)phWnd, APN_MSG_CANCEL_FIND, 0, 0);
    return 0;
 }
@@ -76,8 +84,8 @@ void PleaseWaitDlg::activate(bool isEnable) {
    ::ShowWindow(::GetDlgItem(_hSelf, IDC_BUT_MOVE_UP), isEnable?SW_HIDE:SW_SHOW);
    ::ShowWindow(::GetDlgItem(_hSelf, IDC_BUT_MOVE_DOWN), isEnable?SW_HIDE:SW_SHOW);
    ::ShowWindow(::GetDlgItem(_hSelf, IDC_BUT_CLEAR), isEnable?SW_HIDE:SW_SHOW);
-   ::ShowWindow(::GetDlgItem(_hSelf, IDC_DO_SEARCH), isEnable?SW_HIDE:SW_SHOW);
-
+   ::ShowWindow(::GetDlgItem(_hSelf, IDC_BUT_SEARCH), isEnable?SW_HIDE:SW_SHOW);
+   ::ShowWindow(::GetDlgItem(_hSelf, IDC_BUT_ORDER), isEnable ?SW_HIDE:SW_SHOW);
    ::ShowWindow(::GetDlgItem(_hSelf, IDC_STATIC_PLSWAIT), isEnable?SW_SHOW:SW_HIDE);
    ::UpdateWindow(::GetDlgItem(_hSelf, IDC_STATIC_PLSWAIT));
    ::ShowWindow(::GetDlgItem(_hSelf, IDC_PROGRESS_SEARCH), isEnable?SW_SHOW:SW_HIDE);

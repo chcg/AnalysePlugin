@@ -1,11 +1,11 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,8 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 //#include "stdafx.h"
 #include "FindConfigDoc.h"
@@ -45,6 +44,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define FNDDOC_COMMENT TEXT("comment")
 #define FNDDOC_GROUP TEXT("group")
 #define FNDDOC_HITS TEXT("hits")
+#define FNDDOC_ORDER_NUM TEXT("orderNum")
 
 FindConfigDoc::FindConfigDoc(const TCHAR * filename)
    : mDoc(0)
@@ -64,105 +64,129 @@ FindConfigDoc::~FindConfigDoc(void)
       mDoc = 0;
    }
 }
+
+bool FindConfigDoc::getError(generic_string& msg) const {
+   bool bRes = (mDoc && mDoc->Error() || 0 == mDoc);
+   if (bRes && mDoc) {
+      TCHAR row[10];
+      msg = mDoc->ErrorDesc();
+      msg += TEXT(" in line ");
+      msg += generic_itoa(mDoc->ErrorRow(), row, 10);
+      msg += TEXT(" ");
+   }
+   return bRes;
+}
+
 bool FindConfigDoc::readPatternList(tclPatternList& pl, bool bAppend, bool bLoadNew){
    bool bRes=false;
-   if(mDoc) {
+   if(mDoc && !mDoc->Error()) {
 
       TiXmlNode* node = mDoc->FirstChild(FNDDOC_ANALYSE_DOC);
-      if(node) {
+      if (node) {
          TiXmlNode* node2 = node->FirstChild(FNDDOC_HEADLINE);
-         if(node2) {
+         if (node2) {
             TiXmlElement* e3 = node2->ToElement();
             node2 = e3->FirstChild();
-            if(node2){
+            if (node2) {
 #ifdef FEATURE_HEADLINE
                mHeadline = node2->Value();
 #endif
             }
          }
          // continue with patterns
-         if(bAppend) {
+         if (bAppend) {
             node = node->FirstChild(FNDDOC_SEARCH_TEXT);
-         } else {
+         }
+         else {
             node = node->LastChild(FNDDOC_SEARCH_TEXT);
          }
-      }
-      if (bLoadNew) {
-         pl.clear(); 
-      }
-      bRes = true;
-      while(node) {
-         TiXmlElement* elem = node->ToElement();
-         const TCHAR* pc=0;
-         if(elem && elem->FirstChild()) {
-            tclPattern p;
-            generic_string text(elem->FirstChild()->Value());
-            p.setSearchText(text);
-            
-            pc = elem->Attribute(FNDDOC_DO_SEARCH);
-            if(pc!=0 && *pc !=0) {
-               p.setDoSearchStr(pc);
-            }
-            pc = elem->Attribute(FNDDOC_SEARCH_TYPE);
-            if(pc!=0 && *pc !=0) {
-               p.setSearchTypeStr(pc);
-            }
-            pc = elem->Attribute(FNDDOC_MATCHCASE);
-            if(pc!=0 && *pc!=0) {
-               p.setMatchCaseStr(pc);
-            }
-            pc = elem->Attribute(FNDDOC_WHOLEWORD);
-            if(pc!=0 && *pc!=0) {
-               p.setWholeWordStr(pc);
-            }
-            pc = elem->Attribute(FNDDOC_SELECT);
-            if(pc!=0 && *pc!=0) {
-               p.setSelectionTypeStr(pc);
-            }
-            pc = elem->Attribute(FNDDOC_HIDE);
-            if(pc!=0 && *pc!=0) {
-               p.setHideTextStr(pc);
-            }
-            pc = elem->Attribute(FNDDOC_BOLD);
-            if(pc!=0 && *pc!=0) {
-               p.setBoldStr(pc);
-            }
-            pc = elem->Attribute(FNDDOC_ITALIC);
-            if(pc!=0 && *pc!=0) {
-               p.setItalicStr(pc);
-            }
-            pc = elem->Attribute(FNDDOC_UNDERLINED);
-            if(pc!=0 && *pc!=0) {
-               p.setUnderlinedStr(pc);
-            }
-            pc = elem->Attribute(FNDDOC_COLOR);
-            if(pc!=0 && *pc!=0) {
-               p.setColorStr(pc);
-            }
-            pc = elem->Attribute(FNDDOC_BGCOLOR);
-            if(pc!=0 && *pc!=0) {
-               p.setBgColorStr(pc);
-            }
-            pc = elem->Attribute(FNDDOC_COMMENT);
-            if(pc!=0 && *pc!=0) {
-               p.setComment(pc);
-            }
-            pc = elem->Attribute(FNDDOC_GROUP);
-            if (pc != 0 && *pc != 0) {
-               p.setGroup(pc);
-            }
-            if(bAppend) {
-               pl.push_back(p);
-            } else {
-               pl.insert(pl.begin().getPatId(), p);
-            }
-         } // search string available
-         if (bAppend) {
-            node = elem->NextSibling(FNDDOC_SEARCH_TEXT);
-         } else {
-            node = elem->PreviousSibling(FNDDOC_SEARCH_TEXT);
+         bRes = true;
+         if (bLoadNew) {
+            pl.clear();
          }
-      } // while
+         while (node) {
+            TiXmlElement* elem = node->ToElement();
+            const TCHAR* pc = 0;
+            if (elem && elem->FirstChild()) {
+               tclPattern p;
+               generic_string text(elem->FirstChild()->Value());
+               p.setSearchText(text);
+               pc = elem->Attribute(FNDDOC_ORDER_NUM);
+               if (pc != 0 && *pc != 0) {
+                  p.setOrderNumStr(pc);
+               }
+               pc = elem->Attribute(FNDDOC_DO_SEARCH);
+               if (pc != 0 && *pc != 0) {
+                  p.setDoSearchStr(pc);
+               }
+               pc = elem->Attribute(FNDDOC_SEARCH_TYPE);
+               if (pc != 0 && *pc != 0) {
+                  p.setSearchTypeStr(pc);
+               }
+               pc = elem->Attribute(FNDDOC_MATCHCASE);
+               if (pc != 0 && *pc != 0) {
+                  p.setMatchCaseStr(pc);
+               }
+               pc = elem->Attribute(FNDDOC_WHOLEWORD);
+               if (pc != 0 && *pc != 0) {
+                  p.setWholeWordStr(pc);
+               }
+               pc = elem->Attribute(FNDDOC_SELECT);
+               if (pc != 0 && *pc != 0) {
+                  p.setSelectionTypeStr(pc);
+               }
+               pc = elem->Attribute(FNDDOC_HIDE);
+               if (pc != 0 && *pc != 0) {
+                  p.setHideTextStr(pc);
+               }
+               pc = elem->Attribute(FNDDOC_BOLD);
+               if (pc != 0 && *pc != 0) {
+                  p.setBoldStr(pc);
+               }
+               pc = elem->Attribute(FNDDOC_ITALIC);
+               if (pc != 0 && *pc != 0) {
+                  p.setItalicStr(pc);
+               }
+               pc = elem->Attribute(FNDDOC_UNDERLINED);
+               if (pc != 0 && *pc != 0) {
+                  p.setUnderlinedStr(pc);
+               }
+               pc = elem->Attribute(FNDDOC_COLOR);
+               if (pc != 0 && *pc != 0) {
+                  p.setColorStr(pc);
+               }
+               pc = elem->Attribute(FNDDOC_BGCOLOR);
+               if (pc != 0 && *pc != 0) {
+                  p.setBgColorStr(pc);
+               }
+               pc = elem->Attribute(FNDDOC_COMMENT);
+               if (pc != 0 && *pc != 0) {
+                  p.setComment(pc);
+               }
+               pc = elem->Attribute(FNDDOC_GROUP);
+               if (pc != 0 && *pc != 0) {
+                  p.setGroup(pc);
+               }
+               if (bAppend) {
+                  pl.push_back(p);
+               }
+               else {
+                  pl.insert(pl.begin().getPatId(), p);
+               }
+            } // search string available
+            if (elem) {
+               if (bAppend) {
+                  node = elem->NextSibling(FNDDOC_SEARCH_TEXT);
+               }
+               else {
+                  node = elem->PreviousSibling(FNDDOC_SEARCH_TEXT);
+               }
+            }
+         } // while
+      } // if FirstChild(FNDDOC_ANALYSE_DOC) 
+      else {
+         bRes = false;
+      }
    } // mDoc != 0
    return bRes;
 }
@@ -194,6 +218,9 @@ bool FindConfigDoc::writePatternList(tclPatternList& pl){
             TiXmlElement* e2 = n2->ToElement();
             e2->InsertEndChild(TiXmlText(rp.getSearchText().c_str()));
             // save attributes only if different from default value
+            if (rp.getOrderNumStr() != defP.getOrderNumStr()) {
+               e2->SetAttribute(FNDDOC_ORDER_NUM, rp.getOrderNumStr().c_str());
+            }
             if (rp.getDoSearch() != defP.getDoSearch()) {
                e2->SetAttribute(FNDDOC_DO_SEARCH, rp.getDoSearchStr().c_str());
             }

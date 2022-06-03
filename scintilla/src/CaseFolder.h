@@ -8,7 +8,7 @@
 #ifndef CASEFOLDER_H
 #define CASEFOLDER_H
 
-namespace Scintilla {
+namespace Scintilla::Internal {
 
 class CaseFolder {
 public:
@@ -20,10 +20,9 @@ class CaseFolderTable : public CaseFolder {
 protected:
 	char mapping[256];
 public:
-	CaseFolderTable();
-	~CaseFolderTable() override;
+	CaseFolderTable() noexcept;
 	size_t Fold(char *folded, size_t sizeFolded, const char *mixed, size_t lenMixed) override;
-	void SetTranslation(char ch, char chTranslation);
+	void SetTranslation(char ch, char chTranslation) noexcept;
 	void StandardASCII() noexcept;
 };
 

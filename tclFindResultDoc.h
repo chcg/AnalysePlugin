@@ -1,11 +1,11 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,8 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 
 #ifndef TCLFINDRESULTDOC_H
@@ -95,7 +94,7 @@ public:
    * insert the line into the result window if not already in.
    * @return the resultwindow line number; (-1 is error case and should never come)
    */
-   int insertPosInfo(tPatId patternId, tiLine foundLine, tclPosInfo pos); 
+   tiLine insertPosInfo(tPatId patternId, tiLine foundLine, tclPosInfo pos); 
 
    /** function creates an empty line if not available before */
    std::string& refLineText(tiLine foundLine); 
@@ -112,14 +111,14 @@ public:
 
    void clear(); 
 
-   int size() const; 
+   tiLine size() const;
 
    void erase(tiLine foundLine);
 
    void moveResult(tPatId oldPattId, tPatId newPattId);
 
    /** make sure function is not called with resultWinLine >= size() */
-   const tlpLinePosInfo& getLineAtRes(int resultWinLine) const; 
+   const tlpLinePosInfo& getLineAtRes(tiLine resultWinLine) const;
    
    /** function returns empty line (default CTOR) if not available before */
    const tclLinePosInfo& getLineAtMain(tiLine foundLine) const;
@@ -136,10 +135,10 @@ public:
    tclLinePosInfo& refLineAtMain(tiLine foundLine); 
 
 
-   int getLineNoAtRes(tiLine foundLine) const; 
+   tiLine getLineNoAtRes(tiLine foundLine) const; 
 
    /** make sure function is not called with resultWinLine >= size() */
-   tiLine getLineNoAtMain(int resultWinLine) const; 
+   tiLine getLineNoAtMain(tiLine resultWinLine) const;
 
 
 

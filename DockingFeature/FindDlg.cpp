@@ -1,13 +1,13 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 //#include "stdafx.h"
 #include "resource.h"
@@ -30,6 +29,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "MyPlugin.h"
 #include "menuCmdID.h"
 #include "tclPattern.h"
+#include "tclPatternList.h"
 #include "FindConfigDoc.h"
 #include "SciLexer.h"
 #include "chardefines.h"
@@ -55,20 +55,37 @@ void FindDlg::setConfigFileName(const generic_string str) {
       }
    }
    _lastConfigFiles.insert(_lastConfigFiles.begin(), str);
-   ::GetFileTitle(str.c_str(), _ConfigFileName, COUNTCHAR(_ConfigFileName));
+  
    while (_lastConfigFiles.size() > _maxConfigFiles) {
       _lastConfigFiles.pop_back();
    }
-   //_ConfigFileName[COUNTCHAR(_ConfigFileName)-1]=0;
+  
+}
+void FindDlg::setCaption(bool on) {
+   _bShowConfigFileCaption = on;
+   if (_bShowConfigFileCaption) {
+      ::GetFileTitle(_lastConfigFiles[0].c_str(), _ConfigFileName, COUNTCHAR(_ConfigFileName));
+      DBG2("setCaption() Title %s from file %s", _ConfigFileName, _lastConfigFiles[0].c_str());
+   }
+   else {
+      generic_strncpy(_ConfigFileName, TEXT(""), COUNTCHAR(_ConfigFileName));
+      DBG0("setCaption() disabling the title");
+   }
    ::SendMessage(_hParent, NPPM_DMMUPDATEDISPINFO, 0, (LPARAM)_hSelf);
 }
 
-bool FindDlg::loadConfigFile(const TCHAR* file, bool bAppend, bool bLoadNew) {
+bool FindDlg::loadConfigFile(const TCHAR* file, bool bAppend, bool bLoadNew, bool bShowMsg) {
    FindConfigDoc doc(file); 
+   generic_string msg;
+   if (doc.getError(msg) && bShowMsg) {
+      msg += TEXT(" while loading: ");
+      msg += file;
+      ::MessageBox(getHSelf(), msg.c_str(), TEXT("Analyse Plugin Loading Error"), MB_ICONERROR | MB_OK);
+   }
    if(doc.readPatternList(mResultList, bAppend, bLoadNew)) {
       refillTable(true);
       _pParent->updateSearchPatterns();
-      return true;
+       return true;
    }
    return false;
 }
@@ -148,12 +165,105 @@ void FindDlg::doSearch() {
    _pParent->doSearch(mResultList);
    mTableView.setHitsRowVisible(true, mResultList);
    // set the modification notification for this window if not already on
-   int mode = (int)_pParent->execute(scnActiveHandle,SCI_GETMODEVENTMASK);
+   int mode = (int)_pParent->execute(teNppWindows::scnActiveHandle,SCI_GETMODEVENTMASK);
    if ((mode & (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT)) != (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT)) {
       DBG1("FindDlg: editor notification mode was not ok: mode=%d add insert text and delete text", mode);
       mode |= (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT);
-      _pParent->execute(scnActiveHandle,SCI_SETMODEVENTMASK, mode);
+      _pParent->execute(teNppWindows::scnActiveHandle,SCI_SETMODEVENTMASK, mode);
    }
+}
+
+void FindDlg::handleDropped(HDROP hDropInfo) {
+   generic_string filename;
+   POINT p;
+   ::DragQueryPoint(hDropInfo, &p);
+   HWND hWin = ::ChildWindowFromPointEx(getHSelf(), p, CWP_SKIPINVISIBLE);
+   if (!hWin) {
+      return;
+   }
+   DBG2("FindDlg::handleDropped() drop position x:%d y:%d", p.x, p.y);
+   // get number of files
+   UINT num = DragQueryFile(hDropInfo, -1, NULL, 0);
+   for (UINT i = 0; i < num; i++) {
+      UINT len = DragQueryFile(hDropInfo, i, NULL, 0);
+      filename.reserve(len + 1);
+      filename.assign(TEXT(" "), len); // move end() to the right position
+      DragQueryFile(hDropInfo, i, &filename[0], (UINT)filename.capacity());
+      DBG2("FindDlg::handleDropped() dropped file %d: %s", i, filename.c_str());
+      if (0 == i) { // first file resets the list following get appended
+         if (loadConfigFile(filename.c_str(), true, true)) {
+            setConfigFileName(filename);
+            setCaption(true);
+         }
+      }
+      else {
+         if (loadConfigFile(filename.c_str(), true, false)) {
+            setCaption(false); // two files joined resetting the caption
+         }
+         // if first file was for Me the rest invalid files are ignored
+      }
+   }
+   DragFinish(hDropInfo);
+}
+
+void FindDlg::doApplyOrderNums() {
+   bool bHasOrderNum = false;
+   tclPatternList& pl = mResultList;
+   for (tclPatternList::const_iterator it = pl.begin(); it != pl.end(); ++it) {
+      if (it.getPattern().getOrderNumStr().length() > 0) {
+         bHasOrderNum = true;
+         break;
+      }
+   }
+   if (bHasOrderNum) {
+      generic_string msg = TEXT("Some Patterns have already an order number defined.\n\n");
+      msg += TEXT("Do you really want to overide all with sequential numbers?");
+      int res = ::MessageBox(getHSelf(), msg.c_str(), TEXT("Analyse Plugin Question"), MB_ICONWARNING | MB_YESNO);
+      if (IDYES != res) {
+         // escape
+         return;
+      }
+   }
+   int iNumLines = pl.size();
+   const TCHAR* format = 
+      (iNumLines < 10) ? TEXT("%d") :
+      (iNumLines < 100) ? TEXT("%02d") :
+      (iNumLines < 1000) ? TEXT("%03d") :
+      (iNumLines < 10000) ? TEXT("%04d") : TEXT("%05d");
+   int i = 1;
+   TCHAR number[10];
+   for (tclPatternList::iterator ip = pl.begin(); ip != pl.end(); ++ip, ++i) {
+      generic_sprintf(number, format, i);
+      ip.refPattern().setOrderNumStr(number);
+   }
+   refillTable();
+}
+
+void FindDlg::doSortPatternList(teKeyToSort eKey, bool bAscending) {
+   DBG2("doSortPatternList() teKeyOrder %d, asc=%d", eKey, bAscending);
+   // not required? setAllDirty();
+   switch (eKey) {
+   case teKeyToSort::eKeyComment:
+      mResultList.sort(class_func_decl(tclPattern::getComment), bAscending);
+      break;
+   case teKeyToSort::eKeyGroup:
+      mResultList.sort(class_func_decl(tclPattern::getGroup), bAscending);
+      break;
+   case teKeyToSort::eKeyOrder:
+      mResultList.sort(class_func_decl(tclPattern::getOrderNumStr), bAscending);
+      break;
+   case teKeyToSort::eKeySText:
+      mResultList.sort(class_func_decl(tclPattern::getSearchText), bAscending);
+      break;
+   };
+   refillTable();
+}
+void FindDlg::resetDialog() {
+   setDialogData(mDefPat);
+   ::SendDlgItemMessage(_hSelf, IDC_ORDER_NUM, WM_SETTEXT, 0, (LPARAM)mDefPat.getOrderNumStr().c_str());
+   mCmbSearchText.addText2Combo(mDefPat.getSearchText().c_str(), false);
+   mCmbComment.addText2Combo(mDefPat.getComment().c_str(), false);
+   mCmbGroup.addText2Combo(mDefPat.getGroup().c_str(), false);
 }
 
 INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) {
@@ -161,24 +271,14 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
    if(bDoTrace) {
       DBG3("FindDlg::run_dlgProc(0x%08x, 0x%08x, 0x%08x)", message, wParam, lParam);
    }
-   // TODO check if this need to be added here
-   if (message == WM_COMMAND) {
-      if (wParam == IDC_SHOW_ADDCTXDLG) {
-         int i = 0;
-      }
-   }
 
    switch (message)
    {
-   // testing for drag feature
-   case WM_DROPFILES:
-   {  
-      TCHAR buf[10000];
-      unsigned int buffsize = 0;
-      HDROP hDropInfo = (HDROP)wParam;
-      DragQueryFile(hDropInfo, 0, buf, buffsize);
-      break;
-   }
+    case WM_DROPFILES:
+      {  
+         handleDropped((HDROP)wParam);
+         return TRUE;
+      }
    case IDC_DO_CHECK_CONF: 
       {
          tclPattern* p = (tclPattern*)lParam;
@@ -201,6 +301,14 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
       {
          switch (wParam)
          {
+         case IDCANCEL:
+         {
+            DBG0("ESCAPE");
+            if (!doCopyLineToDialog()) {
+               resetDialog();
+            }
+            return TRUE;
+         }
          case IDC_DO_DISABLE_ALL:
             {
                setAllDoSearch(false);               
@@ -240,15 +348,15 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
                setAllDirty();
                doSearch();
                // finally set focus to editor window
-               ::SetFocus(_pParent->getCurrentHScintilla(scnActiveHandle));
+               ::SetFocus(_pParent->getCurrentHScintilla(teNppWindows::scnActiveHandle));
                return TRUE;
             }
-         case IDC_DO_SEARCH :
+         case IDC_BUT_SEARCH :
             {
-               DBG0("IDC_DO_SEARCH");
+               DBG0("IDC_BUT_SEARCH");
                doSearch();
                // finally set focus to editor window
-               ::SetFocus(_pParent->getCurrentHScintilla(scnActiveHandle));
+               ::SetFocus(_pParent->getCurrentHScintilla(teNppWindows::scnActiveHandle));
                return TRUE;
          }
          case IDC_BUT_LOAD:
@@ -283,12 +391,14 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
          case IDC_CTXCFG_LOADRESET:
             {
                _lastConfigFiles.clear();
+               setCaption(false);
                return TRUE;
             }
          case IDC_CTXCFG_LOADNEW:
             {
                if(doLoadConfigFile(true, true)) {
                   refillTable();
+                  setCaption(true);
                   _pParent->updateSearchPatterns();
                } 
                return TRUE;
@@ -297,6 +407,7 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
             {
                if(doLoadConfigFile(false, false)) {
                   refillTable();
+                  setCaption(false); // two files joined resetting the caption
                   _pParent->updateSearchPatterns();
                } 
                return TRUE;
@@ -305,6 +416,7 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
             {
                if(doLoadConfigFile(true, false)) {
                   refillTable();
+                  setCaption(false); // two files joined resetting the caption
                   _pParent->updateSearchPatterns();
                } 
                return TRUE;
@@ -312,6 +424,25 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
          case IDC_BUT_SAVE:
             {
                DBG0("IDC_BUT_SAVE");
+               if (mTableView.isHitsRowVisible()) {
+                  HWND hButton = ::GetDlgItem(_hSelf, IDC_BUT_SAVE);
+                  POINT pt = getTopPoint(hButton);
+                  ::ClientToScreen(_hSelf, &pt);
+                  ContextMenu contextmenu;
+                  std::vector<MenuItemUnit> tmp;
+                  tmp.push_back(MenuItemUnit(IDC_DO_SAVCFG, TEXT("Save Config...")));
+                  tmp.push_back(MenuItemUnit(IDC_DO_SAVCFG_HITS, TEXT("Save Config with Hits...")));
+                  contextmenu.create(_hSelf, tmp);
+                  contextmenu.display(pt);
+               }
+               else {
+                  _pParent->execute(_hSelf, WM_COMMAND, IDC_DO_SAVCFG);
+               }
+               return TRUE;
+            }
+         case IDC_DO_SAVCFG:
+            {
+               DBG0("IDC_DO_SAVCFG");
                doStoreConfigFile();
                return TRUE;
             }
@@ -328,7 +459,10 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
                mResultList.clear();
                mTableView.refillTable(mResultList);
                mTableView.setHitsRowVisible(false, mResultList);
-               setDialogData(getDefaultPattern());
+               mTableView.checkOrderNumRowVisibility(mResultList);
+               mTableView.checkGroupColVisibility(mResultList);
+               setCaption(false);
+               resetDialog();
                _pParent->updateSearchPatterns();
                return TRUE;
             }
@@ -458,6 +592,40 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
                }
                return TRUE;
             }
+         case IDC_BUT_ORDER:
+            {
+               HWND hButton = ::GetDlgItem(_hSelf, IDC_BUT_ORDER);
+               POINT pt = getTopPoint(hButton);
+               ::ClientToScreen(_hSelf, &pt);
+               ContextMenu contextmenu;
+               std::vector<MenuItemUnit> tmp;
+               tmp.push_back(MenuItemUnit(IDC_CTXCFG_SORT_ORDER_ASC, TEXT("Sort order# asc")));
+               tmp.push_back(MenuItemUnit(IDC_CTXCFG_SORT_ORDER_DSC, TEXT("Sort order# desc")));
+               tmp.push_back(MenuItemUnit(IDC_CTXCFG_SORT_GROUP_ASC, TEXT("Sort group asc")));
+               tmp.push_back(MenuItemUnit(IDC_CTXCFG_SORT_GROUP_DSC, TEXT("Sort group desc")));
+               tmp.push_back(MenuItemUnit(IDC_CTXCFG_SORT_STEXT_ASC, TEXT("Sort search text asc")));
+               tmp.push_back(MenuItemUnit(IDC_CTXCFG_SORT_STEXT_DSC, TEXT("Sort search text desc")));
+               tmp.push_back(MenuItemUnit(IDC_CTXCFG_SORT_COMMENT_ASC, TEXT("Sort comment asc")));
+               tmp.push_back(MenuItemUnit(IDC_CTXCFG_SORT_COMMENT_DSC, TEXT("Sort comment desc")));
+               tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
+               tmp.push_back(MenuItemUnit(IDC_CTXCFG_APPLY_ORDER_NUM, TEXT("Apply order# to list")));
+               contextmenu.create(_hSelf, tmp);
+               contextmenu.display(pt);
+               return TRUE;
+            }
+         case IDC_CTXCFG_SORT_ORDER_ASC: doSortPatternList(teKeyToSort::eKeyOrder, true); return TRUE;
+         case IDC_CTXCFG_SORT_ORDER_DSC: doSortPatternList(teKeyToSort::eKeyOrder, false); return TRUE;
+         case IDC_CTXCFG_SORT_STEXT_ASC: doSortPatternList(teKeyToSort::eKeySText, true); return TRUE;
+         case IDC_CTXCFG_SORT_STEXT_DSC: doSortPatternList(teKeyToSort::eKeySText, false); return TRUE;
+         case IDC_CTXCFG_SORT_COMMENT_ASC: doSortPatternList(teKeyToSort::eKeyComment, true); return TRUE;
+         case IDC_CTXCFG_SORT_COMMENT_DSC: doSortPatternList(teKeyToSort::eKeyComment, false); return TRUE;
+         case IDC_CTXCFG_SORT_GROUP_ASC: doSortPatternList(teKeyToSort::eKeyGroup, true); return TRUE;
+         case IDC_CTXCFG_SORT_GROUP_DSC: doSortPatternList(teKeyToSort::eKeyGroup, false); return TRUE;
+         case IDC_CTXCFG_APPLY_ORDER_NUM:
+         {
+            doApplyOrderNums();
+            return TRUE;
+         }
          case IDC_SHOW_OPTIONS:
             {
                _pParent->showConfigDlg();
@@ -475,7 +643,8 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
                   WPARAM i = wParam - IDC_CTXCFG_LOADX_0;
                   if (i < _lastConfigFiles.size()) {
                      setConfigFileName(_lastConfigFiles[i]); // will by this remove this instance and add it at pos 0
-                     loadConfigFile(_lastConfigFiles[0].c_str()); // so we take it from there
+                     bool ret = loadConfigFile(_lastConfigFiles[0].c_str()); // so we take it from there
+                     setCaption(ret);
                   }
                   return TRUE;
                }
@@ -555,6 +724,7 @@ INT_PTR CALLBACK FindDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam
    case WM_NOTIFY:
       {
          return notify((SCNotification *)lParam);
+            // call to ancestor intentionally not called here: DockingDlgInterface::run_dlgProc(message, wParam, lParam);
       }
    case WM_SHOWWINDOW:
       {
@@ -597,6 +767,8 @@ void FindDlg::refillTable(bool initial) {
    _pParent->clearResult(initial);
    mTableView.refillTable(mResultList);
    mTableView.setHitsRowVisible(false, mResultList);
+   mTableView.checkOrderNumRowVisibility(mResultList);
+   mTableView.checkGroupColVisibility(mResultList);
    mTableView.setSelectedRow(0);
    // update view to table
    doCopyLineToDialog();
@@ -627,7 +799,9 @@ bool FindDlg::doLoadConfigFile(bool bAppend, bool bLoadNew) {
    {   
       // happens because of pointer in ofn      strncpy(szFile, ofn.lpstrFile, MAX_PATH);
        setConfigFileName(ofn.lpstrFile);
-      return loadConfigFile(ofn.lpstrFile, bAppend, bLoadNew);
+       bool ret = loadConfigFile(ofn.lpstrFile, bAppend, bLoadNew, true);
+       setCaption(ret);
+       return ret;
    }
    return false;
 }
@@ -670,7 +844,9 @@ bool FindDlg::doStoreConfigFile(bool bWithHits){
          }
       }
       setConfigFileName(ofn.lpstrFile);
-      return saveConfigFile(ofn.lpstrFile, bWithHits);
+      bool ret = saveConfigFile(ofn.lpstrFile, bWithHits);
+      setCaption(ret);
+      return ret;
    }
    return false;
 }
@@ -678,10 +854,9 @@ bool FindDlg::doStoreConfigFile(bool bWithHits){
 BOOL FindDlg::notify(SCNotification *notification) {
    BOOL ret = 0; // true if message processed
    if(notification == 0) return ret;
-
-   switch (notification->nmhdr.code) 
-   {
-   // testing for drag feature
+   
+   switch (notification->nmhdr.code) {
+      // testing for drag feature
    case TVN_BEGINDRAG:
    case LVN_BEGINDRAG:
    {
@@ -696,144 +871,189 @@ BOOL FindDlg::notify(SCNotification *notification) {
       break;
    }
    case NM_RCLICK:
-      {
-         LPNMITEMACTIVATE pItem = (LPNMITEMACTIVATE) notification;
-         DBG2("NM_RCLICK row %d wparam %d", pItem->iItem, notification->wParam);
-         HWND msgHeader = (HWND)notification->nmhdr.hwndFrom;
-         HWND tableHeader = ListView_GetHeader(mTableView.getListViewHandle());
-         if (msgHeader == tableHeader) {
-            // we are in list header
-            DBG0("We are inside the header!");
-            ret = false; // we want rclick to still continue with selection
-            break;
-         }
-         POINT pt = pItem->ptAction;
-         if (pt.x < 0) pt.x = 0;
-         if (pt.y < 0) pt.y = 0;
-         ::ClientToScreen(mTableView.getListViewHandle(), &pt); // 
-         DBG2("NM_RCLICK: context menu position x:%d, y:%d", pt.x, pt.x);
-         ContextMenu contextmenu;
-         std::vector<MenuItemUnit> tmp;
-         if(pItem->iItem >= 0) {
-            tmp.push_back(MenuItemUnit(IDC_DO_TOGGLE_SEARCH, TEXT("Toggle this")));
-            tmp.push_back(MenuItemUnit(IDC_BUT_DEL, TEXT("Delete this")));
-            tmp.push_back(MenuItemUnit(IDC_BUT_MOVE_UP, TEXT("Move this up")));
-            tmp.push_back(MenuItemUnit(IDC_BUT_MOVE_DOWN, TEXT("Move this down")));
-            doCopyLineToDialog();
-         }
-         tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
-         tmp.push_back(MenuItemUnit(IDC_DO_ENABLE_ALL, TEXT("Enable All")));
-         tmp.push_back(MenuItemUnit(IDC_DO_DISABLE_ALL, TEXT("Disable All")));
-         tmp.push_back(MenuItemUnit(IDC_BUT_CLEAR, TEXT("Clear All")));
-         if ((pItem->iItem >= 0) && (mTableView.getGroupStr() != generic_string(TEXT("")))) {
-            tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
-            tmp.push_back(MenuItemUnit(IDC_DO_ENABLE_GROUP, TEXT("Enable This Group")));
-            tmp.push_back(MenuItemUnit(IDC_DO_DISABLE_GROUP, TEXT("Disable This Group")));
-         }
-         tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
-         tmp.push_back(MenuItemUnit(IDC_SHOW_OPTIONS, TEXT("Options...")));
-         if (mTableView.isHitsRowVisible()) {
-            tmp.push_back(MenuItemUnit(IDC_DO_SAVCFG_HITS, TEXT("Save Config with Hits...")));
-         }
-         tmp.push_back(MenuItemUnit(IDC_RESET_TABLE_COLS, TEXT("Reset column layout")));
-         contextmenu.create(_hSelf, tmp);
-         contextmenu.display(pt);
+   {
+      LPNMITEMACTIVATE pItem = (LPNMITEMACTIVATE)notification;
+      DBG2("NM_RCLICK row %d wparam %d", pItem->iItem, notification->wParam);
+      HWND msgHeader = (HWND)notification->nmhdr.hwndFrom;
+      HWND tableHeader = ListView_GetHeader(mTableView.getListViewHandle());
+      if (msgHeader == tableHeader) {
+         // we are in list header
+         DBG0("We are inside the header!");
          ret = false; // we want rclick to still continue with selection
          break;
       }
+      POINT pt = pItem->ptAction;
+      if (pt.x < 0) pt.x = 0;
+      if (pt.y < 0) pt.y = 0;
+      ::ClientToScreen(mTableView.getListViewHandle(), &pt); // 
+      DBG2("NM_RCLICK: context menu position x:%d, y:%d", pt.x, pt.x);
+      ContextMenu contextmenu;
+      std::vector<MenuItemUnit> tmp;
+      if (pItem->iItem >= 0) {
+         tmp.push_back(MenuItemUnit(IDC_DO_TOGGLE_SEARCH, TEXT("Toggle this")));
+         tmp.push_back(MenuItemUnit(IDC_BUT_DEL, TEXT("Delete this")));
+         tmp.push_back(MenuItemUnit(IDC_BUT_MOVE_UP, TEXT("Move this up")));
+         tmp.push_back(MenuItemUnit(IDC_BUT_MOVE_DOWN, TEXT("Move this down")));
+         doCopyLineToDialog();
+      }
+      tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
+      tmp.push_back(MenuItemUnit(IDC_DO_ENABLE_ALL, TEXT("Enable All")));
+      tmp.push_back(MenuItemUnit(IDC_DO_DISABLE_ALL, TEXT("Disable All")));
+      tmp.push_back(MenuItemUnit(IDC_BUT_CLEAR, TEXT("Clear All")));
+      if ((pItem->iItem >= 0) && (mTableView.getGroupStr() != generic_string(TEXT("")))) {
+         tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
+         tmp.push_back(MenuItemUnit(IDC_DO_ENABLE_GROUP, TEXT("Enable This Group")));
+         tmp.push_back(MenuItemUnit(IDC_DO_DISABLE_GROUP, TEXT("Disable This Group")));
+      }
+      tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
+      tmp.push_back(MenuItemUnit(IDC_SHOW_OPTIONS, TEXT("Options...")));
+      tmp.push_back(MenuItemUnit(IDC_DO_SAVCFG, TEXT("Save Config...")));
+      if (mTableView.isHitsRowVisible()) {
+         tmp.push_back(MenuItemUnit(IDC_DO_SAVCFG_HITS, TEXT("Save Config with Hits...")));
+      }
+      tmp.push_back(MenuItemUnit(IDC_RESET_TABLE_COLS, TEXT("Reset column layout")));
+      contextmenu.create(_hSelf, tmp);
+      contextmenu.display(pt);
+      ret = false; // we want rclick to still continue with selection
+      break;
+   }
    case NM_CLICK:
-      {
-         LPNMITEMACTIVATE pItem = (LPNMITEMACTIVATE) notification;
-         DBG1("NM_CLICK row %d", pItem->iItem);
-         if (pItem->iItem != -1) {
-            doCopyLineToDialog(); 
-            ret = true;
-         }
-         break;
-      }
-   case NM_DBLCLK:
-      {
-         doToggleToSearch();
+   {
+      LPNMITEMACTIVATE pItem = (LPNMITEMACTIVATE)notification;
+      DBG1("NM_CLICK row %d", pItem->iItem);
+      if (pItem->iItem != -1) {
+         doCopyLineToDialog();
          ret = true;
-         break;
       }
-      //case LVN_ITEMACTIVATE:
-      //   {
-      //      DBG0("LVN_ITEMACTIVATE");
-      //      // listview item double clicked.
-      //      // copy line to dialog
-      //      doCopyLineToDialog(); 
-      //      ret = true;
-      //      break;
-      //   }
-   //case LVN_ITEMCHANGING:
+      break;
+   }
+   case NM_DBLCLK:
+   {
+      doToggleToSearch();
+      ret = true;
+      break;
+   }
+   //case LVN_ITEMACTIVATE:
    //   {
-   //      LPNMLISTVIEW pnmv = (LPNMLISTVIEW) notification;
-   //      DBG2("LVN_ITEMCHANGING item %d subitem %d", pnmv->iItem, pnmv->iSubItem);  
+   //      DBG0("LVN_ITEMACTIVATE");
+   //      // listview item double clicked.
+   //      // copy line to dialog
+   //      doCopyLineToDialog(); 
+   //      ret = true;
    //      break;
    //   }
+//case LVN_ITEMCHANGING:
+//   {
+//      LPNMLISTVIEW pnmv = (LPNMLISTVIEW) notification;
+//      DBG2("LVN_ITEMCHANGING item %d subitem %d", pnmv->iItem, pnmv->iSubItem);  
+//      break;
+//   }
    case NM_CUSTOMDRAW:
-      {// NMCUSTOMDRAW 
-         LPNMLVCUSTOMDRAW pItem = (LPNMLVCUSTOMDRAW) notification;
-         if( notification->nmhdr.hwndFrom == mTableView.getListViewHandle()) {
-            //|| pItem->nmcd.hdr.hwndFrom == g_hList) {
-               //DBG1("NM_CUSTOMDRAW Table reached %s",((pItem->nmcd.hdr.hwndFrom == g_hList)?"Test":"List"));
-            const char* cp;
-            const char* cp1;
+   {// NMCUSTOMDRAW 
+      LPNMLVCUSTOMDRAW pItem = (LPNMLVCUSTOMDRAW)notification;
+      if (notification->nmhdr.hwndFrom == mTableView.getListViewHandle()) {
+         //|| pItem->nmcd.hdr.hwndFrom == g_hList) {
+            //DBG1("NM_CUSTOMDRAW Table reached %s",((pItem->nmcd.hdr.hwndFrom == g_hList)?"Test":"List"));
+         const char* cp;
+         const char* cp1;
 
-            switch(pItem->nmcd.uItemState) {
-               case CDIS_CHECKED:cp="CDIS_CHECKED";break;
-               case CDIS_DEFAULT:cp="CDIS_DEFAULT";break;
-               case CDIS_DISABLED:cp="CDIS_DISABLED";break;
-               case CDIS_FOCUS:cp="CDIS_FOCUS";break;
-               case CDIS_GRAYED:cp="CDIS_GRAYED";break;
-               case CDIS_HOT:cp="CDIS_HOT";break;
-               case CDIS_INDETERMINATE:cp="CDIS_INDETERMINATE";break;
-               case CDIS_MARKED:cp="CDIS_MARKED";break;
-               case CDIS_SELECTED:cp="CDIS_SELECTED";break;
-               //case CDIS_SHOWKEYBOARDCUES:cp="CDIS_SHOWKEYBOARDCUES";break;
-               default:cp="default";break;
-            };
+         switch (pItem->nmcd.uItemState) {
+         case CDIS_CHECKED:cp = "CDIS_CHECKED"; break;
+         case CDIS_DEFAULT:cp = "CDIS_DEFAULT"; break;
+         case CDIS_DISABLED:cp = "CDIS_DISABLED"; break;
+         case CDIS_FOCUS:cp = "CDIS_FOCUS"; break;
+         case CDIS_GRAYED:cp = "CDIS_GRAYED"; break;
+         case CDIS_HOT:cp = "CDIS_HOT"; break;
+         case CDIS_INDETERMINATE:cp = "CDIS_INDETERMINATE"; break;
+         case CDIS_MARKED:cp = "CDIS_MARKED"; break;
+         case CDIS_SELECTED:cp = "CDIS_SELECTED"; break;
+            //case CDIS_SHOWKEYBOARDCUES:cp="CDIS_SHOWKEYBOARDCUES";break;
+         default:cp = "default"; break;
+         };
 
-            switch(pItem->nmcd.dwDrawStage) {
-               case CDDS_PREPAINT  :cp1="CDDS_PREPAINT  "; 
-                  ret = (CDRF_NOTIFYITEMDRAW); 
-                  break;
-               case CDDS_POSTPAINT :cp1="CDDS_POSTPAINT "; break;
-               case CDDS_PREERASE  :cp1="CDDS_PREERASE  "; break;
-               case CDDS_POSTERASE :cp1="CDDS_POSTERASE "; break;
-               case CDDS_ITEMPREPAINT :cp1="CDDS_ITEMPREPAINT ";
-               {
-                  //SelectObject(pItem->nmcd.hdc,
-                  //             GetFontForItem(pItem->nmcd.dwItemSpec,
-                  //                            pItem->nmcd.lItemlParam) );
-                  //pItem->clrText = GetColorForItem(pItem->nmcd.dwItemSpec,
-                  //                                 pItem->nmcd.lItemlParam);
-                  //DBG3("CDDS_ITEMPREPAINT clrText (%x,%x,%x)", GetRValue(pItem->clrText),
-                  //   GetGValue(pItem->clrText), GetBValue(pItem->clrText));
-                  //pItem->clrTextBk = GetBkColorForItem(pItem->nmcd.dwItemSpec,
-                  //                                     pItem->nmcd.lItemlParam);
-                  int iPattern = (int)pItem->nmcd.dwItemSpec;
-                  const tclPattern& pat = mResultList.getPattern(mResultList.getPatternId(iPattern));
-                  pItem->clrText = pat.getColorNum();  
-                  pItem->clrTextBk = pat.getBgColorNum();
-                  ret = CDRF_NEWFONT; 
-                  break; 
-               }
-               case CDDS_ITEMPOSTPAINT:cp1="CDDS_ITEMPOSTPAINT"; break;
-               case CDDS_ITEMPREERASE :cp1="CDDS_ITEMPREERASE "; break;
-               case CDDS_ITEMPOSTERASE:cp1="CDDS_ITEMPOSTERASE"; break;
-               default:cp1="default"; break; 
-            };
-            DBGA3("NM_CUSTOMDRAW for item %d : %s | %s", (int)pItem->nmcd.dwItemSpec, cp1, cp);
-         } else { // if handle correct
-            //DBG0("NM_CUSTOMDRAW for different element");
+         switch (pItem->nmcd.dwDrawStage) {
+         case CDDS_PREPAINT:cp1 = "CDDS_PREPAINT  ";
+            ret = (CDRF_NOTIFYITEMDRAW);
+            if (::GetFocus() == mTableView.getListViewHandle()) {
+               DBG0("GetFocus 1 -> doCopyLineToDialog()");
+               doCopyLineToDialog();
+            }
+            break;
+         case CDDS_POSTPAINT:cp1 = "CDDS_POSTPAINT "; break;
+         case CDDS_PREERASE:cp1 = "CDDS_PREERASE  "; break;
+         case CDDS_POSTERASE:cp1 = "CDDS_POSTERASE "; break;
+         case CDDS_ITEMPREPAINT:cp1 = "CDDS_ITEMPREPAINT ";
+         {
+            //SelectObject(pItem->nmcd.hdc,
+            //             GetFontForItem(pItem->nmcd.dwItemSpec,
+            //                            pItem->nmcd.lItemlParam) );
+            //pItem->clrText = GetColorForItem(pItem->nmcd.dwItemSpec,
+            //                                 pItem->nmcd.lItemlParam);
+            //DBG3("CDDS_ITEMPREPAINT clrText (%x,%x,%x)", GetRValue(pItem->clrText),
+            //   GetGValue(pItem->clrText), GetBValue(pItem->clrText));
+            //pItem->clrTextBk = GetBkColorForItem(pItem->nmcd.dwItemSpec,
+            //                                     pItem->nmcd.lItemlParam);
+            int iPattern = (int)pItem->nmcd.dwItemSpec;
+            const tclPattern& pat = mResultList.getPattern(mResultList.getPatternId(iPattern));
+            pItem->clrText = pat.getColorNum();
+            pItem->clrTextBk = pat.getBgColorNum();
+            ret = CDRF_NEWFONT;
+            break;
          }
-         //CDRF_NOTIFYITEMDRAW; // CDRF_DODEFAULT;
-         break;
-      } // case NM_CUSTOMDRAW
-   default :
+         case CDDS_ITEMPOSTPAINT:cp1 = "CDDS_ITEMPOSTPAINT"; break;
+         case CDDS_ITEMPREERASE:cp1 = "CDDS_ITEMPREERASE "; break;
+         case CDDS_ITEMPOSTERASE:cp1 = "CDDS_ITEMPOSTERASE"; break;
+         default:cp1 = "default"; break;
+         };
+         DBGA3("NM_CUSTOMDRAW for item %d : %s | %s", (int)pItem->nmcd.dwItemSpec, cp1, cp);
+      }
+      else { // if handle correct
+      //DBG0("NM_CUSTOMDRAW for different element");
+      }
+      //CDRF_NOTIFYITEMDRAW; // CDRF_DODEFAULT;
       break;
+   } // case NM_CUSTOMDRAW
+   default:
+      // some messages contain data in highword which need to be masked first to find them
+      switch(LOWORD(notification->nmhdr.code)) {
+      case DMN_SWITCHOFF:
+         {
+            DragAcceptFiles(getHSelf(), FALSE);
+            break;
+         }
+      case DMN_CLOSE:
+         {
+            DragAcceptFiles(getHSelf(), FALSE);
+            break;
+         }
+      case DMN_FLOAT:
+         {
+            _isFloating = true;
+            //not required DragAcceptFiles(getHSelf(), TRUE);
+            break;
+         }
+      case DMN_DOCK:
+         {
+            _iDockedPos = HIWORD(notification->nmhdr.code);
+            _isFloating = false;
+            //DragAcceptFiles(getHSelf(), TRUE);
+            break;
+         }
+      // too often
+      // case DMN_FLOATDROPPED:
+      //   {
+      //      DragAcceptFiles(getHSelf(), TRUE);
+      //      break;
+      //   }
+      case DMN_SWITCHIN:
+         {
+            DragAcceptFiles(getHSelf(), TRUE);
+            break;
+         }
+      default:
+         break;
+      };
+   break;
    } // switch
 #ifdef _DEBUG_OFF
    const char* code;
@@ -999,7 +1219,7 @@ void FindDlg::setDefaultOptions(const TCHAR* options, int charSize) {
             mDefPat.setSelectionTypeStr(szToken); break;
          case 7:
             mDefPat.setBgColorStr(szToken); break;
-         default:;
+         default:break;
       };
       szToken = generic_strtok(NULL, TEXT(",")); // next token
       ++num;
@@ -1038,8 +1258,9 @@ void FindDlg::doToggleToSearch() {
    }
 }
 
-void FindDlg::doCopyLineToDialog() {
+bool FindDlg::doCopyLineToDialog() {
    if(mTableView.getSelectedRow()>=0) {
+
       bool bDoSearch = (mTableView.getDoSearchStr() == TEXT("X"));
       bool bHide = (mTableView.getHideStr() == TEXT("X"));
       bool bWord = (mTableView.getWholeWordStr() == TEXT("X"));
@@ -1050,6 +1271,7 @@ void FindDlg::doCopyLineToDialog() {
       ::SendDlgItemMessage(_hSelf, IDC_CHK_HIDE, BM_SETCHECK, bHide?BST_CHECKED:BST_UNCHECKED, 0);
       mCmbSearchText.addText2Combo(mTableView.getSearchTextStr().c_str(), false, true, false);
       mCmbComment.addText2Combo(mTableView.getCommentStr().c_str(), false, true, false);
+      ::SendDlgItemMessage(_hSelf, IDC_ORDER_NUM, WM_SETTEXT, 0, (LPARAM)mTableView.getOrderNumStr().c_str());
       mCmbGroup.addText2Combo(mTableView.getGroupStr().c_str(), false, true, false);
       mCmbSearchType.addText2Combo(mTableView.getSearchTypeStr().c_str(), false, true, false);
       mCmbSelType.addText2Combo(mTableView.getSelectStr().c_str(), false, true, false);
@@ -1067,6 +1289,10 @@ void FindDlg::doCopyLineToDialog() {
       _pBgColour->setColour(tclPattern::convColorStr2Rgb(mTableView.getBgColorStr()));
       _pBgColour->redraw();
 #endif
+      return true;
+   }
+   else {
+      return false;
    }
 }
 
@@ -1074,6 +1300,9 @@ void FindDlg::doCopyDialogToLine() {
    if(mTableView.getSelectedRow()>=0) {
       tclPattern p(mDefPat);
       // we expect that the line to be updated is already selected...
+      TCHAR o[MAX_ORDER_NUM_CHARS + 1] = { 0 };
+      ::SendDlgItemMessage(_hSelf, IDC_ORDER_NUM, WM_GETTEXT, MAX_ORDER_NUM_CHARS, (LPARAM)o);
+      p.setOrderNumStr(generic_string(o));
       p.setDoSearch(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_DO_SEARCH, BM_GETCHECK, 0, 0));
       p.setWholeWord(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_GETCHECK, 0, 0));
       p.setMatchCase(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_GETCHECK, 0, 0));
@@ -1095,6 +1324,9 @@ void FindDlg::doCopyDialogToLine() {
 #endif
       mTableView.setRowItems(p);
       mResultList.setPattern(mResultList.getPatternId(mTableView.getSelectedRow()), p);
+      mTableView.setOrderNumRowDefaultWidth(mResultList);
+      mTableView.checkOrderNumRowVisibility(mResultList);
+      mTableView.checkGroupColVisibility(mResultList);
       // inform parent to let other know the status
       _pParent->updateSearchPatterns();
       // insert text to text history
@@ -1111,7 +1343,9 @@ bool FindDlg::isSearchTextEqual() {
 bool FindDlg::isPatternEqual() {
    if(mTableView.getSelectedRow()>=0) {
       tclPattern p(mDefPat);
-
+      TCHAR o[MAX_ORDER_NUM_CHARS + 1] = { 0 };
+      ::SendDlgItemMessage(_hSelf, IDC_ORDER_NUM, WM_GETTEXT, MAX_ORDER_NUM_CHARS, (LPARAM)o);
+      p.setOrderNumStr(generic_string(o));
       p.setDoSearch(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_DO_SEARCH, BM_GETCHECK, 0, 0));
       p.setWholeWord(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_WHOLE_WORD, BM_GETCHECK, 0, 0));
       p.setMatchCase(BST_CHECKED==::SendDlgItemMessage(_hSelf, IDC_CHK_MATCH_CASE, BM_GETCHECK, 0, 0));
@@ -1133,6 +1367,7 @@ bool FindDlg::isPatternEqual() {
 #endif
 
       bool b = true;
+      b &= (p.getOrderNumStr() == mTableView.getOrderNumStr());
       b &= (p.getDoSearch() == (mTableView.getDoSearchStr() == TEXT("X")));
       b &= (p.getIsHideText() == (mTableView.getHideStr() == TEXT("X")));
       b &= (p.getIsWholeWord() == (mTableView.getWholeWordStr() == TEXT("X")));
@@ -1220,14 +1455,16 @@ void FindDlg::create(tTbData * data, bool isRTL){
    setDialogData(mDefPat);
 
    _pPlsWait = new PleaseWaitDlg(_hSelf);
-   // testing for drag feature
-   DragAcceptFiles(_hSelf, TRUE);
 }
 
 void FindDlg::setDialogData(const tclPattern& p) {
    // fill combos
-   mCmbSearchType.addInitialText2Combo(p.getDefSearchTypeListSize(), p.getDefSearchTypeList(), false);
-   mCmbSelType.addInitialText2Combo(p.getDefSelTypeListSize(), p.getDefSelTypeList(), false);
+   if (!mCmbSearchType.size()) {
+      mCmbSearchType.addInitialText2Combo(p.getDefSearchTypeListSize(), p.getDefSearchTypeList(), false);
+   }
+   if (!mCmbSelType.size()) {
+      mCmbSelType.addInitialText2Combo(p.getDefSelTypeListSize(), p.getDefSelTypeList(), false);
+   }
 #ifdef RESULT_COLORING
 //   mCmbColor.addInitialText2Combo(p.getDefColorListSize(), p.getDefColorList(), false);
 #endif

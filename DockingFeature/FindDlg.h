@@ -1,13 +1,13 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 #ifndef FIND_DLG_H
 #define FIND_DLG_H
@@ -49,6 +48,13 @@ class tclPattern;
 //const int MARK_HIDELINESEND = 3;
 
 #define MAX_CHAR_HISTORY 2000
+
+enum class teKeyToSort {
+   eKeyOrder,
+   eKeySText,
+   eKeyComment,
+   eKeyGroup
+};
 
 #if 0
 struct TargetRange {
@@ -139,6 +145,7 @@ public :
    void init(HINSTANCE hInst, NppData nppData);
 
    void create(tTbData * data, bool isRTL = false);
+   void destroy() {}
 
    void setDialogData(const tclPattern& p);
 
@@ -162,8 +169,9 @@ public :
 
    void setFileName(const generic_string& str);
    void setConfigFileName(const generic_string str); // intentionally a copy parameter
-
-   bool loadConfigFile(const TCHAR* file, bool bAppend=true, bool bLoadNew=true);
+   
+   void setCaption(bool on);
+   bool loadConfigFile(const TCHAR* file, bool bAppend=true, bool bLoadNew=true, bool bShowMsg=true);
    bool saveConfigFile(const TCHAR* file, bool bWithHits=false);
 
    void setNumOfCfgFiles(unsigned u);
@@ -172,6 +180,7 @@ public :
    void setSelectedPattern(int index);
 
    void doSearch();
+   void handleDropped(HDROP hDropInfo);
 
    const generic_string& getFileName() const{
       return _FileName;
@@ -183,6 +192,11 @@ public :
    const tclPattern& getDefaultPattern() const {
       return mDefPat;
    }
+
+   void doApplyOrderNums();
+   void doSortPatternList(teKeyToSort eKey, bool bAscending = true);
+   void resetDialog();
+
    /**
    * callback function for receiving messages
    */
@@ -227,7 +241,7 @@ public :
    //void getDefaultOptions(std::wstring& str) ;
    void doToggleToSearch();
    /** called when the user double clicks a tabel row */
-   void doCopyLineToDialog();
+   bool doCopyLineToDialog();
    /** and back */
    void doCopyDialogToLine();
    bool isSearchTextEqual();
@@ -280,6 +294,12 @@ public :
    generic_string getTableColumnOrder() const {
       return mTableView.getTableColumnOrder();
    }
+   unsigned getOrderNumHideColWidth() const {
+      return mTableView.getOrderNumHideColWidth();
+   }
+   void setOrderNumHideColWidth(unsigned width) {
+      mTableView.setOrderNumHideColWidth(width);
+   }
 
 //ScintillaEditView **_ppEditView;    // access to the editor window
 // find result cache
@@ -313,6 +333,7 @@ protected:
 //   tclComboBoxCtrl mCmbColor;
    generic_string _FileName;        // buffer for file name
    TCHAR _ConfigFileName[MAX_HEADLINE]; // buffer for config file name
+   bool _bShowConfigFileCaption = false;
    tclPattern mDefPat;
    //teOnEnterAction mOnEnterAction; // 0 do nothing 1 update 2 add
 
@@ -324,6 +345,7 @@ protected:
    PleaseWaitDlg* _pPlsWait;
    std::vector<generic_string> _lastConfigFiles;
    unsigned _maxConfigFiles;
+   bool mbUpdateDialogFromLine = false;
 };
 
 #endif //FIND_DLG_H

@@ -25,6 +25,10 @@ load the list. You can adjust the different search patterns with following butto
 [Delete]    Removes the line actually marked.
 [  ^  ]     Moves the selected pattern one step up in the list.
 [  v  ]     Moves the selected pattern one step down in the list.
+[Order]     Re-orders the list of patterns according the selected column in alpha-
+            bethical ordering. The column Order becomes only expanded if at least
+            one pattern contains text in Order field. Option "apply order# to list"
+            numerates the complete column from top to down with current order
 [Clear]     Removes all patterns and search result at once.
 [Load]      Allows loading a list of search patterns from disk.
             Prepend / Append allows concatenation of patterns to the current 
@@ -75,7 +79,8 @@ Left mouse click:   Copies the actual data of the clicked line into the
                     changes back to the marked line in the list.
 Double click:       Toggles the current line to be searched or not.
 Right mouse click:  Opens the context menu.
-                    The context menu works on the currently marked line.
+                    The context menu works on the marked line and has additional
+                    entries which refer contextually to this lines data.
 
  - Result window -
 Double click:       Moves the main window cursor position to the corresponding line
@@ -90,8 +95,8 @@ Ctx: Find...        The find dialog in result window is optimized for the search
                     patterns. Click on one of the currently defined patterns right
                     to search for exactly this instances here.
 
-Ctx: Save to file...  Binds the result window to a text file as ascii. Whenever the
-                    search result changes it gets written into the text file.
+Ctx: Save to file...  Binds the result window to a text file as output. Whenever
+                    the search result changes it gets written into the text file.
 Ctx: Save once as Richtext... Saves the current colored results in .rtf format
 Ctx: Word Wrap      Enables / disables the word wrap in the result window. This
                     setting get persisted over sessions.

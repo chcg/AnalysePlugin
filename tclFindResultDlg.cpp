@@ -1,11 +1,11 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,8 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 /* tclFindResultDlg.cpp 
 This class implements the handling of the search result window 
@@ -116,7 +115,7 @@ void tclFindResultDlg::initEdit(const tclPattern& defaultPattern) {
    _scintView.reSizeToWH(rect);
    //_scintView.execute(SCI_SETCODEPAGE, SC_CP_UTF8);
    // let window parent (this class) do the styling
-   _scintView.execute(SCI_SETLEXER,SCLEX_CONTAINER);
+   _scintView.execute(SCI_SETILEXER,SCLEX_CONTAINER);
 // deprecated, always 8   _scintView.execute(SCI_SETSTYLEBITS, MY_STYLE_BITS); // maximum possible
    mFindResultSearchDlg.init(_hInst, _hParent, &_scintView);
    mFindResultSearchDlg.setdefaultPattern(defaultPattern);
@@ -138,17 +137,17 @@ void tclFindResultDlg::removeUnusedResultLines(tPatId pattId, const tclResult& o
          l.posInfos().erase(pattId);
          // lets check if other results use the line and remove if not
          if(l.posInfos().size() == 0) {
-            int resultLine = mFindResults.getLineNoAtRes(thisLine);
+            tiLine resultLine = mFindResults.getLineNoAtRes(thisLine);
             if(resultLine >= 0) {
                if(mUseBookmark){
-                  _pParent->execute(scnActiveHandle, SCI_MARKERDELETE, thisLine, MARK_BOOKMARK);
+                  _pParent->execute(teNppWindows::scnActiveHandle, SCI_MARKERDELETE, thisLine, MARK_BOOKMARK);
                }
-               int startL = (int)_scintView.execute(SCI_POSITIONFROMLINE, resultLine);
-               int endL = (int)_scintView.execute(SCI_GETLINEENDPOSITION, resultLine);
+               tiLine startL = (tiLine)_scintView.execute(SCI_POSITIONFROMLINE, resultLine);
+               tiLine endL = (tiLine)_scintView.execute(SCI_GETLINEENDPOSITION, resultLine);
                if (endL+2 <= _scintView.execute(SCI_GETLENGTH)) {
                   endL += 2;
                }
-               DBG4("removeUnusedResultLines() removing line %d from %d to %d being main line %d", resultLine, startL, endL, thisLine);
+               DBG4("removeUnusedResultLines() removing line %d from %d to %d being main line %d", (int)resultLine, (int)startL, (int)endL, (int)thisLine);
                if(endL <= startL) {
                   ::MessageBox(0, TEXT("Line delete in result not correct"), TEXT("Analyse Plugin - Error"), 0);
                } else {
@@ -157,7 +156,7 @@ void tclFindResultDlg::removeUnusedResultLines(tPatId pattId, const tclResult& o
                   _scintView.execute(SCI_SETTARGETEND, endL);
                   //SCI_REPLACETARGET(int length, const char *text)
                   _scintView.execute(SCI_REPLACETARGET, 0, (LPARAM)"");
-                  DBG2("removeUnusedResultLines() tstart %d, tend %d.", startL, endL);
+                  DBG2("removeUnusedResultLines() tstart %d, tend %d.", (int)startL, (int)endL);
                   setFinderReadOnly(true);
                }
             } else {
@@ -166,7 +165,7 @@ void tclFindResultDlg::removeUnusedResultLines(tPatId pattId, const tclResult& o
             }
             mFindResults.erase(thisLine);
          } else {
-            DBG2("removeUnusedResultLines() found line %d result not empty size %d", thisLine, l.posInfos().size());
+            DBG2("removeUnusedResultLines() found line %d result not empty size %d", (int)thisLine, (int)l.posInfos().size());
 #ifdef _DEBUG
             TCHAR num[20];
             generic_string s;
@@ -220,7 +219,7 @@ void tclFindResultDlg::create(tTbData * data, bool isRTL)
 //   _data = data;
 }
 
-int tclFindResultDlg::insertPosInfo(tPatId patternId, tiLine iResultLine, tclPosInfo pos) {
+tiLine tclFindResultDlg::insertPosInfo(tPatId patternId, tiLine iResultLine, tclPosInfo pos) {
    return mFindResults.insertPosInfo(patternId, iResultLine, pos);
 }
 
@@ -228,20 +227,20 @@ bool tclFindResultDlg::getLineAvail(tiLine foundLine) const {
    return mFindResults.getLineAvail(foundLine);
 }
 
-int tclFindResultDlg::getNextFoundLine(int iEditorsLine) const {
-   return (int)mFindResults.getNextLineNoAtMain((tiLine)iEditorsLine);
+tiLine tclFindResultDlg::getNextFoundLine(tiLine iEditorsLine) const {
+   return mFindResults.getNextLineNoAtMain(iEditorsLine);
 }
 
-const std::string& tclFindResultDlg::getLineText(int iResultLine) {
+const std::string& tclFindResultDlg::getLineText(tiLine iResultLine) {
    return mFindResults.getLineText(iResultLine);
 }
 
-void tclFindResultDlg::setLineText(int iFoundLine, const std::string& text, const std::string& comment, unsigned commentWidth) {
+void tclFindResultDlg::setLineText(tiLine iFoundLine, const std::string& text, const std::string& comment, unsigned commentWidth) {
    bool bNewLine = mFindResults.setLineText(iFoundLine, text);
    // here we have to distinguish update and insert of lines in search result window
-   int resLine = mFindResults.getLineNoAtRes(iFoundLine);
+   tiLine resLine = mFindResults.getLineNoAtRes(iFoundLine);
    //bool bVisible = mFindResults.getLineAtMain(iFoundLine).visible();
-   int startPos = (int)_scintView.execute(SCI_POSITIONFROMLINE, resLine);
+   tiLine startPos = (tiLine)_scintView.execute(SCI_POSITIONFROMLINE, resLine);
    if (startPos != -1) {
       setCurrentMarkedLine(-1);
       setFinderReadOnly(false);
@@ -251,7 +250,7 @@ void tclFindResultDlg::setLineText(int iFoundLine, const std::string& text, cons
                 + (mDisplayComment)?(commentWidth + strlen(FNDRESDLG_LINE_HYPHEN)):(0));
       char conv[20];
       if (_scintView.getLineNumbersInResult()) {
-         s.append(miLineNumColSize-strlen(_itoa(iFoundLine+1, conv, 10)), ' ');
+         s.append(miLineNumColSize-strlen(_i64toa(iFoundLine+1, conv, 10)), ' ');
          s.append(conv);
          s.append(FNDRESDLG_LINE_COLON);
       }
@@ -261,16 +260,16 @@ void tclFindResultDlg::setLineText(int iFoundLine, const std::string& text, cons
          s.append(FNDRESDLG_LINE_HYPHEN);
       }
       s.append(text);
-      DBGA3("setLineText() iFoundLine: %d resLine: %d text: \"%s\"", iFoundLine, resLine, s.c_str());
+      DBGA3("setLineText() iFoundLine: %d resLine: %d text: \"%s\"", (int)iFoundLine, (int)resLine, s.c_str());
       if(bNewLine) {
          // adding a newline into result -> set bookmark in main window
          if(mUseBookmark) {
-            _pParent->execute(scnActiveHandle, SCI_MARKERADD, iFoundLine, MARK_BOOKMARK);
+            _pParent->execute(teNppWindows::scnActiveHandle, SCI_MARKERADD, iFoundLine, MARK_BOOKMARK);
          }
          _scintView.execute(SCI_INSERTTEXT, startPos, (LPARAM)s.c_str());
          ++_lineCounter;
       } else {
-         int endPos = (int)_scintView.execute(SCI_GETLINEENDPOSITION, resLine);
+         tiLine endPos = (tiLine)_scintView.execute(SCI_GETLINEENDPOSITION, resLine);
          if (endPos+2 <= _scintView.execute(SCI_GETLENGTH)) {
             endPos += 2;
          }
@@ -279,12 +278,12 @@ void tclFindResultDlg::setLineText(int iFoundLine, const std::string& text, cons
          _scintView.execute(SCI_SETTARGETEND, endPos);
          //SCI_REPLACETARGET(int length, const char *text)
          _scintView.execute(SCI_REPLACETARGET, -1, (LPARAM)s.c_str());
-         DBG2("setLineText() tstart %d, tend %d.", startPos, startPos);
+         DBG2("setLineText() tstart %d, tend %d.", (int)startPos, (int)endPos);
       }
 //      doStyle(resLine, startPos, (int)startPos+(int)s.length());
       setFinderReadOnly(true);
    } else {
-      DBG1("setLineText() ERROR iFoundLine: %d not in editor! do  nothing",iFoundLine);
+      DBG1("setLineText() ERROR iFoundLine: %d not in editor! do  nothing", (int)iFoundLine);
    }
 }
 
@@ -346,13 +345,13 @@ void tclFindResultDlg::clear(bool initial)
    //_foundInfos.clear(); 
    mFindResults.clear();
    if(mUseBookmark && !initial) {
-      _pParent->execute(scnActiveHandle, SCI_MARKERDELETEALL, MARK_BOOKMARK);
+      _pParent->execute(teNppWindows::scnActiveHandle, SCI_MARKERDELETEALL, MARK_BOOKMARK);
    }
    clear_view();
    _lineCounter = 0;
 }
 
-int tclFindResultDlg::getCurrentMarkedLine() const 
+tiLine tclFindResultDlg::getCurrentMarkedLine() const
 {
    return _markedLine;
 }
@@ -360,12 +359,12 @@ int tclFindResultDlg::getCurrentMarkedLine() const
 /**
 * set the marked line with
 */ 
-void tclFindResultDlg::setCurrentMarkedLine(int line) 
+void tclFindResultDlg::setCurrentMarkedLine(tiLine line)
 {  // we set the current mark here
    _markedLine = line;
    if(line != -1) {
       mFromFindResult = true;
-      _pParent->execute(scnActiveHandle, SCI_GOTOLINE, _markedLine);
+      _pParent->execute(teNppWindows::scnActiveHandle, SCI_GOTOLINE, _markedLine);
    }
 }
 
@@ -504,12 +503,12 @@ void tclFindResultDlg::updateHeadline() {
 
 #ifdef FEATURE_RESVIEW_POS_KEEP_AT_SEARCH
 void tclFindResultDlg::saveCurrentViewPos() {
-   mCurrentViewLineNo = (int)_pParent->execute(scnActiveHandle, SCI_GETFIRSTVISIBLELINE);
-   DBG1("tclFindResultDlg::saveCurrentViewPos() VisibleLine %d", mCurrentViewLineNo);
+   mCurrentViewLineNo = (tiLine)_pParent->execute(teNppWindows::scnActiveHandle, SCI_GETFIRSTVISIBLELINE);
+   DBG1("tclFindResultDlg::saveCurrentViewPos() VisibleLine %d", (int)mCurrentViewLineNo);
 }
 
 void tclFindResultDlg::restoreCurrentViewPos() {
-   DBG1("tclFindResultDlg::restoreCurrentViewPos() Re-setting the line %d", mCurrentViewLineNo);
+   DBG1("tclFindResultDlg::restoreCurrentViewPos() Re-setting the line %d", (int)mCurrentViewLineNo);
    updateViewScrollState(mCurrentViewLineNo, true, true);
 }
 #endif
@@ -517,27 +516,27 @@ void tclFindResultDlg::restoreCurrentViewPos() {
 /** this function expects iThisMainLine to be a line with search result found in it with help of getNextFoundLine() 
     Special handling! -1 will scroll always to the end of the document.
 **/
-void tclFindResultDlg::setCurrentViewPos(int iThisMainLine) {
-   int iResLine;
+void tclFindResultDlg::setCurrentViewPos(tiLine iThisMainLine) {
+   tiLine iResLine;
    if (-1 == iThisMainLine) {
-      int len = (int)_scintView.execute(SCI_GETLENGTH);
-      iResLine = (int)_scintView.execute(SCI_LINEFROMPOSITION, len);
+      tiLine len = (tiLine)_scintView.execute(SCI_GETLENGTH);
+      iResLine = (tiLine)_scintView.execute(SCI_LINEFROMPOSITION, len);
    }
    else {
       iResLine = mFindResults.getLineNoAtRes(iThisMainLine);
    }
-   DBGDEF(int res = (int) ) _scintView.execute(SCI_SETFIRSTVISIBLELINE, iResLine);
-   DBG2("tclFindResultDlg::setCurrentViewPos() Setting the line to %d returns %d", iResLine, res);
+   DBGDEF(tiLine res = (tiLine) ) _scintView.execute(SCI_SETFIRSTVISIBLELINE, iResLine);
+   DBG2("tclFindResultDlg::setCurrentViewPos() Setting the line to %d returns %d", (int)iResLine, (int)res);
 }
 
-void tclFindResultDlg::updateViewScrollState(int iLineInMain, bool bInMain, bool bAnyway) {
-   static int topLine = 0;
-   DBG3("updateViewScrollState() topLine %d iLineInMain %d bInMain %d", topLine, iLineInMain, (int)bInMain);
+void tclFindResultDlg::updateViewScrollState(tiLine iLineInMain, bool bInMain, bool bAnyway) {
+   static tiLine topLine = 0;
+   DBG3("updateViewScrollState() topLine %d iLineInMain %d bInMain %d", (int)topLine, (int)iLineInMain, (int)bInMain);
    if (bAnyway || topLine != iLineInMain){
       topLine = iLineInMain;
       if (bAnyway || (bInMain && !mFromFindResult)) {
          // text window moves search result
-         int line = getNextFoundLine(topLine);
+         tiLine line = getNextFoundLine(topLine);
          mFromMainWindow = bInMain;
          setCurrentViewPos(line);
       }
@@ -545,11 +544,11 @@ void tclFindResultDlg::updateViewScrollState(int iLineInMain, bool bInMain, bool
    }
 }
 // public version calls internal with correct start and end values
-void tclFindResultDlg::doStyle(int iFoundLine) {
-   int iLineNumber = mFindResults.getLineNoAtRes(iFoundLine);
-   DBG2("doStyle(iFoundLine) iFoundLine %d resLine %d", iFoundLine, iLineNumber);
-   int styleBegin = (int)_scintView.execute(SCI_POSITIONFROMLINE, iLineNumber);
-   int endOfLine = (int)_scintView.execute(SCI_GETLINEENDPOSITION, iLineNumber);
+void tclFindResultDlg::doStyle(tiLine iFoundLine) {
+   tiLine iLineNumber = mFindResults.getLineNoAtRes(iFoundLine);
+   DBG2("doStyle(iFoundLine) iFoundLine %d resLine %d", (int)iFoundLine, (int)iLineNumber);
+   tiLine styleBegin = (tiLine)_scintView.execute(SCI_POSITIONFROMLINE, iLineNumber);
+   tiLine endOfLine = (tiLine)_scintView.execute(SCI_GETLINEENDPOSITION, iLineNumber);
    doStyle(iLineNumber, styleBegin, endOfLine);
 }
 
@@ -664,18 +663,16 @@ INT_PTR CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPAR
             tmp.push_back(MenuItemUnit(0, TEXT("Separator")));
             tmp.push_back(MenuItemUnit(FNDRESDLG_ACTIVATE_PATTERN_LIST, TEXT("matching patterns:")));
             {
-               TCHAR index[5];
                int pos = (int)_scintView.execute(SCI_GETCURRENTPOS);
                int line = (int)_scintView.execute(SCI_LINEFROMPOSITION, pos);
                const tlmIdxPosInfo& p = mFindResults.getLineAtRes(line).second.posInfos();
                tlmIdxPosInfo::const_iterator it = p.begin();
                for (; it != p.end(); ++it) {
-                  int idx = _pParent->getPatternIndex(it->first);
-                  generic_itoa(idx, index, 10);
-                  generic_string s = index;
+                  int idx = _pParent->getPatternIndex(it->first) + 1; // because list is zero based
+                  generic_string s = _pParent->getPatternIdentification(it->first);
                   s += TEXT(":");
                   s += _pParent->getPatternSearchText(it->first);
-                  DBG4("Line %d has pattern %f index %d text %s", line, it->first, idx, s.c_str());
+                  DBG4("Line %d has pattern %f line %d text %s", line, it->first, idx, s.c_str());
                   int range = (FNDRESDLG_ACTIVATE_PATTERN_END - FNDRESDLG_ACTIVATE_PATTERN_BASE);
                   if (idx > range) {
                      break;
@@ -744,11 +741,11 @@ INT_PTR CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPAR
 this function sends the series of commands to 
 scintilla win with the corresponding style id converted from the mPatStyleList
 **/
-void tclFindResultDlg::setStyle(tPatId iPatternId, int iBeginPos, int iLength)
+void tclFindResultDlg::setStyle(tPatId iPatternId, tiLine iBeginPos, tiLine iLength)
 {
    unsigned u = mPatStyleList.getPatternIndex(iPatternId);
    u = transStyleId[u]; // shift by table lookup to avoid predefined default styles
-   DBG4("setStyle() pattern %f style %d begin %d length %d", iPatternId, u, iBeginPos, iLength);
+   DBG4("setStyle() pattern %f style %d begin %d length %d", iPatternId, u, (int)iBeginPos, (int)iLength);
    _scintView.execute(SCI_STARTSTYLING, iBeginPos, MY_STYLE_MASK);
    _scintView.execute(SCI_SETSTYLING, iLength, u);
 }
@@ -757,18 +754,18 @@ void tclFindResultDlg::setStyle(tPatId iPatternId, int iBeginPos, int iLength)
 this function sends the series of commands to 
 scintilla win with the corresponding style id 
 **/
-void tclFindResultDlg::setDefaultStyle(int iBeginPos, int iLength)
+void tclFindResultDlg::setDefaultStyle(tiLine iBeginPos, tiLine iLength)
 {
-   DBG2("setDefaultStyle() begin %d length %d", iBeginPos, iLength);
+   DBG2("setDefaultStyle() begin %d length %d", (int)iBeginPos, (int)iLength);
    _scintView.execute(SCI_STARTSTYLING, iBeginPos, MY_STYLE_MASK);
    _scintView.execute(SCI_SETSTYLING, iLength, FNDRESDLG_DEFAULT_STYLE);
 }
 
 // callback from scintilla to colorize the search window
-void tclFindResultDlg::doStyle(int startResultLineNo, int startStyleNeeded, int endStyleNeeded)
+void tclFindResultDlg::doStyle(tiLine startResultLineNo, tiLine startStyleNeeded, tiLine endStyleNeeded)
 {
    DBG3("doStyle() startResultLineNo %d startStyleNeeded %d endStyleNeeded %d", 
-      startResultLineNo, startStyleNeeded, endStyleNeeded);
+      (int)startResultLineNo, (int)startStyleNeeded, (int)endStyleNeeded);
    /*
    Procedure
    1. get the last time styled position to start on SCI_GETENDSTYLED
@@ -791,10 +788,10 @@ void tclFindResultDlg::doStyle(int startResultLineNo, int startStyleNeeded, int 
    if the line shall be styled or the word
    execute the styling
    */
-   int resultLineNum = startResultLineNo;
-   int styleBegin = startStyleNeeded;
-   int maxResultLines = (int)_scintView.execute(SCI_GETLINECOUNT);
-   int endOfLine = (int)(_scintView.execute(SCI_GETLINEENDPOSITION, resultLineNum)
+   tiLine resultLineNum = startResultLineNo;
+   tiLine styleBegin = startStyleNeeded;
+   tiLine maxResultLines = (tiLine)_scintView.execute(SCI_GETLINECOUNT);
+   tiLine endOfLine = (tiLine)(_scintView.execute(SCI_GETLINEENDPOSITION, resultLineNum)
                      +((resultLineNum<maxResultLines)?2:0)); // CRLF is not in last line
    //int charsHidden = 0;
    do // for all lines to be styled
@@ -804,9 +801,9 @@ void tclFindResultDlg::doStyle(int startResultLineNo, int startStyleNeeded, int 
          const tlpLinePosInfo& rlpi = mFindResults.getLineAtRes(resultLineNum);
          // for each pattern applicable for this line 
          DBG2("doStyle() resLine %d size of patterns %d. ",
-            resultLineNum, rlpi.second.posInfos().size());
+            (int)resultLineNum, (int)rlpi.second.posInfos().size());
          
-         int iLength = endOfLine - styleBegin;                  
+         tiLine iLength = endOfLine - styleBegin;                  
          if(iLength < 0 ) {
             DBG0("doStyle() ERROR negative line length");
             continue;
@@ -817,8 +814,8 @@ void tclFindResultDlg::doStyle(int startResultLineNo, int startStyleNeeded, int 
          if(iLength <= iThisLineHead) {
             DBG0("doStyle() line length 0 nothing to style");
             ++resultLineNum;
-            styleBegin = (int)_scintView.execute(SCI_POSITIONFROMLINE, resultLineNum);
-            endOfLine = (int)_scintView.execute(SCI_GETLINEENDPOSITION, resultLineNum);
+            styleBegin = (tiLine)_scintView.execute(SCI_POSITIONFROMLINE, resultLineNum);
+            endOfLine = (tiLine)_scintView.execute(SCI_GETLINEENDPOSITION, resultLineNum);
             continue;
          } 
          tlmIdxPosInfo::const_iterator iPosInfo = rlpi.second.posInfos().begin();
@@ -841,8 +838,8 @@ void tclFindResultDlg::doStyle(int startResultLineNo, int startStyleNeeded, int 
                // iPosInfo calculates on mainWin text
                tlsPosInfo::const_iterator iFoundPos = iPosInfo->second.begin();
                for(; iFoundPos != iPosInfo->second.end(); ++iFoundPos) {
-                  int iPosInfoLength = (iFoundPos->end - iFoundPos->start);
-                  int iPosLineBegin = iFoundPos->start - (int)_pParent->execute(scnActiveHandle,SCI_POSITIONFROMLINE,iFoundPos->line);
+                  tiLine iPosInfoLength = (iFoundPos->end - iFoundPos->start);
+                  tiLine iPosLineBegin = iFoundPos->start - (tiLine)_pParent->execute(teNppWindows::scnActiveHandle,SCI_POSITIONFROMLINE,iFoundPos->line);
                   if((iPosInfoLength>0) && (iPosLineBegin>=0) &&
                      ((styleBegin+ iThisLineHead +iPosLineBegin) >= styleBegin) &&
                      (iPosInfoLength <= (endOfLine-styleBegin))) {
@@ -850,8 +847,8 @@ void tclFindResultDlg::doStyle(int startResultLineNo, int startStyleNeeded, int 
                         setStyle(iPosInfo->first, styleBegin+ iThisLineHead +iPosLineBegin, iPosInfoLength);
                   } else {
                      DBG4("doStyle() ERROR word styling pos illegal pos.start %d styleBegin %d pos.end %d endOfLine %d.",
-                        styleBegin+ iThisLineHead +iPosLineBegin, styleBegin,
-                        styleBegin+ iThisLineHead +iPosLineBegin+iPosInfoLength, endOfLine);
+                        (int)styleBegin+ iThisLineHead +iPosLineBegin, (int)styleBegin,
+                        (int)styleBegin+ iThisLineHead +iPosLineBegin+iPosInfoLength, (int)endOfLine);
                   }
                }
             }
@@ -859,11 +856,11 @@ void tclFindResultDlg::doStyle(int startResultLineNo, int startStyleNeeded, int 
       } else {
          // line in result is not in result list (one empty line break at the end)
          // make style marker is moved until end as requested
-         DBG1("doStyle() called on empty line %d", resultLineNum);
+         DBG1("doStyle() called on empty line %d", (int)resultLineNum);
       }
       ++resultLineNum;
-      styleBegin = (int)_scintView.execute(SCI_POSITIONFROMLINE, resultLineNum);
-      endOfLine = (int)_scintView.execute(SCI_GETLINEENDPOSITION, resultLineNum
+      styleBegin = (tiLine)_scintView.execute(SCI_POSITIONFROMLINE, resultLineNum);
+      endOfLine = (tiLine)_scintView.execute(SCI_GETLINEENDPOSITION, resultLineNum
                        +((resultLineNum<maxResultLines)?2:0)); // CRLF is not in last line
    } while ((styleBegin < endStyleNeeded)&&(resultLineNum < maxResultLines));
 }
@@ -882,21 +879,21 @@ bool tclFindResultDlg::notify(SCNotification *notification)
       {
          //scn.nmhdr.code = SCN_STYLENEEDED;
          //scn.position = endStyleNeeded;
-         DBG1("findresult SCN_STYLENEEDED end %d ", notification->position);
-         int startPos = (int)_scintView.execute(SCI_GETENDSTYLED);
-         int lineNumber = (int)_scintView.execute(SCI_LINEFROMPOSITION,startPos);
-         startPos = (int)_scintView.execute(SCI_POSITIONFROMLINE,lineNumber);
-         doStyle(lineNumber, startPos, (int)notification->position);
+         DBG1("findresult SCN_STYLENEEDED end %d ", (int)notification->position);
+         tiLine startPos = (tiLine)_scintView.execute(SCI_GETENDSTYLED);
+         tiLine lineNumber = (tiLine)_scintView.execute(SCI_LINEFROMPOSITION,startPos);
+         startPos = (tiLine)_scintView.execute(SCI_POSITIONFROMLINE,lineNumber);
+         doStyle(lineNumber, startPos, (tiLine)notification->position);
          ret = true;
          break;
       }
    case SCN_MARGINCLICK: 
       {   
          DBG2("findresult SCN_MARGINCLICK margin %d line %d", 
-               notification->margin, notification->position);
+               notification->margin, (int)notification->position);
          
-         int lineEnd = (int)_scintView.execute(SCI_LINEFROMPOSITION, notification->position);
-         lineEnd = (int)_scintView.execute(SCI_GETLINEENDPOSITION, lineEnd);
+         tiLine lineEnd = (tiLine)_scintView.execute(SCI_LINEFROMPOSITION, notification->position);
+         lineEnd = (tiLine)_scintView.execute(SCI_GETLINEENDPOSITION, lineEnd);
          lineEnd = lineEnd + 2; // for line end
          _scintView.execute(SCI_SETSEL, notification->position, lineEnd);
          if (notification->margin == ScintillaSearchView::_SC_MARGE_FOLDER)
@@ -909,7 +906,7 @@ bool tclFindResultDlg::notify(SCNotification *notification)
    case SCN_DOUBLECLICK :
       {
          NPP_TRY {
-            int currentPos = (int)_scintView.execute(SCI_GETCURRENTPOS);
+            tiLine currentPos = (tiLine)_scintView.execute(SCI_GETCURRENTPOS);
             if (currentPos>1)
             {
                char prevChar = (char)_scintView.execute(SCI_GETCHARAT, currentPos - 1);
@@ -923,23 +920,23 @@ bool tclFindResultDlg::notify(SCNotification *notification)
             // old generic_string fullPath = _pParent->getSearchFileName();
 
             // get currently marked line in result doc
-            int resLineNo = (int)_scintView.execute(SCI_LINEFROMPOSITION, currentPos);
+            tiLine resLineNo = (tiLine)_scintView.execute(SCI_LINEFROMPOSITION, currentPos);
             if ((resLineNo >= _scintView.execute(SCI_GETLINECOUNT)) || (mFindResults.size() == 0)) {
                // we are out of editable range. don't do anything
                return TRUE;
             }
             const tlpLinePosInfo& lineInfo = mFindResults.getLineAtRes(resLineNo);
-            int lineMain = (int)lineInfo.first;
+            tiLine lineMain = lineInfo.first;
             //int startMain = (int)_pParent->execute(scnActiveHandle, SCI_POSITIONFROMLINE, lineMain, 0);
 
             //int cmd = NPPM_SWITCHTOFILE;//getMode()==FILES_IN_DIR?WM_DOOPEN:NPPM_SWITCHTOFILE;
-            int iSuccess = (int)_pParent->execute(nppHandle, NPPM_SWITCHTOFILE, 0, (LPARAM)getszFileName());
+            int iSuccess = (int)_pParent->execute(teNppWindows::nppHandle, NPPM_SWITCHTOFILE, 0, (LPARAM)getszFileName());
             if (iSuccess == 0) {
                struct _stat st;
                iSuccess = (filestat(getszFileName(),&st))?0:1; // check if file exist -> ret == 0
                // try to open it
                if (iSuccess != 0) {
-                  iSuccess = (int)_pParent->execute(nppHandle, NPPM_DOOPEN, 0, (LPARAM)getszFileName());
+                  iSuccess = (int)_pParent->execute(teNppWindows::nppHandle, NPPM_DOOPEN, 0, (LPARAM)getszFileName());
                } else {
                   DBG0("notify(SCNotification) SCN_DOUBLECLICK filestat() didn't find the file");
                }
@@ -955,19 +952,19 @@ bool tclFindResultDlg::notify(SCNotification *notification)
                }
             }
 
-            DBG3("notify(SCNotification) SCN_DOUBLECLICK to line  %d in %s line in result", 
-               lineMain, getszFileName(), resLineNo);
+            DBG3("notify(SCNotification) SCN_DOUBLECLICK to line  %d in %s line in result %d", 
+               (int)lineMain, getszFileName(), resLineNo);
 
             ret = true;
 
-         } NPP_CATCH_ALL (...) {
+         } NPP_CATCH_ALL {
             DBG0("notify(SCNotification) ERROR SCN_DOUBLECLICK problem.");
          }
          break;
       }
    case SCN_PAINTED:
    case SCN_MODIFIED:
-   case SCN_SCROLLED:
+   // case SCN_SCROLLED: // TODO // replacement for obsolete custom SCN_SCROLLED:   if (notification->updated & SC_UPDATE_V_SCROLL)
       break;
    case SCN_CHARADDED:
       {
@@ -980,15 +977,15 @@ bool tclFindResultDlg::notify(SCNotification *notification)
    case SCN_UPDATEUI:
    {
       if (((notification->updated & SC_UPDATE_V_SCROLL) != 0) && _pParent->getIsSyncScroll()) {
-         int currTopLine = (int)_scintView.execute(SCI_GETFIRSTVISIBLELINE);
-         DBG3("notify() SCN_UPDATEUI: Scrolled to currTopLine=%d from main %d result %d", currTopLine, mFromMainWindow, mFromFindResult);
-         // setting mainwondow based on result windows setting is disabled to avoid echo causing 
+         tiLine currTopLine = (tiLine)_scintView.execute(SCI_GETFIRSTVISIBLELINE);
+         DBG3("notify() SCN_UPDATEUI: Scroll to currTopLine=%d from main %d result %d", (int)currTopLine, mFromMainWindow, mFromFindResult);
+         // setting mainwindow based on result windows setting is disabled to avoid echo causing 
          if (!mFromMainWindow) {
             mFromFindResult = true;
             tiLine mainLine = mFindResults.getLineNoAtMain(currTopLine);
             generic_string currFile;
             if (_pParent->bCheckLastFileNameSame(currFile)) {
-               _pParent->execute(scnActiveHandle, SCI_ENSUREVISIBLEENFORCEPOLICY, (WPARAM)mainLine);
+               _pParent->execute(teNppWindows::scnActiveHandle, SCI_ENSUREVISIBLEENFORCEPOLICY, (WPARAM)mainLine);
             }
          }
          else {
@@ -1018,19 +1015,17 @@ void tclFindResultDlg::saveSearchDoc() {
    }
    Utf8_16_Write UnicodeConvertor;
    UnicodeConvertor.setEncoding(uniUTF8);
-   FILE *fp = UnicodeConvertor.fopen(mSearchResultFile.c_str(), TEXT("wb"));
-   if (fp)
+   if (UnicodeConvertor.openFile(mSearchResultFile.c_str()))
    {
       char* buf = (char*) _scintView.execute(SCI_GETCHARACTERPOINTER); // vs. SCI_GETDOCPOINTER
-      int lengthDoc = _scintView.getCurrentDocLen();
+      unsigned long lengthDoc = (unsigned long)_scintView.getCurrentDocLen(); // TODO check 64-bit issue
       if (lengthDoc && buf) {
-         size_t items_written;
-         items_written = UnicodeConvertor.fwrite(buf, lengthDoc);
-         UnicodeConvertor.fclose();
+         bool items_written = UnicodeConvertor.writeFile(buf, lengthDoc);
+         UnicodeConvertor.closeFile();
 
          // Error, we didn't write the entire document to disk.
          // Note that fwrite() doesn't return the number of bytes written, but rather the number of ITEMS.
-         if(items_written != 1)
+         if(!items_written)
          {
             MessageBox(NULL, TEXT("Problem in save"), TEXT("tclFindResultDlg::saveSearchDoc"), MB_OK);
          }

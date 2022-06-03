@@ -1,13 +1,13 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 
 #include "MyPluginInterface.h"
@@ -34,6 +33,8 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "MyPlugin.h"
 #include "HelpDialog.h"
 #include "ScintillaSearchView.h"
+// TODO #include "NppDarkMode.h"
+#include "myDebug.h"
 
 // special context menu in finder window 
 // we assume that the menu is not required any more after 
@@ -74,8 +75,8 @@ public:
 
    AnalysePlugin()
       : _nppReady(false)
-      , gbPluginVisible(false)
-      , gbResultVisible(true)
+      , _bPluginVisible(false)
+      , _bResultVisible(true)
       , _markedLine((unsigned int)-1)
       , _Npp(0)
       , _hModule(0)
@@ -85,26 +86,26 @@ public:
       ,_bIgnoreBufferModify(false)
 //      , mResultFontSize(0)
   {
-      memset(&nppData, 0, sizeof(nppData));
-      memset(iniFilePath, 0, sizeof(iniFilePath));
+      memset(&_nppData, 0, sizeof(_nppData));
+      memset(_iniFilePath, 0, sizeof(_iniFilePath));
       memset(_szPluginFileName, 0, sizeof(_szPluginFileName));
       _findDlg.setParent(this);
       _findResult.setParent(this);
 
-      mVersionString = TEXT("Analyse Plugin ");
-      mVersionString += TEXT(vstr(VER_FILEVERSION_MAYOR));
-      mVersionString += TEXT(".");
-      mVersionString += TEXT(vstr(VER_FILEVERSION_MINOR));
-      mVersionString += TEXT(" Rev. ");
-      mVersionString += TEXT(SVNREVINFO);
-      mVersionString += TEXT(" ");
-      mVersionString += TEXT(SVNDATE);
-      mVersionString += TEXT(" ");
-      mVersionString += TEXT(SVNMODIFIED);
-      mVersionString += TEXT(" ");
-      mVersionString += TEXT(SVNMIXED);
-      mVersionString += (sizeof(void *) == 8) ? TEXT(" (64bit)") : TEXT(" (32bit)");
-      _helpDlg.setVersion(mVersionString);
+      _VersionString = TEXT("Analyse Plugin ");
+      _VersionString += TEXT(vstr(VER_FILEVERSION_MAYOR));
+      _VersionString += TEXT(".");
+      _VersionString += TEXT(vstr(VER_FILEVERSION_MINOR));
+      _VersionString += TEXT(" Rev. ");
+      _VersionString += TEXT(SVNREVINFO);
+      _VersionString += TEXT(" ");
+      _VersionString += TEXT(SVNDATE);
+      _VersionString += TEXT(" ");
+      _VersionString += TEXT(SVNMODIFIED);
+      _VersionString += TEXT(" ");
+      _VersionString += TEXT(SVNMIXED);
+      _VersionString += (sizeof(void *) == 8) ? TEXT(" (64bit)") : TEXT(" (32bit)");
+      _helpDlg.setVersion(_VersionString);
       for (int i = 0; i < NUM_CUSTOM_COLORS; ++i) {
          _acrCustClr[i] = RGB(0xff, 0xff, 0xff);
       }
@@ -143,7 +144,7 @@ public:
    // returns the pointer to all plugin functions
    FuncItem * getFuncsArray(int * nbF){
       *nbF = LAST_PLUGINFUNCID;
-      return funcItem;
+      return _funcItem;
    }
 
    // message handler access
@@ -158,7 +159,7 @@ public:
    * returns the name of the file being used for analysis
    */
    virtual generic_string getSearchFileName() const {
-      return mLastSearchedFileName;
+      return _LastSearchedFileName;
    }
 
    /**
@@ -228,23 +229,23 @@ public:
       return ::SendMessage(hwnd, Msg, wParam, lParam);
    }
 
-   //void showMargin(int witchMarge, bool willBeShown = true);
-
    void displaySectionCentered(int posStart, int posEnd, bool isDownwards = true);
 
    /**
    * sets find result window into read only mode
    */
    void setFinderReadOnly(bool isReadOnly) {
-      execute(scnSecondHandle, SCI_SETREADONLY, isReadOnly);
+      execute(teNppWindows::scnSecondHandle, SCI_SETREADONLY, isReadOnly);
    }
 
    COLORREF* refCustomColors() {  
-      // intentioally r/w because custome colors are modified by different instances of color dialog
+      // intentioally r/w because custom colors are modified by different instances of color dialog
       return static_cast<COLORREF*>(_acrCustClr);
    }
    
    int getPatternIndex(tPatId id) const;
+   // this function provides either the line number or the order num if defined
+   generic_string getPatternIdentification(tPatId id) const;
    generic_string getPatternSearchText(tPatId id) const;
    void setSelectedPattern(int index);
 
@@ -260,20 +261,20 @@ protected:
    /**
    * return the actually marked line
    */
-   unsigned getCurrentMarkedLine() const {
+   size_t getCurrentMarkedLine() const {
       return _markedLine;
    }
 
    /**
    * set the actually marked line
    */
-   void setCurrentMarkedLine(unsigned line) {
+   void setCurrentMarkedLine(size_t line) {
       _markedLine = line;
    }
 
    unsigned getCurrentViewLineNumber()const {
-      LRESULT curpos = execute(scnSecondHandle, SCI_GETCURRENTPOS);
-      return (unsigned)execute(scnSecondHandle, SCI_LINEFROMPOSITION, curpos);
+      LRESULT curpos = execute(teNppWindows::scnSecondHandle, SCI_GETCURRENTPOS);
+      return (unsigned)execute(teNppWindows::scnSecondHandle, SCI_LINEFROMPOSITION, curpos);
     }
 
 
@@ -293,6 +294,7 @@ protected:
    static const TCHAR KEYDBLCLKUMP2EDIT[];
    static const TCHAR KEYONENTERACTION[];
    static const TCHAR KEYLASTFILENAME[];
+   static const TCHAR KEYFINDFILECAPTION[];
    static const TCHAR KEYFONTNAME[];
    static const TCHAR KEYFONTSIZE[];
    static const TCHAR KEYMAXNUMOFCFGFILES[];
@@ -301,25 +303,27 @@ protected:
    static const TCHAR KEYCONFIGLISTCOLUMNS[];
    static const TCHAR KEYCONFIGLISTCOLORDER[];
    static const TCHAR KEYCUSTOMCOLORS[];
+   static const TCHAR KEYORDERNUMHIDECOLWIDTH[];
    static const TCHAR SECTIONNAME[];
    static const TCHAR LOCALCONFFILE[];
    static const TCHAR ANALYSE_INIFILE[];
 
-   TCHAR iniFilePath[AP_MAX_PATH];
-   TCHAR xmlFilePath[AP_MAX_PATH];
+   TCHAR _iniFilePath[AP_MAX_PATH];
+   TCHAR _xmlFilePath[AP_MAX_PATH];
    TCHAR _szPluginFileName[AP_MAX_PATH];
 
    /** handles of notpepad++ */
-   NppData nppData;
+   NppData _nppData;
 
    /** my icon in toolbar */
-   toolbarIcons g_TBSearchInFiles;
+   toolbarIcons _TBIconsOld = { 0 };
+   toolbarIconsWithDarkMode _TBIconsDrk = { 0 };
 
    /** ready true if we can start over the  search */
    bool _nppReady;
 
    /** function array */
-   FuncItem funcItem[LAST_PLUGINFUNCID];
+   FuncItem _funcItem[LAST_PLUGINFUNCID];
 
 
    /** dialog to configure analyse */
@@ -336,18 +340,18 @@ protected:
    /** algorithmic part and cache of found line information */
    //CFinder _finder;
    //tclFindResultDoc mResultDoc;
-   generic_string mSearchPatternFileName;
-   generic_string mSearchHistory;
-   generic_string mCommentHistory;
-   generic_string mGroupHistory;
-   generic_string mVersionString;
-   generic_string mDefaultOptions;
-   generic_string mLastSearchedFileName; // used to find out if window has changed
+   //generic_string mSearchPatternFileName;
+   generic_string _SearchHistory;
+   generic_string _CommentHistory;
+   generic_string _GroupHistory;
+   generic_string _VersionString;
+   generic_string _DefaultOptions;
+   generic_string _LastSearchedFileName; // used to find out if window has changed
    /** is true if the closing tag shall be triggered with adding end tag */
 
-   bool gbPluginVisible;
-   bool gbResultVisible;
-   unsigned _markedLine;
+   bool _bPluginVisible;
+   bool _bResultVisible;
+   size_t _markedLine;
    NppData* _Npp;
    HINSTANCE _hModule;
       
@@ -358,6 +362,7 @@ protected:
    // LexAnalyseResult mLex;
    static COLORREF _acrCustClr[NUM_CUSTOM_COLORS];
 //   HWND mCurScnHandle = NULL;
+// TODO   NppDarkMode::Options _darkModeOptions;			// actual runtime options
 };
 
 

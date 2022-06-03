@@ -1,43 +1,32 @@
 // This file is part of Notepad++ project
-// Copyright (C)2003 Don HO <don.h@free.fr>
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later version.
-//
-// Note that the GPL places important restrictions on "derived works", yet
-// it does not provide a detailed definition of that term.  To avoid      
-// misunderstandings, we consider an application to constitute a          
-// "derivative work" for the purpose of this license if it does any of the
-// following:                                                             
-// 1. Integrates source code from Notepad++.
-// 2. Integrates/includes/aggregates Notepad++ into a proprietary executable
-//    installer, such as those produced by InstallShield.
-// 3. Links to a library or executes a program that does any of the above.
+// Copyright (C)2021 Don HO <don.h@free.fr>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// at your option any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
-#ifndef NPP_SORTERS_H
-#define NPP_SORTERS_H
+#pragma once
 
 #include <algorithm>
 #include <utility>
+#include <random>
 
 // Base interface for line sorting.
 class ISorter
 {
 private:
-	bool _isDescending;
-	size_t _fromColumn, _toColumn;
+	bool _isDescending = true;
+	size_t _fromColumn = 0;
+	size_t _toColumn = 0;
 
 protected:
 	bool isDescending() const
@@ -49,13 +38,21 @@ protected:
 	{
 		if (isSortingSpecificColumns())
 		{
-			// prevent an std::out_of_range exception
 			if (input.length() < _fromColumn)
 			{
+				// prevent an std::out_of_range exception
 				return TEXT("");
 			}
-
-			return input.substr(_fromColumn, 1 + _toColumn - _fromColumn);
+			else if (_fromColumn == _toColumn)
+			{
+				// get characters from the indicated column to the end of the line
+				return input.substr(_fromColumn);
+			}
+			else
+			{
+				// get characters between the indicated columns, inclusive
+				return input.substr(_fromColumn, _toColumn - _fromColumn);
+			}
 		}
 		else
 		{
@@ -65,7 +62,7 @@ protected:
 
 	bool isSortingSpecificColumns()
 	{
-		return _fromColumn != 0 && _toColumn != 0;
+		return _toColumn != 0;
 	}
 
 public:
@@ -85,7 +82,7 @@ public:
 	
 	std::vector<generic_string> sort(std::vector<generic_string> lines) override
 	{
-		// Note that both branches here are equivalent in the sense that they give always give the same answer.
+		// Note that both branches here are equivalent in the sense that they always give the same answer.
 		// However, if we are *not* sorting specific columns, then we get a 40% speed improvement by not calling
 		// getSortKey() so many times.
 		if (isSortingSpecificColumns())
@@ -121,18 +118,56 @@ public:
 	}
 };
 
-// Treat consecutive numerals as one number
-// Otherwise it is a lexicographic sort
-class NaturalSorter : public ISorter
+// Implementation of lexicographic sorting of lines, ignoring character casing
+class LexicographicCaseInsensitiveSorter : public ISorter
 {
 public:
-	NaturalSorter(bool isDescending, size_t fromColumn, size_t toColumn) : ISorter(isDescending, fromColumn, toColumn) { };
+	LexicographicCaseInsensitiveSorter(bool isDescending, size_t fromColumn, size_t toColumn) : ISorter(isDescending, fromColumn, toColumn) { };
 
 	std::vector<generic_string> sort(std::vector<generic_string> lines) override
 	{
-		// Note that both branches here are equivalent in the sense that they give always give the same answer.
+		// Note that both branches here are equivalent in the sense that they always give the same answer.
 		// However, if we are *not* sorting specific columns, then we get a 40% speed improvement by not calling
 		// getSortKey() so many times.
+		if (isSortingSpecificColumns())
+		{
+			std::sort(lines.begin(), lines.end(), [this](generic_string a, generic_string b)
+				{
+					if (isDescending())
+					{
+						return OrdinalIgnoreCaseCompareStrings(getSortKey(a).c_str(), getSortKey(b).c_str()) > 0;
+					}
+					else
+					{
+						return OrdinalIgnoreCaseCompareStrings(getSortKey(a).c_str(), getSortKey(b).c_str()) < 0;
+					}
+				});
+		}
+		else
+		{
+			std::sort(lines.begin(), lines.end(), [this](generic_string a, generic_string b)
+				{
+					if (isDescending())
+					{
+						return OrdinalIgnoreCaseCompareStrings(a.c_str(), b.c_str()) > 0;
+					}
+					else
+					{
+						return OrdinalIgnoreCaseCompareStrings(a.c_str(), b.c_str()) < 0;
+					}
+				});
+		}
+		return lines;
+	}
+};
+
+class IntegerSorter : public ISorter
+{
+public:
+	IntegerSorter(bool isDescending, size_t fromColumn, size_t toColumn) : ISorter(isDescending, fromColumn, toColumn) { };
+
+	std::vector<generic_string> sort(std::vector<generic_string> lines) override
+	{
 		if (isSortingSpecificColumns())
 		{
 			std::sort(lines.begin(), lines.end(), [this](generic_string aIn, generic_string bIn)
@@ -141,43 +176,152 @@ public:
 				generic_string b = getSortKey(bIn);
 
 				long long compareResult = 0;
-				size_t i = 0;
+				size_t aNumIndex = 0;
+				size_t bNumIndex = 0;
 				while (compareResult == 0)
 				{
-					if (i >= a.length() || i >= b.length())
+					if (aNumIndex >= a.length() || bNumIndex >= b.length())
 					{
-						compareResult = a.compare(min(i, a.length()), generic_string::npos, b, min(i, b.length()), generic_string::npos);
+						compareResult = a.compare(min(aNumIndex, a.length()), generic_string::npos, b, min(bNumIndex, b.length()), generic_string::npos);
 						break;
 					}
 
-					bool aChunkIsNum = a[i] >= L'0' && a[i] <= L'9';
-					bool bChunkIsNum = b[i] >= L'0' && b[i] <= L'9';
+					bool aChunkIsNum = a[aNumIndex] >= L'0' && a[aNumIndex] <= L'9';
+					bool bChunkIsNum = b[bNumIndex] >= L'0' && b[bNumIndex] <= L'9';
+
+					int aNumSign = 1;
+					// Could be start of negative number
+					if (!aChunkIsNum && (aNumIndex + 1) < a.length())
+					{
+						aChunkIsNum = (a[aNumIndex] == L'-' && (a[aNumIndex + 1] >= L'0' && a[aNumIndex + 1] <= L'9'));
+						aNumSign = -1;
+					}
+
+					int bNumSign = 1;
+					if (!bChunkIsNum && (bNumIndex + 1) < b.length())
+					{
+						bChunkIsNum = (b[bNumIndex] == L'-' && (b[bNumIndex + 1] >= L'0' && b[bNumIndex + 1] <= L'9'));
+						bNumSign = -1;
+					}
 
 					// One is number and one is string
 					if (aChunkIsNum != bChunkIsNum)
 					{
-						compareResult = a[i] - b[i];
-						// No need to update i; compareResult != 0
+						compareResult = a[aNumIndex] - b[bNumIndex];
+
+						// compareResult isn't necessarily 0
+						// consider this case: "0-0", "0-"
+						// "-0" is considered a number, but "-" isn't
+						// but we are comparing two "-', which is the same
+						aNumIndex++;
+						bNumIndex++;
 					}
 					// Both are numbers
 					else if (aChunkIsNum)
 					{
-						size_t delta = 0;
+						// if the sign is differemt, just return the compareResult
+						if (aNumSign != bNumSign)
+						{
+							if (aNumSign == 1)
+							{
+								compareResult = 1;
+							}
+							else
+							{
+								compareResult = -1;
+							}
+							// No need to update anything; compareResult != 0; will break out while loop
+						}
+						else
+						{
+							if (aNumSign == -1)
+							{
+								aNumIndex++;
+								bNumIndex++;
+							}
 
-						// stoll crashes if number exceeds the limit for unsigned long long
-						// Maximum value for a variable of type unsigned long long | 18446744073709551615
-						// So take the max length 18 to convert the number
-						const size_t maxLen = 18;
-						compareResult = std::stoll(a.substr(i, maxLen)) - std::stoll(b.substr(i, maxLen), &delta);
-						i += delta;
+							size_t aNumEnd = a.find_first_not_of(L"1234567890", aNumIndex);
+							if (aNumEnd == generic_string::npos)
+							{
+								aNumEnd = a.length();
+							}
+
+							size_t bNumEnd = b.find_first_not_of(L"1234567890", bNumIndex);
+							if (bNumEnd == generic_string::npos)
+							{
+								bNumEnd = b.length();
+							}
+
+							int aZeroNum = 0;
+							while (aNumIndex < a.length() && a[aNumIndex] == '0')
+							{
+								aZeroNum++;
+								aNumIndex++;
+							}
+
+							int bZeroNum = 0;
+							while (bNumIndex < b.length() && b[bNumIndex] == '0')
+							{
+								bZeroNum++;
+								bNumIndex++;
+							}
+
+							size_t aNumLength = aNumEnd - aNumIndex;
+							size_t bNumLength = bNumEnd - bNumIndex;
+
+							// aNum is longer than bNum, must be larger (smaller if negative)
+							if (aNumLength > bNumLength)
+							{
+								compareResult = 1 * aNumSign;
+								// No need to update anything; compareResult != 0; will break out while loop
+							}
+							// bNum is longer than aNum, must be larger (smaller if negative)
+							else if (aNumLength < bNumLength)
+							{
+								compareResult = -1 * aNumSign;
+								// No need to update anything; compareResult != 0; will break out while loop
+							}
+							else
+							{
+								// the lengths of the numbers are equal
+								// compare the two number. However, we can not use std::stoll
+								// because the number strings can be every large, well over the maximum long long value
+								// thus, we compare each digit one by one
+								while (compareResult == 0
+									&& aNumIndex < a.length()
+									&& (a[aNumIndex] >= L'0' && a[aNumIndex] <= L'9')
+									&& bNumIndex < b.length()
+									&& (b[bNumIndex] >= L'0' && b[bNumIndex] <= L'9'))
+								{
+									compareResult = (a[aNumIndex] - b[bNumIndex]) * aNumSign;
+									aNumIndex++;
+									bNumIndex++;
+								}
+
+								if (compareResult == 0)
+								{
+									compareResult = bZeroNum - aZeroNum;
+								}
+							}
+						}
 					}
 					// Both are strings
 					else
 					{
-						size_t aChunkEnd = a.find_first_of(L"1234567890", i);
-						size_t bChunkEnd = b.find_first_of(L"1234567890", i);
-						compareResult = a.compare(i, aChunkEnd - i, b, i, bChunkEnd - i);
-						i = aChunkEnd;
+						if (a[aNumIndex] == L'-')
+						{
+							aNumIndex++;
+						}
+						if (b[bNumIndex] == L'-')
+						{
+							bNumIndex++;
+						}
+
+						size_t aChunkEnd = a.find_first_of(L"1234567890-", aNumIndex);
+						size_t bChunkEnd = b.find_first_of(L"1234567890-", bNumIndex);
+						compareResult = a.compare(aNumIndex, aChunkEnd - aNumIndex, b, bNumIndex, bChunkEnd - bNumIndex);
+						aNumIndex = aChunkEnd;
+						bNumIndex = bChunkEnd;
 					}
 				}
 
@@ -193,46 +337,159 @@ public:
 		}
 		else
 		{
-			std::sort(lines.begin(), lines.end(), [this](generic_string a, generic_string b)
+			std::sort(lines.begin(), lines.end(), [this](generic_string aIn, generic_string bIn)
 			{
+				generic_string a = aIn;
+				generic_string b = bIn;
+
 				long long compareResult = 0;
-				size_t i = 0;
+				size_t aNumIndex = 0;
+				size_t bNumIndex = 0;
 				while (compareResult == 0)
 				{
-					if (i >= a.length() || i >= b.length())
+					if (aNumIndex >= a.length() || bNumIndex >= b.length())
 					{
-						compareResult = a.compare(min(i,a.length()), generic_string::npos, b, min(i,b.length()), generic_string::npos);
+						compareResult = a.compare(min(aNumIndex, a.length()), generic_string::npos, b, min(bNumIndex, b.length()), generic_string::npos);
 						break;
 					}
 
-					bool aChunkIsNum = a[i] >= L'0' && a[i] <= L'9';
-					bool bChunkIsNum = b[i] >= L'0' && b[i] <= L'9';
+					bool aChunkIsNum = a[aNumIndex] >= L'0' && a[aNumIndex] <= L'9';
+					bool bChunkIsNum = b[bNumIndex] >= L'0' && b[bNumIndex] <= L'9';
+
+					int aNumSign = 1;
+					// Could be start of negative number
+					if (!aChunkIsNum && (aNumIndex + 1) < a.length())
+					{
+						aChunkIsNum = (a[aNumIndex] == L'-' && (a[aNumIndex + 1] >= L'0' && a[aNumIndex + 1] <= L'9'));
+						aNumSign = -1;
+					}
+
+					int bNumSign = 1;
+					if (!bChunkIsNum && (bNumIndex + 1) < b.length())
+					{
+						bChunkIsNum = (b[bNumIndex] == L'-' && (b[bNumIndex + 1] >= L'0' && b[bNumIndex + 1] <= L'9'));
+						bNumSign = -1;
+					}
 
 					// One is number and one is string
 					if (aChunkIsNum != bChunkIsNum)
 					{
-						compareResult = a[i] - b[i];
-						// No need to update i; compareResult != 0
+						compareResult = a[aNumIndex] - b[bNumIndex];
+
+						// compareResult isn't necessarily 0
+						// consider this case: "0-0", "0-"
+						// "-0" is considered a number, but "-" isn't
+						// but we are comparing two "-', which is the same
+						// increment the indexes for this case and continue the loop
+						aNumIndex++;
+						bNumIndex++;
 					}
 					// Both are numbers
 					else if (aChunkIsNum)
 					{
-						size_t delta = 0;
+						// if the sign is differemt, just return the compareResult
+						if (aNumSign != bNumSign)
+						{
+							if (aNumSign == 1)
+							{
+								compareResult = 1;
+							}
+							else
+							{
+								compareResult = -1;
+							}
+							// No need to update anything; compareResult != 0; will break out while loop
+						}
+						else
+						{
+							if (aNumSign == -1)
+							{
+								aNumIndex++;
+								bNumIndex++;
+							}
 
-						// stoll crashes if number exceeds the limit for unsigned long long
-						// Maximum value for a variable of type unsigned long long | 18446744073709551615
-						// So take the max length 18 to convert the number
-						const size_t maxLen = 18;
-						compareResult = std::stoll(a.substr(i, maxLen)) - std::stoll(b.substr(i, maxLen), &delta);
-						i += delta;
+							size_t aNumEnd = a.find_first_not_of(L"1234567890", aNumIndex);
+							if (aNumEnd == generic_string::npos)
+							{
+								aNumEnd = a.length();
+							}
+
+							size_t bNumEnd = b.find_first_not_of(L"1234567890", bNumIndex);
+							if (bNumEnd == generic_string::npos)
+							{
+								bNumEnd = b.length();
+							}
+
+							int aZeroNum = 0;
+							while (aNumIndex < a.length() && a[aNumIndex] == '0')
+							{
+								aZeroNum++;
+								aNumIndex++;
+							}
+
+							int bZeroNum = 0;
+							while (bNumIndex < b.length() && b[bNumIndex] == '0')
+							{
+								bZeroNum++;
+								bNumIndex++;
+							}
+
+							size_t aNumLength = aNumEnd - aNumIndex;
+							size_t bNumLength = bNumEnd - bNumIndex;
+
+							// aNum is longer than bNum, must be larger (smaller if negative)
+							if (aNumLength > bNumLength)
+							{
+								compareResult = 1 * aNumSign;
+								// No need to update anything; compareResult != 0; will break out while loop
+							}
+							// bNum is longer than aNum, must be larger (smaller if negative)
+							else if (aNumLength < bNumLength)
+							{
+								compareResult = -1 * aNumSign;
+								// No need to update anything; compareResult != 0; will break out while loop
+							}
+							else
+							{
+								// the lengths of the numbers are equal
+								// compare the two number. However, we can not use std::stoll
+								// because the number strings can be every large, well over the maximum long long value
+								// thus, we compare each digit one by one
+								while (compareResult == 0
+									&& aNumIndex < a.length()
+									&& (a[aNumIndex] >= L'0' && a[aNumIndex] <= L'9')
+									&& bNumIndex < b.length()
+									&& (b[bNumIndex] >= L'0' && b[bNumIndex] <= L'9'))
+								{
+									compareResult = (a[aNumIndex] - b[bNumIndex]) * aNumSign;
+									aNumIndex++;
+									bNumIndex++;
+								}
+
+								if (compareResult == 0)
+								{
+									compareResult = bZeroNum - aZeroNum;
+								}
+							}
+						}
 					}
 					// Both are strings
 					else
 					{
-						size_t aChunkEnd = a.find_first_of(L"1234567890", i);
-						size_t bChunkEnd = b.find_first_of(L"1234567890", i);
-						compareResult = a.compare(i, aChunkEnd-i, b, i, bChunkEnd-i);
-						i = aChunkEnd;
+						if (a[aNumIndex] == L'-')
+						{
+							aNumIndex++;
+						}
+						if (b[bNumIndex] == L'-')
+						{
+							bNumIndex++;
+						}
+
+						size_t aChunkEnd = a.find_first_of(L"1234567890-", aNumIndex);
+						size_t bChunkEnd = b.find_first_of(L"1234567890-", bNumIndex);
+						compareResult = a.compare(aNumIndex, aChunkEnd - aNumIndex, b, bNumIndex, bChunkEnd - bNumIndex);
+						aNumIndex = aChunkEnd;
+						bNumIndex = bChunkEnd;
 					}
 				}
 
@@ -246,6 +503,8 @@ public:
 				}
 			});
 		}
+	
+
 		return lines;
 	}
 };
@@ -385,4 +644,30 @@ protected:
 	}
 };
 
-#endif //NPP_SORTERS_H
+class ReverseSorter : public ISorter
+{
+public:
+	ReverseSorter(bool isDescending, size_t fromColumn, size_t toColumn) : ISorter(isDescending, fromColumn, toColumn) { };
+
+	std::vector<generic_string> sort(std::vector<generic_string> lines) override
+	{
+		std::reverse(lines.begin(), lines.end());
+		return lines;
+	}
+};
+
+class RandomSorter : public ISorter
+{
+public:
+	unsigned seed;
+	RandomSorter(bool isDescending, size_t fromColumn, size_t toColumn) : ISorter(isDescending, fromColumn, toColumn)
+	{
+		seed = static_cast<unsigned>(time(NULL));
+	}
+	std::vector<generic_string> sort(std::vector<generic_string> lines) override
+	{
+		std::shuffle(lines.begin(), lines.end(), std::default_random_engine(seed));
+		return lines;
+	}
+};
+

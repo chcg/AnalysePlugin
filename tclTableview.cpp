@@ -1,11 +1,11 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,8 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 /**
 tclTableview implements the WINAPI functionality for the table of patterns 
@@ -38,8 +37,9 @@ const tstPatternConfTab tclTableview::gPatternConfTab[tclTableview::TBLVIEW_COL_
 #endif
     {TEXT("Hits"),   0 }
    ,{TEXT("Active"), 20 }
+   ,{TEXT("Order"),  30}
    ,{TEXT("Search"), 100}
-   ,{TEXT("Group"),50 }
+   ,{TEXT("Group"),  50 }
 #ifdef RESULT_COLORING
    ,{TEXT("Color"),  40 }
    ,{TEXT("BgCol"),  40 }
@@ -86,6 +86,7 @@ void tclTableview::refillTable(tclPatternList& pl) {
       item = ListView_InsertItem(mhList, &lvi);
       updateRow(item, rp);
    }
+   setOrderNumRowDefaultWidth(pl);
 }
 int tclTableview::insertRow(){
    if(mhList==0) {
@@ -123,7 +124,8 @@ void tclTableview::updateRow(int item, const tclPattern& rp) {
    TCHAR num[10];
    updateCell(item, TBLVIEW_COL_NUM, generic_itoa(item, num, 10));
 #endif
-   updateCell(item, TBLVIEW_COL_HITS, getHitCountStr(item));
+   updateCell(item, TBLVIEW_COL_HITS, generic_string(TEXT(""))); // TODO test if pattern is dirty before resetting.
+   updateCell(item, TBLVIEW_COL_ORDER_NUM, rp.getOrderNumStr());
    updateCell(item, TBLVIEW_COL_DO_SEARCH, rp.getDoSearch()?TEXT("X"):TEXT(""));
    updateCell(item, TBLVIEW_COL_SEARCH_TEXT, rp.getSearchText());
    updateCell(item, TBLVIEW_COL_SEARCH_TYPE, rp.getSearchTypeStr());
@@ -177,8 +179,86 @@ void tclTableview::setHitsRowVisible(bool bVisible, const tclResultList& results
    ListView_SetColumnWidth(mhList, TBLVIEW_COL_HITS, bVisible ? miHitsCountColSize : 0);
 }
 
-generic_string tclTableview::getHitCountStr(int row) const {
-   return generic_string(TEXT(""));
+void tclTableview::setGroupColumnVisible(bool bVisible) {
+   if (bVisible) {
+      ListView_SetColumnWidth(mhList, TBLVIEW_COL_GROUP, mGroupHideColWidth);
+      mGroupHideColWidth = 0;
+   }
+   else {
+      mGroupHideColWidth = ListView_GetColumnWidth(mhList, TBLVIEW_COL_GROUP);
+      ListView_SetColumnWidth(mhList, TBLVIEW_COL_GROUP, 0);
+   }
+}
+
+void tclTableview::setOrderNumRowVisible(bool bVisible) {
+   if (bVisible) {
+      ListView_SetColumnWidth(mhList, TBLVIEW_COL_ORDER_NUM, mOrderNumHideColWidth);
+      mOrderNumHideColWidth = 0;
+   }
+   else {
+      mOrderNumHideColWidth = ListView_GetColumnWidth(mhList, TBLVIEW_COL_ORDER_NUM);
+      ListView_SetColumnWidth(mhList, TBLVIEW_COL_ORDER_NUM, 0);
+   }
+}
+void tclTableview::checkGroupColVisibility(const tclPatternList& patterns) {
+   bool bHasGroup = false;
+   for (tclPatternList::const_iterator it = patterns.begin(); it != patterns.end(); ++it) {
+      if (it.getPattern().getGroup().length() > 0) {
+         bHasGroup = true;
+         break;
+      }
+   }
+   if (bHasGroup) {
+      if (!isGroupRowVisible()) {
+         setGroupColumnVisible();
+      }
+      else if (0 == ListView_GetColumnWidth(mhList, TBLVIEW_COL_GROUP)) {
+         mGroupHideColWidth = gPatternConfTab[TBLVIEW_COL_GROUP].iColumnSize;
+         setGroupColumnVisible();
+      } // else do nothing in case that column is already visible
+   }
+   else {
+      if (isGroupRowVisible()) {
+         setGroupColumnVisible(false);
+      }
+   }
+}
+
+void tclTableview::checkOrderNumRowVisibility(const tclPatternList& patterns) {
+   bool hasOrderNum = false;
+   for (tclPatternList::const_iterator it = patterns.begin(); it != patterns.end(); ++it) {
+      if (it.getPattern().getOrderNumStr().length() > 0) {
+         hasOrderNum = true;
+         break;
+      }
+   }
+   if (hasOrderNum) {
+      if (!isOrderNumRowVisible()) {
+         setOrderNumRowVisible();
+      }
+      else if(0 == ListView_GetColumnWidth(mhList, TBLVIEW_COL_ORDER_NUM)){
+         setOrderNumRowDefaultWidth(patterns);
+         setOrderNumRowVisible();
+      } // else do nothing in case that column is already visible
+   }
+   else {
+      if (isOrderNumRowVisible()) {
+         setOrderNumRowVisible(false);
+      }
+   }
+}
+
+void tclTableview::setOrderNumRowDefaultWidth(const tclPatternList& patterns) {
+   size_t max = 0;
+   for (tclPatternList::const_iterator it = patterns.begin(); it != patterns.end(); ++it) {
+      if (it.getPattern().getOrderNumStr().length() > max) {
+         max = it.getPattern().getOrderNumStr().length();
+      }
+   }
+   miOrderNumColSize = (max < 2) ? 20 :
+      (max < 3) ? 30 :
+      (max < 5) ? 35 :
+      (max < 7) ? 40 : 50;
 }
 
 void tclTableview::create(){
@@ -211,6 +291,8 @@ void tclTableview::resetTableColumns(bool bUpdateWindow) {
          }
       }
       ListView_SetColumnWidth(mhList, TBLVIEW_COL_HITS, isHitsRowVisible() ? miHitsCountColSize : 0);
+      ListView_SetColumnWidth(mhList, TBLVIEW_COL_ORDER_NUM, isOrderNumRowVisible() ? miOrderNumColSize : 0);
+      ListView_SetColumnWidth(mhList, TBLVIEW_COL_GROUP, isGroupRowVisible() ? gPatternConfTab[TBLVIEW_COL_GROUP].iColumnSize : 0);
       ::InvalidateRgn(mhList, 0, TRUE);
       ::UpdateWindow(mhList);
    }
@@ -248,7 +330,7 @@ generic_string tclTableview::getTableColumns() const {
    return res;
 }
 
-// ListView_SetColumnOrderArray(mTableView.getListViewHandle(), tclTableview::TBLVIEW_ITM_MAX, order);
+// ListView_SetColumnOrderArray(mTableView.getListViewHandle(), tclTableview::TBLVIEW_ITM_MAX, colOrder);
 void tclTableview::setTableColumnOrder(const generic_string& str) {
    TCHAR tmp[MAX_CHAR_CELL];
    generic_strncpy(tmp, str.c_str(), MAX_CHAR_CELL);
@@ -265,19 +347,19 @@ void tclTableview::setTableColumnOrder(const generic_string& str) {
 generic_string tclTableview::getTableColumnOrder() const {
    generic_string res;
    TCHAR tmp[20];
-   int order[TBLVIEW_COL_MAX];
-   memset(order, 0, sizeof(int) * TBLVIEW_COL_MAX);
-   ListView_GetColumnOrderArray(mhList, TBLVIEW_COL_MAX, order);
+   int colOrder[TBLVIEW_COL_MAX];
+   memset(colOrder, 0, sizeof(int) * TBLVIEW_COL_MAX);
+   ListView_GetColumnOrderArray(mhList, TBLVIEW_COL_MAX, colOrder);
    bool valid = true;
    for (int col = 0; col < TBLVIEW_COL_MAX; ++col) {
-      if (order[col] < 0) {
+      if (colOrder[col] < 0) {
          valid = false;
       }
    }
    for (int col = 0; col < TBLVIEW_COL_MAX; ++col) {
       tmp[0] = 0;
       if(valid) {
-         generic_itoa(order[col], tmp, 10);
+         generic_itoa(colOrder[col], tmp, 10);
       } else {
          generic_itoa(col, tmp, 10);
       }
@@ -295,6 +377,7 @@ generic_string tclTableview::getTableColumnOrder() const {
 generic_string tclTableview::getItemNumStr() const { return getItem(TBLVIEW_COL_NUM);}
 #endif
 generic_string tclTableview::getHitsStr() const { return getItem(TBLVIEW_COL_HITS); }
+generic_string tclTableview::getOrderNumStr() const { return getItem(TBLVIEW_COL_ORDER_NUM); }
 generic_string tclTableview::getDoSearchStr() const { return getItem(TBLVIEW_COL_DO_SEARCH);}
 generic_string tclTableview::getSearchTextStr() const { return getItem(TBLVIEW_COL_SEARCH_TEXT);}
 generic_string tclTableview::getSearchTypeStr() const {return getItem(TBLVIEW_COL_SEARCH_TYPE);}

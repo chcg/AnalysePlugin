@@ -1,29 +1,18 @@
 ﻿// This file is part of Notepad++ project
-// Copyright (C)2003 Don HO <don.h@free.fr>
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later version.
-//
-// Note that the GPL places important restrictions on "derived works", yet
-// it does not provide a detailed definition of that term.  To avoid      
-// misunderstandings, we consider an application to constitute a          
-// "derivative work" for the purpose of this license if it does any of the
-// following:                                                             
-// 1. Integrates source code from Notepad++.
-// 2. Integrates/includes/aggregates Notepad++ into a proprietary executable
-//    installer, such as those produced by InstallShield.
-// 3. Links to a library or executes a program that does any of the above.
+// Copyright (C)2021 Don HO <don.h@free.fr>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// at your option any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #pragma once
 
 LocalizationSwitcher::LocalizationDefinition localizationDefs[] =
@@ -31,7 +20,7 @@ LocalizationSwitcher::LocalizationDefinition localizationDefs[] =
 	{TEXT("English"), TEXT("english.xml")},
 	{TEXT("English (customizable)"), TEXT("english_customizable.xml")},
 	{TEXT("Français"), TEXT("french.xml")},
-	{TEXT("中文繁體"), TEXT("chinese.xml")},
+	{TEXT("台灣繁體"), TEXT("taiwaneseMandarin.xml")},
 	{TEXT("中文简体"), TEXT("chineseSimplified.xml")},
 	{TEXT("한국어"), TEXT("korean.xml")},
 	{TEXT("日本語"), TEXT("japanese.xml")},
@@ -70,7 +59,7 @@ LocalizationSwitcher::LocalizationDefinition localizationDefs[] =
 	{TEXT("Български"), TEXT("bulgarian.xml")},
 	{TEXT("Bahasa Indonesia"), TEXT("indonesian.xml")},
 	{TEXT("Gjuha shqipe"), TEXT("albanian.xml")},
-	{TEXT("Hrvatski jezik"), TEXT("croatian.xml")},
+	{TEXT("Hrvatski"), TEXT("croatian.xml")},
 	{TEXT("ქართული ენა"), TEXT("georgian.xml")},
 	{TEXT("Euskara"), TEXT("basque.xml")},
 	{TEXT("Español argentina"), TEXT("spanish_ar.xml")},
@@ -116,5 +105,10 @@ LocalizationSwitcher::LocalizationDefinition localizationDefs[] =
 	{TEXT("Brezhoneg"), TEXT("breton.xml")},
 	{TEXT("کوردی‬"), TEXT("kurdish.xml")},
 	{TEXT("Pig latin"), TEXT("piglatin.xml")},
-	{TEXT("Zulu"), TEXT("zulu.xml")}
+	{TEXT("Zulu"), TEXT("zulu.xml")},
+	{TEXT("Vèneto"), TEXT("venetian.xml")},
+	{TEXT("Gaeilge"), TEXT("irish.xml")},
+	{TEXT("नेपाली"), TEXT("nepali.xml")},
+	{TEXT("香港繁體"), TEXT("hongKongCantonese.xml")},
+	{TEXT("Аԥсуа бызшәа"), TEXT("abkhazian.xml")}
 };

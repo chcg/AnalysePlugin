@@ -1,11 +1,11 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,8 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 /**
 class tclPatternList contains a vector of tclPatterns
@@ -29,6 +28,8 @@ class tclPatternList contains a vector of tclPatterns
 // this value is used for the initial, first entry
 // it is intentionally high as inserting in front cause ID/2 values before
 #define PAT_INIT_ID 1000 
+#define PAT_LINE_TXT TEXT("Line ")
+#define PAT_ONUM_TXT TEXT("Ord# ")
 
 tclPattern tclPatternList::mDefault = tclPattern();
 
@@ -55,6 +56,24 @@ tPatId tclPatternList::getPatternId(unsigned index) const {
       ++it;
    }
    return it->first;
+}
+generic_string tclPatternList::getPatternIdentification(tPatId id) const {
+   const tclPattern& p = getPattern(id);
+   generic_string s;
+   if (p.getOrderNumStr().empty()) {
+      // can't use the order number so put line # in, as before
+      TCHAR index[5];
+      unsigned idx = getPatternIndex(id);
+      generic_itoa(idx, index, 10);
+      s = PAT_LINE_TXT;
+      s += index;
+   }
+   else {
+      // use the order number information
+      s = PAT_ONUM_TXT;
+      s += p.getOrderNumStr();
+   }
+   return s;
 }
 
 unsigned tclPatternList::getPatternIndex(tPatId id) const {
@@ -185,3 +204,81 @@ void tclPatternList::remove(tPatId i){
       mlsPatIds.clear();
    }
 }
+
+
+void tclPatternList::sort(tFuncStr func, bool bAscending){
+   tlmPatternList oldList = mlmPattern;
+   std::multimap <generic_string, tPatId> index;
+   tlmPatternList::const_iterator it = mlmPattern.begin();
+   for (; it != mlmPattern.end(); ++it) {
+      const generic_string& key = func(it->second);
+      std::pair<generic_string, tPatId> kp = { key , it->first };
+      index.insert(kp);
+   }
+   // after having index we clean the original instance to build up in right order
+   mlmPattern.clear();
+   mlsPatIds.clear();
+   if (bAscending) {
+      std::multimap < generic_string, tPatId>::const_iterator it = index.begin();
+      for (; it != index.end(); ++it) {
+         push_back(oldList.at(it->second)); // creates new patIds in correct order
+      }
+   }
+   else {
+      std::multimap < generic_string, tPatId>::const_reverse_iterator it = index.rbegin();
+      for (; it != index.rend(); ++it) {
+         push_back(oldList.at(it->second)); // creates new patIds in correct order
+      }
+   }
+}
+
+void tclPatternList::sort(tFuncInt func, bool bAscending){
+   tlmPatternList oldList = mlmPattern;
+   std::multimap <int, tPatId> index;
+   tlmPatternList::const_iterator it = mlmPattern.begin();
+   for (; it != mlmPattern.end(); ++it) {
+      const int& key = func(it->second);
+      std::pair<int, tPatId> kp = { key , it->first };
+      index.insert(kp);
+   }
+   // after having index we clean the original instance to build up in right order
+   mlmPattern.clear();
+   mlsPatIds.clear();
+   if (bAscending) {
+      std::multimap < int, tPatId>::const_iterator it = index.begin();
+      for (; it != index.end(); ++it) {
+         push_back(oldList.at(it->second)); // creates new patIds in correct order
+      }
+   }
+   else {
+      std::multimap < int, tPatId>::const_reverse_iterator it = index.rbegin();
+      for (; it != index.rend(); ++it) {
+         push_back(oldList.at(it->second)); // creates new patIds in correct order
+      }
+   }
+}
+
+void tclPatternList::sortByOrderNum(bool bAscending) {
+   tlmPatternList oldList = mlmPattern;
+   std::map < generic_string, tPatId> index;
+   tlmPatternList::const_iterator it = mlmPattern.begin();
+   for (; it != mlmPattern.end(); ++it) {
+      std::pair<generic_string, tPatId> kp = { it->second.getOrderNumStr() , it->first };
+      index.insert(kp);
+   }
+   // after having index we clean the original instance to build up in right order
+   mlmPattern.clear();
+   mlsPatIds.clear();
+   if (bAscending) {
+      std::map < generic_string, tPatId>::const_iterator it = index.begin();
+      for (; it != index.end(); ++it) {
+         push_back(oldList.at(it->second)); // creates new patIds in correct order
+      }
+   }
+   else {
+      std::map < generic_string, tPatId>::const_reverse_iterator it = index.rbegin();
+      for (; it != index.rend(); ++it) {
+         push_back(oldList.at(it->second)); // creates new patIds in correct order
+      }
+   }
+} 

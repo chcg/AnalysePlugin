@@ -1,13 +1,13 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 #ifndef HELP_DIALOG_H
 #define HELP_DEFINE_H
@@ -31,7 +30,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
 #define EMAIL_LINK TEXT("mailto:mattesh@gmx.net")
-#define NPP_PLUGINS_URL TEXT("http://analyseplugin.sourceforge.net/")
+#define NPP_PLUGINS_URL TEXT("https://analyseplugin.sourceforge.io/")
 #define AUTHOR_NAME TEXT("Matthias Hessling")
 
 class HelpDlg : public StaticDialog
@@ -39,7 +38,7 @@ class HelpDlg : public StaticDialog
 
 public:
    HelpDlg(const generic_string& version=generic_string(TEXT("no version"))) 
-      : StaticDialog(), mVersionString(version), _cmdId(0) {};
+      : StaticDialog(), _VersionString(version), _HSource(0), _cmdId(0) {};
 
    void init(HINSTANCE hInst, NppData nppData)
    {
@@ -55,7 +54,7 @@ public:
    }
 
    void setVersion(const generic_string& ver){
-      mVersionString = ver;
+      _VersionString = ver;
    }
 
    void setManText(const generic_string& man){
@@ -72,7 +71,7 @@ protected :
    virtual INT_PTR CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
    virtual INT_PTR CALLBACK run_dlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-   generic_string mVersionString;
+   generic_string _VersionString;
    generic_string mManual;
    generic_string mChanges;
 

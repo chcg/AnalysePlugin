@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2019 Matthias H. mattesh(at)gmx.net
+Copyright (C)2021 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -14,8 +14,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
    <xs:element name="AnalyseDoc">
@@ -28,6 +27,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
                      <xs:simpleContent>
                         <xs:extension base="xs:string">
                            <xs:attribute name="hits" type="xs:unsignedInt" />
+                           <xs:attribute name="orderNum" type="xs:string" />
                            <xs:attribute name="group" type="xs:string" />
                            <xs:attribute name="searchType" type="tSearchType" default="normal" />
                            <xs:attribute name="matchCase" type="xs:boolean" default="false" />

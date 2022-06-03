@@ -1,4 +1,6 @@
-// Unit Tests for Scintilla internal data structures
+/** @file testPartitioning.cxx
+ ** Unit Tests for Scintilla internal data structures
+ **/
 
 #include <cstddef>
 #include <cstring>
@@ -6,10 +8,11 @@
 #include <stdexcept>
 #include <string_view>
 #include <vector>
+#include <optional>
 #include <algorithm>
 #include <memory>
 
-#include "Platform.h"
+#include "Debugging.h"
 
 #include "Position.h"
 #include "SplitVector.h"
@@ -17,11 +20,11 @@
 
 #include "catch.hpp"
 
-using namespace Scintilla;
+using namespace Scintilla::Internal;
 
-const int growSize = 4;
+constexpr int growSize = 4;
 
-const int lengthTestArray = 8;
+constexpr int lengthTestArray = 8;
 static const int testArray[lengthTestArray] = {3, 4, 5, 6, 7, 8, 9, 10};
 
 // Test SplitVectorWithRangeAdd.
@@ -93,6 +96,32 @@ TEST_CASE("Partitioning") {
 		REQUIRE(0 == part.PositionFromPartition(0));
 		REQUIRE(5 == part.PositionFromPartition(1));
 		REQUIRE(8 == part.PositionFromPartition(2));
+	}
+
+	SECTION("InsertMultiple") {
+		part.InsertText(0, 10);
+		const Sci::Position positions[] { 2, 5, 7 };
+		part.InsertPartitions(1, positions, std::size(positions));
+		REQUIRE(4 == part.Partitions());
+		REQUIRE(0 == part.PositionFromPartition(0));
+		REQUIRE(2 == part.PositionFromPartition(1));
+		REQUIRE(5 == part.PositionFromPartition(2));
+		REQUIRE(7 == part.PositionFromPartition(3));
+		REQUIRE(10 == part.PositionFromPartition(4));
+	}
+
+	SECTION("InsertMultipleWithCast") {
+		part.InsertText(0, 9);
+		REQUIRE(1 == part.Partitions());
+		const ptrdiff_t positionsp[]{ 2, 4, 6, 8 };
+		part.InsertPartitionsWithCast(1, positionsp, std::size(positionsp));
+		REQUIRE(5 == part.Partitions());
+		REQUIRE(0 == part.PositionFromPartition(0));
+		REQUIRE(2 == part.PositionFromPartition(1));
+		REQUIRE(4 == part.PositionFromPartition(2));
+		REQUIRE(6 == part.PositionFromPartition(3));
+		REQUIRE(8 == part.PositionFromPartition(4));
+		REQUIRE(9 == part.PositionFromPartition(5));
 	}
 
 	SECTION("InsertReversed") {

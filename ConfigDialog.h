@@ -1,13 +1,13 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 #ifndef CONFIG_DIALOG_H
 #define CONFIG_DEFINE_H
@@ -52,7 +51,9 @@ public:
       , _pResultDlg(0)
       , _pParent(0)
       , _cmdId(0)
+      , mOnEnterAction(enOnEntNoAction)
       , mbOkPressed(false) 
+      , mResultFontSize(8)
       ,_pFgColour(0)
       ,_pBgColour(0)
       ,mOnAutoUpdate(0)
@@ -63,7 +64,6 @@ public:
       ,mDblClickJumps2EditView(false)
       ,mIsConfigured(false)
    {}
-      //, mFontSize(8) {}
 
    void init(HINSTANCE hInst, NppData nppData);
    
@@ -88,7 +88,7 @@ public:
    int getDisplayLineNo() const {
       return mDisplayLineNo;
    }
-   void setDisplayLineNo(int iOn) {
+   void setDisplayLineNo(bool iOn) {
       mDisplayLineNo = iOn;
    }
 
@@ -188,7 +188,7 @@ protected :
    ColourPicker2* _pBgColour;
    int mOnAutoUpdate;
    int mUseBookmark;
-   int mDisplayLineNo;
+   bool mDisplayLineNo;
    int mNumOfCfgFiles;
    AddCtxDlg _addCtxDlg;
    bool mIsSyncScroll;

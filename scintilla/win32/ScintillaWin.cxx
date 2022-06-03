@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdlib>
+#include <cstdint>
 #include <cassert>
 #include <cstring>
 #include <cstdio>
@@ -19,14 +20,22 @@
 #include <string_view>
 #include <vector>
 #include <map>
+#include <set>
+#include <optional>
 #include <algorithm>
 #include <memory>
 #include <chrono>
+#include <mutex>
 
+// Want to use std::min and std::max so don't want Windows.h version of min and max
+#if !defined(NOMINMAX)
+#define NOMINMAX
+#endif
 #undef _WIN32_WINNT
-#define _WIN32_WINNT 0x0500
+#define _WIN32_WINNT 0x0A00
 #undef WINVER
-#define WINVER 0x0500
+#define WINVER 0x0A00
+#define WIN32_LEAN_AND_MEAN 1
 #include <windows.h>
 #include <commctrl.h>
 #include <richedit.h>
@@ -43,19 +52,17 @@
 #include <dwrite.h>
 #endif
 
-#include "Platform.h"
-
+#include "ScintillaTypes.h"
+#include "ScintillaMessages.h"
+#include "ScintillaStructures.h"
 #include "ILoader.h"
 #include "ILexer.h"
-#include "Scintilla.h"
 
-#ifdef SCI_LEXER
-#include "SciLexer.h"
-#endif
-#include "CharacterCategory.h"
-#ifdef SCI_LEXER
-#include "LexerModule.h"
-#endif
+#include "Debugging.h"
+#include "Geometry.h"
+#include "Platform.h"
+
+#include "CharacterCategoryMap.h"
 #include "Position.h"
 #include "UniqueString.h"
 #include "SplitVector.h"
@@ -86,13 +93,11 @@
 #include "AutoComplete.h"
 #include "ScintillaBase.h"
 
-#ifdef SCI_LEXER
-#include "ExternalLexer.h"
-#endif
-
+#include "WinTypes.h"
 #include "PlatWin.h"
 #include "HanjaDic.h"
 #include "ScintillaWin.h"
+#include "BoostRegexSearch.h"
 
 #ifndef SPI_GETWHEELSCROLLLINES
 #define SPI_GETWHEELSCROLLLINES   104
@@ -100,6 +105,13 @@
 
 #ifndef WM_UNICHAR
 #define WM_UNICHAR                      0x0109
+#endif
+
+#ifndef WM_DPICHANGED
+#define WM_DPICHANGED 0x02E0
+#endif
+#ifndef WM_DPICHANGED_AFTERPARENT
+#define WM_DPICHANGED_AFTERPARENT 0x02E3
 #endif
 
 #ifndef UNICODE_NOCHAR
@@ -118,6 +130,8 @@
 #define MK_ALT 32
 #endif
 
+namespace {
+
 // Two idle messages SC_WIN_IDLE and SC_WORK_IDLE.
 
 // SC_WIN_IDLE is low priority so should occur after the next WM_PAINT
@@ -128,69 +142,72 @@ constexpr UINT SC_WIN_IDLE = 5001;
 // and delivering SCN_UPDATEUI
 constexpr UINT SC_WORK_IDLE = 5002;
 
-#define SC_INDICATOR_INPUT INDICATOR_IME
-#define SC_INDICATOR_TARGET INDICATOR_IME+1
-#define SC_INDICATOR_CONVERTED INDICATOR_IME+2
-#define SC_INDICATOR_UNKNOWN INDICATOR_IME_MAX
-
-#ifndef SCS_CAP_SETRECONVERTSTRING
-#define SCS_CAP_SETRECONVERTSTRING 0x00000004
-#define SCS_QUERYRECONVERTSTRING 0x00020000
-#define SCS_SETRECONVERTSTRING 0x00010000
-#endif
+constexpr int IndicatorInput = static_cast<int>(Scintilla::IndicatorNumbers::Ime);
+constexpr int IndicatorTarget = IndicatorInput + 1;
+constexpr int IndicatorConverted = IndicatorInput + 2;
+constexpr int IndicatorUnknown = IndicatorInput + 3;
 
 typedef UINT_PTR (WINAPI *SetCoalescableTimerSig)(HWND hwnd, UINT_PTR nIDEvent,
 	UINT uElapse, TIMERPROC lpTimerFunc, ULONG uToleranceDelay);
 
+}
+
 // GCC has trouble with the standard COM ABI so do it the old C way with explicit vtables.
 
 using namespace Scintilla;
+using namespace Scintilla::Internal;
 
 namespace {
 
 const TCHAR callClassName[] = TEXT("CallTip");
 
-void *PointerFromWindow(HWND hWnd) noexcept {
-	return reinterpret_cast<void *>(::GetWindowLongPtr(hWnd, 0));
-}
-
-void SetWindowPointer(HWND hWnd, void *ptr) noexcept {
-	::SetWindowLongPtr(hWnd, 0, reinterpret_cast<LONG_PTR>(ptr));
-}
-
 void SetWindowID(HWND hWnd, int identifier) noexcept {
 	::SetWindowLongPtr(hWnd, GWLP_ID, identifier);
 }
 
-Point PointFromPOINT(POINT pt) noexcept {
-	return Point::FromInts(pt.x, pt.y);
-}
 Point PointFromLParam(sptr_t lpoint) noexcept {
 	return Point::FromInts(GET_X_LPARAM(lpoint), GET_Y_LPARAM(lpoint));
 }
-constexpr POINT POINTFromPoint(Point pt) noexcept {
-	return POINT{ static_cast<LONG>(pt.x), static_cast<LONG>(pt.y) };
-}
+
 bool KeyboardIsKeyDown(int key) noexcept {
 	return (::GetKeyState(key) & 0x80000000) != 0;
 }
 
+constexpr bool KeyboardIsNumericKeypadFunction(uptr_t wParam, sptr_t lParam) {
+	// Bit 24 is the extended keyboard flag and the numeric keypad is non-extended
+	if ((lParam & (1 << 24)) != 0) {
+		// Not from the numeric keypad
+		return false;
+	}
+
+	switch (wParam) {
+	case VK_INSERT:	// 0
+	case VK_END:	// 1
+	case VK_DOWN:	// 2
+	case VK_NEXT:	// 3
+	case VK_LEFT:	// 4
+	case VK_CLEAR:	// 5
+	case VK_RIGHT:	// 6
+	case VK_HOME:	// 7
+	case VK_UP:		// 8
+	case VK_PRIOR:	// 9
+		return true;
+	default:
+		return false;
+	}
 }
 
-class ScintillaWin; 	// Forward declaration for COM interface subobjects
-
 typedef void VFunction(void);
-
 
 /**
  */
 class FormatEnumerator {
 public:
 	VFunction **vtbl;
-	int ref;
-	unsigned int pos;
+	ULONG ref;
+	ULONG pos;
 	std::vector<CLIPFORMAT> formats;
-	FormatEnumerator(int pos_, CLIPFORMAT formats_[], size_t formatsLen_);
+	FormatEnumerator(ULONG pos_, const CLIPFORMAT formats_[], size_t formatsLen_);
 };
 
 /**
@@ -219,8 +236,6 @@ public:
 	ScintillaWin *sci;
 	DropTarget() noexcept;
 };
-
-namespace {
 
 class IMContext {
 	HWND hwnd;
@@ -258,7 +273,42 @@ public:
 	}
 };
 
+class GlobalMemory;
+
+class ReverseArrowCursor {
+	UINT dpi = USER_DEFAULT_SCREEN_DPI;
+	HCURSOR cursor {};
+
+public:
+	ReverseArrowCursor() noexcept {}
+	// Deleted so ReverseArrowCursor objects can not be copied.
+	ReverseArrowCursor(const ReverseArrowCursor &) = delete;
+	ReverseArrowCursor(ReverseArrowCursor &&) = delete;
+	ReverseArrowCursor &operator=(const ReverseArrowCursor &) = delete;
+	ReverseArrowCursor &operator=(ReverseArrowCursor &&) = delete;
+	~ReverseArrowCursor() {
+		if (cursor) {
+			::DestroyCursor(cursor);
+		}
+	}
+
+	HCURSOR Load(UINT dpi_) noexcept {
+		if (cursor)	 {
+			if (dpi == dpi_) {
+				return cursor;
+			}
+			::DestroyCursor(cursor);
+		}
+
+		dpi = dpi_;
+		cursor = LoadReverseArrowCursor(dpi_);
+		return cursor ? cursor : ::LoadCursor({}, IDC_ARROW);
+	}
+};
+
 }
+
+namespace Scintilla::Internal {
 
 /**
  */
@@ -275,6 +325,10 @@ class ScintillaWin :
 	unsigned int linesPerScroll;	///< Intellimouse support
 	int wheelDelta; ///< Wheel delta from roll
 
+	UINT dpi = USER_DEFAULT_SCREEN_DPI;
+	ReverseArrowCursor reverseArrowCursor;
+
+	PRectangle rectangleClient;
 	HRGN hRgnUpdate;
 
 	bool hasOKText;
@@ -296,6 +350,9 @@ class ScintillaWin :
 #if defined(USE_D2D)
 	ID2D1RenderTarget *pRenderTarget;
 	bool renderTargetValid;
+	// rendering parameters for current monitor
+	HMONITOR hCurrentMonitor;
+	std::shared_ptr<RenderingParams> renderingParams;
 #endif
 
 	explicit ScintillaWin(HWND hwnd);
@@ -306,55 +363,71 @@ class ScintillaWin :
 	ScintillaWin &operator=(ScintillaWin &&) = delete;
 	// ~ScintillaWin() in public section
 
-	void Init();
 	void Finalise() override;
 #if defined(USE_D2D)
+	bool UpdateRenderingParams(bool force) noexcept;
 	void EnsureRenderTarget(HDC hdc);
-	void DropRenderTarget();
 #endif
+	void DropRenderTarget() noexcept;
 	HWND MainHWND() const noexcept;
 
 	static sptr_t DirectFunction(
 		    sptr_t ptr, UINT iMessage, uptr_t wParam, sptr_t lParam);
+	static sptr_t DirectStatusFunction(
+		    sptr_t ptr, UINT iMessage, uptr_t wParam, sptr_t lParam, int *pStatus);
 	static LRESULT PASCAL SWndProc(
 		    HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 	static LRESULT PASCAL CTWndProc(
 		    HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 
-	enum { invalidTimerID, standardTimerID, idleTimerID, fineTimerStart };
+	enum : UINT_PTR { invalidTimerID, standardTimerID, idleTimerID, fineTimerStart };
 
+	void DisplayCursor(Window::Cursor c) override;
 	bool DragThreshold(Point ptStart, Point ptNow) override;
 	void StartDrag() override;
-	static int MouseModifiers(uptr_t wParam) noexcept;
+	static KeyMod MouseModifiers(uptr_t wParam) noexcept;
 
 	Sci::Position TargetAsUTF8(char *text) const;
 	Sci::Position EncodedFromUTF8(const char *utf8, char *encoded) const;
+
+	void SetRenderingParams(Surface *psurf) const;
+
+	bool PaintDC(HDC hdc);
 	sptr_t WndPaint();
 
+	// DBCS
+	void ImeStartComposition();
+	void ImeEndComposition();
+	LRESULT ImeOnReconvert(LPARAM lParam);
 	sptr_t HandleCompositionWindowed(uptr_t wParam, sptr_t lParam);
 	sptr_t HandleCompositionInline(uptr_t wParam, sptr_t lParam);
 	static bool KoreanIME() noexcept;
-	void MoveImeCarets(Sci::Position offset);
-	void DrawImeIndicator(int indicator, int len);
+	void MoveImeCarets(Sci::Position offset) noexcept;
+	void DrawImeIndicator(int indicator, Sci::Position len);
 	void SetCandidateWindowPos();
 	void SelectionToHangul();
 	void EscapeHanja();
 	void ToggleHanja();
 	void AddWString(std::wstring_view wsv, CharacterSource charSource);
 
-	UINT CodePageOfDocument() const;
+	UINT CodePageOfDocument() const noexcept;
 	bool ValidCodePage(int codePage) const override;
-	sptr_t DefWndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) override;
+	std::string UTF8FromEncoded(std::string_view encoded) const override;
+	std::string EncodedFromUTF8(std::string_view utf8) const override;
+
+	std::string EncodeWString(std::wstring_view wsv);
+	sptr_t DefWndProc(Message iMessage, uptr_t wParam, sptr_t lParam) override;
 	void IdleWork() override;
-	void QueueIdleWork(WorkNeeded::workItems items, Sci::Position upTo) override;
+	void QueueIdleWork(WorkItems items, Sci::Position upTo) override;
 	bool SetIdle(bool on) override;
-	UINT_PTR timers[tickDwell+1] {};
+	UINT_PTR timers[static_cast<int>(TickReason::dwell)+1] {};
 	bool FineTickerRunning(TickReason reason) override;
 	void FineTickerStart(TickReason reason, int millis, int tolerance) override;
 	void FineTickerCancel(TickReason reason) override;
 	void SetMouseCapture(bool on) override;
 	bool HaveMouseCapture() override;
 	void SetTrackMouseLeaveEvent(bool on) noexcept;
+	void UpdateBaseElements() override;
 	bool PaintContains(PRectangle rc) override;
 	void ScrollText(Sci::Line linesToMove) override;
 	void NotifyCaretMove() override;
@@ -366,24 +439,19 @@ class ScintillaWin :
 	void NotifyFocus(bool focus) override;
 	void SetCtrlID(int identifier) override;
 	int GetCtrlID() override;
-	void NotifyParent(SCNotification scn) override;
-	void NotifyDoubleClick(Point pt, int modifiers) override;
-	CaseFolder *CaseFolderForEncoding() override;
-	std::string CaseMapString(const std::string &s, int caseMapping) override;
+	void NotifyParent(NotificationData scn) override;
+	void NotifyDoubleClick(Point pt, KeyMod modifiers) override;
+	std::unique_ptr<CaseFolder> CaseFolderForEncoding() override;
+	std::string CaseMapString(const std::string &s, CaseMapping caseMapping) override;
 	void Copy() override;
-	void CopyAllowLine() override;
 	bool CanPaste() override;
 	void Paste() override;
 	void CreateCallTipWindow(PRectangle rc) override;
 	void AddToPopUp(const char *label, int cmd = 0, bool enabled = true) override;
 	void ClaimSelection() override;
 
-	// DBCS
-	void ImeStartComposition();
-	void ImeEndComposition();
-	LRESULT ImeOnReconvert(LPARAM lParam);
-
 	void GetIntelliMouseParameters() noexcept;
+	void CopyToGlobal(GlobalMemory &gmUnicode, const SelectionText &selectedText);
 	void CopyToClipboard(const SelectionText &selectedText) override;
 	void ScrollMessage(WPARAM wParam);
 	void HorizontalScrollMessage(WPARAM wParam);
@@ -392,17 +460,30 @@ class ScintillaWin :
 	bool IsCompatibleDC(HDC hOtherDC) noexcept;
 	DWORD EffectFromState(DWORD grfKeyState) const noexcept;
 
+	bool IsVisible() const noexcept;
 	int SetScrollInfo(int nBar, LPCSCROLLINFO lpsi, BOOL bRedraw) noexcept;
 	bool GetScrollInfo(int nBar, LPSCROLLINFO lpsi) noexcept;
+	bool ChangeScrollRange(int nBar, int nMin, int nMax, UINT nPage) noexcept;
 	void ChangeScrollPos(int barType, Sci::Position pos);
 	sptr_t GetTextLength();
 	sptr_t GetText(uptr_t wParam, sptr_t lParam);
+	Window::Cursor ContextCursor(Point pt);
+	sptr_t ShowContextMenu(unsigned int iMessage, uptr_t wParam, sptr_t lParam);
+	PRectangle GetClientRectangle() const override;
+	void SizeWindow();
+	sptr_t MouseMessage(unsigned int iMessage, uptr_t wParam, sptr_t lParam);
+	sptr_t KeyMessage(unsigned int iMessage, uptr_t wParam, sptr_t lParam);
+	sptr_t FocusMessage(unsigned int iMessage, uptr_t wParam, sptr_t lParam);
+	sptr_t IMEMessage(unsigned int iMessage, uptr_t wParam, sptr_t lParam);
+	sptr_t EditMessage(unsigned int iMessage, uptr_t wParam, sptr_t lParam);
+	sptr_t IdleMessage(unsigned int iMessage, uptr_t wParam, sptr_t lParam);
+	sptr_t SciMessage(Message iMessage, uptr_t wParam, sptr_t lParam);
 
 public:
 	~ScintillaWin() override;
 
 	// Public for benefit of Scintilla_DirectFunction
-	sptr_t WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) override;
+	sptr_t WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) override;
 
 	/// Implement IUnknown
 	STDMETHODIMP QueryInterface(REFIID riid, PVOID *ppv);
@@ -420,12 +501,10 @@ public:
 	/// Implement important part of IDataObject
 	STDMETHODIMP GetData(FORMATETC *pFEIn, STGMEDIUM *pSTM);
 
+	static void Prepare() noexcept;
 	static bool Register(HINSTANCE hInstance_) noexcept;
 	static bool Unregister() noexcept;
 
-	friend class DropSource;
-	friend class DataObject;
-	friend class DropTarget;
 	bool DragIsRectangularOK(CLIPFORMAT fmt) const noexcept {
 		return drag.rectangular && (fmt == cfColumnSelect);
 	}
@@ -457,7 +536,9 @@ ScintillaWin::ScintillaWin(HWND hwnd) {
 	linesPerScroll = 0;
 	wheelDelta = 0;   // Wheel delta from roll
 
-	hRgnUpdate = 0;
+	dpi = DpiForWindow(hwnd);
+
+	hRgnUpdate = {};
 
 	hasOKText = false;
 
@@ -481,7 +562,7 @@ ScintillaWin::ScintillaWin(HWND hwnd) {
 	ds.sci = this;
 	dt.sci = this;
 
-	sysCaretBitmap = 0;
+	sysCaretBitmap = {};
 	sysCaretWidth = 0;
 	sysCaretHeight = 0;
 
@@ -490,45 +571,43 @@ ScintillaWin::ScintillaWin(HWND hwnd) {
 #if defined(USE_D2D)
 	pRenderTarget = nullptr;
 	renderTargetValid = true;
+	hCurrentMonitor = {};
 #endif
 
 	caret.period = ::GetCaretBlinkTime();
 	if (caret.period < 0)
 		caret.period = 0;
 
-	Init();
-}
-
-ScintillaWin::~ScintillaWin() {}
-
-void ScintillaWin::Init() {
 	// Initialize COM.  If the app has already done this it will have
 	// no effect.  If the app hasn't, we really shouldn't ask them to call
 	// it just so this internal feature works.
 	hrOle = ::OleInitialize(nullptr);
 
 	// Find SetCoalescableTimer which is only available from Windows 8+
-	HMODULE user32 = ::GetModuleHandle(TEXT("user32.dll"));
-	if (user32) {
-		SetCoalescableTimerFn = reinterpret_cast<SetCoalescableTimerSig>(
-			::GetProcAddress(user32, "SetCoalescableTimer"));
-	}
+	HMODULE user32 = ::GetModuleHandleW(L"user32.dll");
+	SetCoalescableTimerFn = DLLFunction<SetCoalescableTimerSig>(user32, "SetCoalescableTimer");
 
-	vs.indicators[SC_INDICATOR_UNKNOWN] = Indicator(INDIC_HIDDEN, ColourDesired(0, 0, 0xff));
-	vs.indicators[SC_INDICATOR_INPUT] = Indicator(INDIC_DOTS, ColourDesired(0, 0, 0xff));
-	vs.indicators[SC_INDICATOR_CONVERTED] = Indicator(INDIC_COMPOSITIONTHICK, ColourDesired(0, 0, 0xff));
-	vs.indicators[SC_INDICATOR_TARGET] = Indicator(INDIC_STRAIGHTBOX, ColourDesired(0, 0, 0xff));
+	vs.indicators[IndicatorUnknown] = Indicator(IndicatorStyle::Hidden, ColourRGBA(0, 0, 0xff));
+	vs.indicators[IndicatorInput] = Indicator(IndicatorStyle::Dots, ColourRGBA(0, 0, 0xff));
+	vs.indicators[IndicatorConverted] = Indicator(IndicatorStyle::CompositionThick, ColourRGBA(0, 0, 0xff));
+	vs.indicators[IndicatorTarget] = Indicator(IndicatorStyle::StraightBox, ColourRGBA(0, 0, 0xff));
+}
+
+ScintillaWin::~ScintillaWin() {
+	if (sysCaretBitmap) {
+		::DeleteObject(sysCaretBitmap);
+		sysCaretBitmap = {};
+	}
 }
 
 void ScintillaWin::Finalise() {
 	ScintillaBase::Finalise();
-	for (TickReason tr = tickCaret; tr <= tickDwell; tr = static_cast<TickReason>(tr + 1)) {
+	for (TickReason tr = TickReason::caret; tr <= TickReason::dwell;
+		tr = static_cast<TickReason>(static_cast<int>(tr) + 1)) {
 		FineTickerCancel(tr);
 	}
 	SetIdle(false);
-#if defined(USE_D2D)
 	DropRenderTarget();
-#endif
 	::RevokeDragDrop(MainHWND());
 	if (SUCCEEDED(hrOle)) {
 		::OleUninitialize();
@@ -537,21 +616,52 @@ void ScintillaWin::Finalise() {
 
 #if defined(USE_D2D)
 
+bool ScintillaWin::UpdateRenderingParams(bool force) noexcept {
+	if (!renderingParams) {
+		renderingParams = std::make_shared<RenderingParams>();
+	}
+	HMONITOR monitor = ::MonitorFromWindow(MainHWND(), MONITOR_DEFAULTTONEAREST);
+	if (!force && monitor == hCurrentMonitor && renderingParams->defaultRenderingParams) {
+		return false;
+	}
+
+	IDWriteRenderingParams *monitorRenderingParams = nullptr;
+	IDWriteRenderingParams *customClearTypeRenderingParams = nullptr;
+	const HRESULT hr = pIDWriteFactory->CreateMonitorRenderingParams(monitor, &monitorRenderingParams);
+	UINT clearTypeContrast = 0;
+	if (SUCCEEDED(hr) && ::SystemParametersInfo(SPI_GETFONTSMOOTHINGCONTRAST, 0, &clearTypeContrast, 0) != 0) {
+		if (clearTypeContrast >= 1000 && clearTypeContrast <= 2200) {
+			const FLOAT gamma = static_cast<FLOAT>(clearTypeContrast) / 1000.0f;
+			pIDWriteFactory->CreateCustomRenderingParams(gamma,
+				monitorRenderingParams->GetEnhancedContrast(),
+				monitorRenderingParams->GetClearTypeLevel(),
+				monitorRenderingParams->GetPixelGeometry(),
+				monitorRenderingParams->GetRenderingMode(),
+				&customClearTypeRenderingParams);
+		}
+	}
+
+	hCurrentMonitor = monitor;
+	renderingParams->defaultRenderingParams.reset(monitorRenderingParams);
+	renderingParams->customRenderingParams.reset(customClearTypeRenderingParams);
+	return true;
+}
+
+
 void ScintillaWin::EnsureRenderTarget(HDC hdc) {
 	if (!renderTargetValid) {
 		DropRenderTarget();
 		renderTargetValid = true;
 	}
-	if (pD2DFactory && !pRenderTarget) {
+	if (!pRenderTarget) {
 		HWND hw = MainHWND();
 		RECT rc;
-		GetClientRect(hw, &rc);
+		::GetClientRect(hw, &rc);
 
 		const D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
 
 		// Create a Direct2D render target.
-#if 1
-		D2D1_RENDER_TARGET_PROPERTIES drtp;
+		D2D1_RENDER_TARGET_PROPERTIES drtp {};
 		drtp.type = D2D1_RENDER_TARGET_TYPE_DEFAULT;
 		drtp.pixelFormat.format = DXGI_FORMAT_UNKNOWN;
 		drtp.pixelFormat.alphaMode = D2D1_ALPHA_MODE_UNKNOWN;
@@ -560,7 +670,7 @@ void ScintillaWin::EnsureRenderTarget(HDC hdc) {
 		drtp.usage = D2D1_RENDER_TARGET_USAGE_NONE;
 		drtp.minLevel = D2D1_FEATURE_LEVEL_DEFAULT;
 
-		if (technology == SC_TECHNOLOGY_DIRECTWRITEDC) {
+		if (technology == Technology::DirectWriteDC) {
 			// Explicit pixel format needed.
 			drtp.pixelFormat = D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
 				D2D1_ALPHA_MODE_IGNORE);
@@ -575,10 +685,10 @@ void ScintillaWin::EnsureRenderTarget(HDC hdc) {
 			}
 
 		} else {
-			D2D1_HWND_RENDER_TARGET_PROPERTIES dhrtp;
+			D2D1_HWND_RENDER_TARGET_PROPERTIES dhrtp {};
 			dhrtp.hwnd = hw;
 			dhrtp.pixelSize = size;
-			dhrtp.presentOptions = (technology == SC_TECHNOLOGY_DIRECTWRITERETAIN) ?
+			dhrtp.presentOptions = (technology == Technology::DirectWriteRetain) ?
 			D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS : D2D1_PRESENT_OPTIONS_NONE;
 
 			ID2D1HwndRenderTarget *pHwndRenderTarget = nullptr;
@@ -590,23 +700,14 @@ void ScintillaWin::EnsureRenderTarget(HDC hdc) {
 				pRenderTarget = nullptr;
 			}
 		}
-#else
-		pD2DFactory->CreateHwndRenderTarget(
-			D2D1::RenderTargetProperties(
-				D2D1_RENDER_TARGET_TYPE_DEFAULT ,
-				D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-				96.0f, 96.0f, D2D1_RENDER_TARGET_USAGE_NONE, D2D1_FEATURE_LEVEL_DEFAULT),
-			D2D1::HwndRenderTargetProperties(hw, size),
-			&pRenderTarget);
-#endif
 		// Pixmaps were created to be compatible with previous render target so
 		// need to be recreated.
-		DropGraphics(false);
+		DropGraphics();
 	}
 
-	if ((technology == SC_TECHNOLOGY_DIRECTWRITEDC) && pRenderTarget) {
+	if ((technology == Technology::DirectWriteDC) && pRenderTarget) {
 		RECT rcWindow;
-		GetClientRect(MainHWND(), &rcWindow);
+		::GetClientRect(MainHWND(), &rcWindow);
 		const HRESULT hr = static_cast<ID2D1DCRenderTarget*>(pRenderTarget)->BindDC(hdc, &rcWindow);
 		if (FAILED(hr)) {
 			Platform::DebugPrintf("BindDC failed 0x%lx\n", hr);
@@ -614,30 +715,39 @@ void ScintillaWin::EnsureRenderTarget(HDC hdc) {
 		}
 	}
 }
-
-void ScintillaWin::DropRenderTarget() {
-	if (pRenderTarget) {
-		pRenderTarget->Release();
-		pRenderTarget = nullptr;
-	}
-}
-
 #endif
 
+void ScintillaWin::DropRenderTarget() noexcept {
+#if defined(USE_D2D)
+	ReleaseUnknown(pRenderTarget);
+#endif
+}
+
 HWND ScintillaWin::MainHWND() const noexcept {
-	return static_cast<HWND>(wMain.GetID());
+	return HwndFromWindow(wMain);
+}
+
+void ScintillaWin::DisplayCursor(Window::Cursor c) {
+	if (cursorMode != CursorShape::Normal) {
+		c = static_cast<Window::Cursor>(cursorMode);
+	}
+	if (c == Window::Cursor::reverseArrow) {
+		::SetCursor(reverseArrowCursor.Load(dpi));
+	} else {
+		wMain.SetCursor(c);
+	}
 }
 
 bool ScintillaWin::DragThreshold(Point ptStart, Point ptNow) {
 	const Point ptDifference = ptStart - ptNow;
 	const XYPOSITION xMove = std::trunc(std::abs(ptDifference.x));
 	const XYPOSITION yMove = std::trunc(std::abs(ptDifference.y));
-	return (xMove > ::GetSystemMetrics(SM_CXDRAG)) ||
-		(yMove > ::GetSystemMetrics(SM_CYDRAG));
+	return (xMove > SystemMetricsForDpi(SM_CXDRAG, dpi)) ||
+		(yMove > SystemMetricsForDpi(SM_CYDRAG, dpi));
 }
 
 void ScintillaWin::StartDrag() {
-	inDragDrop = ddDragging;
+	inDragDrop = DragDrop::dragging;
 	DWORD dwEffect = 0;
 	dropWentOutside = true;
 	IDataObject *pDataObject = reinterpret_cast<IDataObject *>(&dob);
@@ -654,14 +764,17 @@ void ScintillaWin::StartDrag() {
 			ClearSelection();
 		}
 	}
-	inDragDrop = ddNone;
+	inDragDrop = DragDrop::none;
 	SetDragPosition(SelectionPosition(Sci::invalidPosition));
 }
 
-int ScintillaWin::MouseModifiers(uptr_t wParam) noexcept {
-	return ModifierFlags((wParam & MK_SHIFT) != 0,
+KeyMod ScintillaWin::MouseModifiers(uptr_t wParam) noexcept {
+	return ModifierFlags(
+		(wParam & MK_SHIFT) != 0,
 		(wParam & MK_CONTROL) != 0,
 		KeyboardIsKeyDown(VK_MENU));
+}
+
 }
 
 namespace {
@@ -677,36 +790,35 @@ int InputCodePage() noexcept {
 	return atoi(sCodePage);
 }
 
-/** Map the key codes to their equivalent SCK_ form. */
-int KeyTranslate(int keyIn) noexcept {
-//PLATFORM_ASSERT(!keyIn);
+/** Map the key codes to their equivalent Keys:: form. */
+Keys KeyTranslate(uptr_t keyIn) noexcept {
 	switch (keyIn) {
-		case VK_DOWN:		return SCK_DOWN;
-		case VK_UP:		return SCK_UP;
-		case VK_LEFT:		return SCK_LEFT;
-		case VK_RIGHT:		return SCK_RIGHT;
-		case VK_HOME:		return SCK_HOME;
-		case VK_END:		return SCK_END;
-		case VK_PRIOR:		return SCK_PRIOR;
-		case VK_NEXT:		return SCK_NEXT;
-		case VK_DELETE:	return SCK_DELETE;
-		case VK_INSERT:		return SCK_INSERT;
-		case VK_ESCAPE:	return SCK_ESCAPE;
-		case VK_BACK:		return SCK_BACK;
-		case VK_TAB:		return SCK_TAB;
-		case VK_RETURN:	return SCK_RETURN;
-		case VK_ADD:		return SCK_ADD;
-		case VK_SUBTRACT:	return SCK_SUBTRACT;
-		case VK_DIVIDE:		return SCK_DIVIDE;
-		case VK_LWIN:		return SCK_WIN;
-		case VK_RWIN:		return SCK_RWIN;
-		case VK_APPS:		return SCK_MENU;
-		case VK_OEM_2:		return '/';
-		case VK_OEM_3:		return '`';
-		case VK_OEM_4:		return '[';
-		case VK_OEM_5:		return '\\';
-		case VK_OEM_6:		return ']';
-		default:			return keyIn;
+	case VK_DOWN:		return Keys::Down;
+		case VK_UP:		return Keys::Up;
+		case VK_LEFT:		return Keys::Left;
+		case VK_RIGHT:		return Keys::Right;
+		case VK_HOME:		return Keys::Home;
+		case VK_END:		return Keys::End;
+		case VK_PRIOR:		return Keys::Prior;
+		case VK_NEXT:		return Keys::Next;
+		case VK_DELETE:	return Keys::Delete;
+		case VK_INSERT:		return Keys::Insert;
+		case VK_ESCAPE:	return Keys::Escape;
+		case VK_BACK:		return Keys::Back;
+		case VK_TAB:		return Keys::Tab;
+		case VK_RETURN:	return Keys::Return;
+		case VK_ADD:		return Keys::Add;
+		case VK_SUBTRACT:	return Keys::Subtract;
+		case VK_DIVIDE:		return Keys::Divide;
+		case VK_LWIN:		return Keys::Win;
+		case VK_RWIN:		return Keys::RWin;
+		case VK_APPS:		return Keys::Menu;
+		case VK_OEM_2:		return static_cast<Keys>('/');
+		case VK_OEM_3:		return static_cast<Keys>('`');
+		case VK_OEM_4:		return static_cast<Keys>('[');
+		case VK_OEM_5:		return static_cast<Keys>('\\');
+		case VK_OEM_6:		return static_cast<Keys>(']');
+		default:			return static_cast<Keys>(keyIn);
 	}
 }
 
@@ -787,18 +899,18 @@ std::wstring StringMapCase(std::wstring_view wsv, DWORD mapFlags) {
 // Returns the target converted to UTF8.
 // Return the length in bytes.
 Sci::Position ScintillaWin::TargetAsUTF8(char *text) const {
-	const Sci::Position targetLength = targetEnd - targetStart;
+	const Sci::Position targetLength = targetRange.Length();
 	if (IsUnicodeMode()) {
 		if (text) {
-			pdoc->GetCharRange(text, targetStart, targetLength);
+			pdoc->GetCharRange(text, targetRange.start.Position(), targetLength);
 		}
 	} else {
 		// Need to convert
-		const std::string s = RangeText(targetStart, targetEnd);
+		const std::string s = RangeText(targetRange.start.Position(), targetRange.end.Position());
 		const std::wstring characters = StringDecode(s, CodePageOfDocument());
-		const int utf8Len = MultiByteLenFromWideChar(CP_UTF8, characters);
+		const int utf8Len = MultiByteLenFromWideChar(CpUtf8, characters);
 		if (text) {
-			MultiByteFromWideChar(CP_UTF8, characters, text, utf8Len);
+			MultiByteFromWideChar(CpUtf8, characters, text, utf8Len);
 			text[utf8Len] = '\0';
 		}
 		return utf8Len;
@@ -818,9 +930,9 @@ Sci::Position ScintillaWin::EncodedFromUTF8(const char *utf8, char *encoded) con
 	} else {
 		// Need to convert
 		const std::string_view utf8Input(utf8, inputLength);
-		const int charsLen = WideCharLenFromMultiByte(CP_UTF8, utf8Input);
+		const int charsLen = WideCharLenFromMultiByte(CpUtf8, utf8Input);
 		std::wstring characters(charsLen, L'\0');
-		WideCharFromMultiByte(CP_UTF8, utf8Input, &characters[0], charsLen);
+		WideCharFromMultiByte(CpUtf8, utf8Input, &characters[0], charsLen);
 
 		const int encodedLen = MultiByteLenFromWideChar(CodePageOfDocument(), characters);
 		if (encoded) {
@@ -831,12 +943,53 @@ Sci::Position ScintillaWin::EncodedFromUTF8(const char *utf8, char *encoded) con
 	}
 }
 
+void ScintillaWin::SetRenderingParams([[maybe_unused]] Surface *psurf) const {
+#if defined(USE_D2D)
+	if (psurf) {
+		ISetRenderingParams *setDrawingParams = dynamic_cast<ISetRenderingParams *>(psurf);
+		if (setDrawingParams) {
+			setDrawingParams->SetRenderingParams(renderingParams);
+		}
+	}
+#endif
+}
+
+bool ScintillaWin::PaintDC(HDC hdc) {
+	if (technology == Technology::Default) {
+		AutoSurface surfaceWindow(hdc, this);
+		if (surfaceWindow) {
+			Paint(surfaceWindow, rcPaint);
+			surfaceWindow->Release();
+		}
+	} else {
+#if defined(USE_D2D)
+		EnsureRenderTarget(hdc);
+		if (pRenderTarget) {
+			AutoSurface surfaceWindow(pRenderTarget, this);
+			if (surfaceWindow) {
+				SetRenderingParams(surfaceWindow);
+				pRenderTarget->BeginDraw();
+				Paint(surfaceWindow, rcPaint);
+				surfaceWindow->Release();
+				const HRESULT hr = pRenderTarget->EndDraw();
+				if (hr == static_cast<HRESULT>(D2DERR_RECREATE_TARGET)) {
+					DropRenderTarget();
+					return false;
+				}
+			}
+		}
+#endif
+	}
+
+	return true;
+}
+
 sptr_t ScintillaWin::WndPaint() {
 	//ElapsedPeriod ep;
 
 	// Redirect assertions to debug output and save current state
 	const bool assertsPopup = Platform::ShowAssertionPopUps(false);
-	paintState = painting;
+	paintState = PaintState::painting;
 	PAINTSTRUCT ps = {};
 
 	// Removed since this interferes with reporting other assertions as it occurs repeatedly
@@ -847,40 +1000,21 @@ sptr_t ScintillaWin::WndPaint() {
 	rcPaint = PRectangle::FromInts(ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right, ps.rcPaint.bottom);
 	const PRectangle rcClient = GetClientRectangle();
 	paintingAllText = BoundsContains(rcPaint, hRgnUpdate, rcClient);
-	if (technology == SC_TECHNOLOGY_DEFAULT) {
-		AutoSurface surfaceWindow(ps.hdc, this);
-		if (surfaceWindow) {
-			Paint(surfaceWindow, rcPaint);
-			surfaceWindow->Release();
-		}
-	} else {
-#if defined(USE_D2D)
-		EnsureRenderTarget(ps.hdc);
-		AutoSurface surfaceWindow(pRenderTarget, this);
-		if (surfaceWindow) {
-			pRenderTarget->BeginDraw();
-			Paint(surfaceWindow, rcPaint);
-			surfaceWindow->Release();
-			const HRESULT hr = pRenderTarget->EndDraw();
-			if (hr == static_cast<HRESULT>(D2DERR_RECREATE_TARGET)) {
-				DropRenderTarget();
-				paintState = paintAbandoned;
-			}
-		}
-#endif
+	if (!PaintDC(ps.hdc)) {
+		paintState = PaintState::abandoned;
 	}
 	if (hRgnUpdate) {
 		::DeleteRgn(hRgnUpdate);
-		hRgnUpdate = 0;
+		hRgnUpdate = {};
 	}
 
 	::EndPaint(MainHWND(), &ps);
-	if (paintState == paintAbandoned) {
+	if (paintState == PaintState::abandoned) {
 		// Painting area was insufficient to cover new styling or brace highlight positions
 		FullPaint();
 		::ValidateRect(MainHWND(), nullptr);
 	}
-	paintState = notPainting;
+	paintState = PaintState::notPainting;
 
 	// Restore debug output state
 	Platform::ShowAssertionPopUps(assertsPopup);
@@ -893,11 +1027,11 @@ sptr_t ScintillaWin::HandleCompositionWindowed(uptr_t wParam, sptr_t lParam) {
 	if (lParam & GCS_RESULTSTR) {
 		IMContext imc(MainHWND());
 		if (imc.hIMC) {
-			AddWString(imc.GetCompositionString(GCS_RESULTSTR), CharacterSource::imeResult);
+			AddWString(imc.GetCompositionString(GCS_RESULTSTR), CharacterSource::ImeResult);
 
 			// Set new position after converted
 			const Point pos = PointMainCaret();
-			COMPOSITIONFORM CompForm;
+			COMPOSITIONFORM CompForm {};
 			CompForm.dwStyle = CFS_POINT;
 			CompForm.ptCurrentPos = POINTFromPoint(pos);
 			::ImmSetCompositionWindow(imc.hIMC, &CompForm);
@@ -912,7 +1046,7 @@ bool ScintillaWin::KoreanIME() noexcept {
 	return codePage == 949 || codePage == 1361;
 }
 
-void ScintillaWin::MoveImeCarets(Sci::Position offset) {
+void ScintillaWin::MoveImeCarets(Sci::Position offset) noexcept {
 	// Move carets relatively by bytes.
 	for (size_t r=0; r<sel.Count(); r++) {
 		const Sci::Position positionInsert = sel.Range(r).Start().Position();
@@ -921,12 +1055,12 @@ void ScintillaWin::MoveImeCarets(Sci::Position offset) {
 	}
 }
 
-void ScintillaWin::DrawImeIndicator(int indicator, int len) {
+void ScintillaWin::DrawImeIndicator(int indicator, Sci::Position len) {
 	// Emulate the visual style of IME characters with indicators.
 	// Draw an indicator on the character before caret by the character bytes of len
 	// so it should be called after InsertCharacter().
 	// It does not affect caret positions.
-	if (indicator < 8 || indicator > INDICATOR_MAX) {
+	if (indicator < 8 || indicator > IndicatorMax) {
 		return;
 	}
 	pdoc->DecorationSetCurrentIndicator(indicator);
@@ -940,11 +1074,17 @@ void ScintillaWin::SetCandidateWindowPos() {
 	IMContext imc(MainHWND());
 	if (imc.hIMC) {
 		const Point pos = PointMainCaret();
-		CANDIDATEFORM CandForm;
+		const PRectangle rcClient = GetTextRectangle();
+		CANDIDATEFORM CandForm{};
 		CandForm.dwIndex = 0;
-		CandForm.dwStyle = CFS_CANDIDATEPOS;
+		CandForm.dwStyle = CFS_EXCLUDE;
 		CandForm.ptCurrentPos.x = static_cast<int>(pos.x);
-		CandForm.ptCurrentPos.y = static_cast<int>(pos.y + vs.lineHeight);
+		CandForm.ptCurrentPos.y = static_cast<int>(pos.y + std::max(4, vs.lineHeight/4));
+		// Exclude the area of the whole caret line
+		CandForm.rcArea.top = static_cast<int>(pos.y);
+		CandForm.rcArea.bottom = static_cast<int>(pos.y + vs.lineHeight);
+		CandForm.rcArea.left = static_cast<int>(rcClient.left);
+		CandForm.rcArea.right = static_cast<int>(rcClient.right);
 		::ImmSetCandidateWindow(imc.hIMC, &CandForm);
 	}
 }
@@ -961,10 +1101,10 @@ void ScintillaWin::SelectionToHangul() {
 		pdoc->GetCharRange(&documentStr[0], selStart, documentStrLen);
 
 		std::wstring uniStr = StringDecode(documentStr, CodePageOfDocument());
-		const int converted = HanjaDict::GetHangulOfHanja(&uniStr[0]);
-		documentStr = StringEncode(uniStr, CodePageOfDocument());
+		const bool converted = HanjaDict::GetHangulOfHanja(uniStr);
 
-		if (converted > 0) {
+		if (converted) {
+			documentStr = StringEncode(uniStr, CodePageOfDocument());
 			pdoc->BeginUndoAction();
 			ClearSelection();
 			InsertPaste(&documentStr[0], documentStr.size());
@@ -989,7 +1129,7 @@ void ScintillaWin::EscapeHanja() {
 
 	// ImmEscapeW() may overwrite uniChar[] with a null terminated string.
 	// So enlarge it enough to Maximum 4 as in UTF-8.
-	unsigned int const safeLength = UTF8MaxBytes+1;
+	constexpr size_t safeLength = UTF8MaxBytes + 1;
 	std::string oneChar(safeLength, '\0');
 	pdoc->GetCharRange(&oneChar[0], currentPos, oneCharLen);
 
@@ -1000,7 +1140,7 @@ void ScintillaWin::EscapeHanja() {
 		// Set the candidate box position since IME may show it.
 		SetCandidateWindowPos();
 		// IME_ESC_HANJA_MODE appears to receive the first character only.
-		if (ImmEscapeW(GetKeyboardLayout(0), imc.hIMC, IME_ESC_HANJA_MODE, &uniChar[0])) {
+		if (::ImmEscapeW(GetKeyboardLayout(0), imc.hIMC, IME_ESC_HANJA_MODE, &uniChar[0])) {
 			SetSelection(currentPos, currentPos + oneCharLen);
 		}
 	}
@@ -1023,21 +1163,21 @@ void ScintillaWin::ToggleHanja() {
 namespace {
 
 std::vector<int> MapImeIndicators(std::vector<BYTE> inputStyle) {
-	std::vector<int> imeIndicator(inputStyle.size(), SC_INDICATOR_UNKNOWN);
+	std::vector<int> imeIndicator(inputStyle.size(), IndicatorUnknown);
 	for (size_t i = 0; i < inputStyle.size(); i++) {
 		switch (static_cast<int>(inputStyle.at(i))) {
 		case ATTR_INPUT:
-			imeIndicator[i] = SC_INDICATOR_INPUT;
+			imeIndicator[i] = IndicatorInput;
 			break;
 		case ATTR_TARGET_NOTCONVERTED:
 		case ATTR_TARGET_CONVERTED:
-			imeIndicator[i] = SC_INDICATOR_TARGET;
+			imeIndicator[i] = IndicatorTarget;
 			break;
 		case ATTR_CONVERTED:
-			imeIndicator[i] = SC_INDICATOR_CONVERTED;
+			imeIndicator[i] = IndicatorConverted;
 			break;
 		default:
-			imeIndicator[i] = SC_INDICATOR_UNKNOWN;
+			imeIndicator[i] = IndicatorUnknown;
 			break;
 		}
 	}
@@ -1083,6 +1223,10 @@ sptr_t ScintillaWin::HandleCompositionInline(uptr_t, sptr_t lParam) {
 
 	view.imeCaretBlockOverride = false;
 
+	if (lParam & GCS_RESULTSTR) {
+		AddWString(imc.GetCompositionString(GCS_RESULTSTR), CharacterSource::ImeResult);
+	}
+
 	if (lParam & GCS_COMPSTR) {
 		const std::wstring wcs = imc.GetCompositionString(GCS_COMPSTR);
 		if (wcs.empty()) {
@@ -1090,8 +1234,12 @@ sptr_t ScintillaWin::HandleCompositionInline(uptr_t, sptr_t lParam) {
 			return 0;
 		}
 
-		if (initialCompose)
+		if (initialCompose) {
 			ClearBeforeTentativeStart();
+		}
+
+		// Set candidate window left aligned to beginning of preedit string.
+		SetCandidateWindowPos();
 		pdoc->TentativeStart(); // TentativeActive from now on.
 
 		std::vector<int> imeIndicator = MapImeIndicators(imc.GetImeAttributes());
@@ -1102,114 +1250,161 @@ sptr_t ScintillaWin::HandleCompositionInline(uptr_t, sptr_t lParam) {
 			const size_t ucWidth = UTF16CharLength(wsv[i]);
 			const std::string docChar = StringEncode(wsv.substr(i, ucWidth), codePage);
 
-			InsertCharacter(docChar, CharacterSource::tentativeInput);
+			InsertCharacter(docChar, CharacterSource::TentativeInput);
 
-			DrawImeIndicator(imeIndicator[i], static_cast<unsigned int>(docChar.size()));
+			DrawImeIndicator(imeIndicator[i], docChar.size());
 			i += ucWidth;
 		}
 
-		// Move IME caret from current last position to imeCaretPos.
-		const int imeEndToImeCaretU16 = imc.GetImeCaretPos() - static_cast<unsigned int>(wcs.size());
-		const Sci::Position imeCaretPosDoc = pdoc->GetRelativePositionUTF16(CurrentPosition(), imeEndToImeCaretU16);
+		// Japanese IME after pressing Tab replaces input string with first candidate item (target string);
+		// when selecting other candidate item, previous item will be replaced with current one.
+		// After candidate item been added, it's looks like been full selected, it's better to keep caret
+		// at end of "selection" (end of input) instead of jump to beginning of input ("selection").
+		const bool onlyTarget = std::all_of(imeIndicator.begin(), imeIndicator.end(), [](int i) noexcept {
+			return i == IndicatorTarget;
+		});
+		if (!onlyTarget) {
+			// CS_NOMOVECARET: keep caret at beginning of composition string which already moved in InsertCharacter().
+			// GCS_CURSORPOS: current caret position is provided by IME.
+			Sci::Position imeEndToImeCaretU16 = -static_cast<Sci::Position>(wcs.size());
+			if (!(lParam & CS_NOMOVECARET) && (lParam & GCS_CURSORPOS)) {
+				imeEndToImeCaretU16 += imc.GetImeCaretPos();
+			}
+			if (imeEndToImeCaretU16 != 0) {
+				// Move back IME caret from current last position to imeCaretPos.
+				const Sci::Position currentPos = CurrentPosition();
+				const Sci::Position imeCaretPosDoc = pdoc->GetRelativePositionUTF16(currentPos, imeEndToImeCaretU16);
 
-		MoveImeCarets(- CurrentPosition() + imeCaretPosDoc);
+				MoveImeCarets(-currentPos + imeCaretPosDoc);
+
+				if (std::find(imeIndicator.begin(), imeIndicator.end(), IndicatorTarget) != imeIndicator.end()) {
+					// set candidate window left aligned to beginning of target string.
+					SetCandidateWindowPos();
+				}
+			}
+		}
 
 		if (KoreanIME()) {
 			view.imeCaretBlockOverride = true;
 		}
-	} else if (lParam & GCS_RESULTSTR) {
-		AddWString(imc.GetCompositionString(GCS_RESULTSTR), CharacterSource::imeResult);
 	}
 	EnsureCaretVisible();
-	SetCandidateWindowPos();
 	ShowCaretAtCurrentPosition();
 	return 0;
 }
 
 namespace {
 
-// Translate message IDs from WM_* and EM_* to SCI_* so can partly emulate Windows Edit control
-unsigned int SciMessageFromEM(unsigned int iMessage) noexcept {
+// Translate message IDs from WM_* and EM_* to Message::* so can partly emulate Windows Edit control
+Message SciMessageFromEM(unsigned int iMessage) noexcept {
 	switch (iMessage) {
-	case EM_CANPASTE: return SCI_CANPASTE;
-	case EM_CANUNDO: return SCI_CANUNDO;
-	case EM_EMPTYUNDOBUFFER: return SCI_EMPTYUNDOBUFFER;
-	case EM_FINDTEXTEX: return SCI_FINDTEXT;
-	case EM_FORMATRANGE: return SCI_FORMATRANGE;
-	case EM_GETFIRSTVISIBLELINE: return SCI_GETFIRSTVISIBLELINE;
-	case EM_GETLINECOUNT: return SCI_GETLINECOUNT;
-	case EM_GETSELTEXT: return SCI_GETSELTEXT;
-	case EM_GETTEXTRANGE: return SCI_GETTEXTRANGE;
-	case EM_HIDESELECTION: return SCI_HIDESELECTION;
-	case EM_LINEINDEX: return SCI_POSITIONFROMLINE;
-	case EM_LINESCROLL: return SCI_LINESCROLL;
-	case EM_REPLACESEL: return SCI_REPLACESEL;
-	case EM_SCROLLCARET: return SCI_SCROLLCARET;
-	case EM_SETREADONLY: return SCI_SETREADONLY;
-	case WM_CLEAR: return SCI_CLEAR;
-	case WM_COPY: return SCI_COPY;
-	case WM_CUT: return SCI_CUT;
-	case WM_SETTEXT: return SCI_SETTEXT;
-	case WM_PASTE: return SCI_PASTE;
-	case WM_UNDO: return SCI_UNDO;
+	case EM_CANPASTE: return Message::CanPaste;
+	case EM_CANUNDO: return Message::CanUndo;
+	case EM_EMPTYUNDOBUFFER: return Message::EmptyUndoBuffer;
+	case EM_FINDTEXTEX: return Message::FindText;
+	case EM_FORMATRANGE: return Message::FormatRange;
+	case EM_GETFIRSTVISIBLELINE: return Message::GetFirstVisibleLine;
+	case EM_GETLINECOUNT: return Message::GetLineCount;
+	case EM_GETSELTEXT: return Message::GetSelText;
+	case EM_GETTEXTRANGE: return Message::GetTextRange;
+	case EM_HIDESELECTION: return Message::HideSelection;
+	case EM_LINEINDEX: return Message::PositionFromLine;
+	case EM_LINESCROLL: return Message::LineScroll;
+	case EM_REPLACESEL: return Message::ReplaceSel;
+	case EM_SCROLLCARET: return Message::ScrollCaret;
+	case EM_SETREADONLY: return Message::SetReadOnly;
+	case WM_CLEAR: return Message::Clear;
+	case WM_COPY: return Message::Copy;
+	case WM_CUT: return Message::Cut;
+	case WM_SETTEXT: return Message::SetText;
+	case WM_PASTE: return Message::Paste;
+	case WM_UNDO: return Message::Undo;
 	}
-	return iMessage;
+	return static_cast<Message>(iMessage);
 }
 
 }
 
-namespace Scintilla {
+namespace Scintilla::Internal {
 
-UINT CodePageFromCharSet(DWORD characterSet, UINT documentCodePage) noexcept {
-	if (documentCodePage == SC_CP_UTF8) {
-		return SC_CP_UTF8;
+UINT CodePageFromCharSet(CharacterSet characterSet, UINT documentCodePage) noexcept {
+	if (documentCodePage == CpUtf8) {
+		return CpUtf8;
 	}
 	switch (characterSet) {
-	case SC_CHARSET_ANSI: return 1252;
+	case CharacterSet::Ansi: return 1252;
 	
 	// Cyrillic / Turkish or other languages cannot be shown in ANSI mode.
 	// This fixes such problem. For more information about this fix, check:
 	// https://github.com/notepad-plus-plus/notepad-plus-plus/issues/5671
-	//case SC_CHARSET_DEFAULT: return documentCodePage ? documentCodePage : 1252;
-	case SC_CHARSET_DEFAULT: return documentCodePage;
-	
-	case SC_CHARSET_BALTIC: return 1257;
-	case SC_CHARSET_CHINESEBIG5: return 950;
-	case SC_CHARSET_EASTEUROPE: return 1250;
-	case SC_CHARSET_GB2312: return 936;
-	case SC_CHARSET_GREEK: return 1253;
-	case SC_CHARSET_HANGUL: return 949;
-	case SC_CHARSET_MAC: return 10000;
-	case SC_CHARSET_OEM: return 437;
-	case SC_CHARSET_RUSSIAN: return 1251;
-	case SC_CHARSET_SHIFTJIS: return 932;
-	case SC_CHARSET_TURKISH: return 1254;
-	case SC_CHARSET_JOHAB: return 1361;
-	case SC_CHARSET_HEBREW: return 1255;
-	case SC_CHARSET_ARABIC: return 1256;
-	case SC_CHARSET_VIETNAMESE: return 1258;
-	case SC_CHARSET_THAI: return 874;
-	case SC_CHARSET_8859_15: return 28605;
+	//	case CharacterSet::Default: return documentCodePage ? documentCodePage : 1252;
+	case CharacterSet::Default: return documentCodePage;
+	case CharacterSet::Baltic: return 1257;
+	case CharacterSet::ChineseBig5: return 950;
+	case CharacterSet::EastEurope: return 1250;
+	case CharacterSet::GB2312: return 936;
+	case CharacterSet::Greek: return 1253;
+	case CharacterSet::Hangul: return 949;
+	case CharacterSet::Mac: return 10000;
+	case CharacterSet::Oem: return 437;
+	case CharacterSet::Russian: return 1251;
+	case CharacterSet::ShiftJis: return 932;
+	case CharacterSet::Turkish: return 1254;
+	case CharacterSet::Johab: return 1361;
+	case CharacterSet::Hebrew: return 1255;
+	case CharacterSet::Arabic: return 1256;
+	case CharacterSet::Vietnamese: return 1258;
+	case CharacterSet::Thai: return 874;
+	case CharacterSet::Iso8859_15: return 28605;
 	// Not supported
-	case SC_CHARSET_CYRILLIC: return documentCodePage;
-	case SC_CHARSET_SYMBOL: return documentCodePage;
+	case CharacterSet::Cyrillic: return documentCodePage;
+	case CharacterSet::Symbol: return documentCodePage;
+	default: break;
 	}
 	return documentCodePage;
 }
 
 }
 
-UINT ScintillaWin::CodePageOfDocument() const {
-	return CodePageFromCharSet(vs.styles[STYLE_DEFAULT].characterSet, pdoc->dbcsCodePage);
+UINT ScintillaWin::CodePageOfDocument() const noexcept {
+	return CodePageFromCharSet(vs.styles[StyleDefault].characterSet, pdoc->dbcsCodePage);
+}
+
+std::string ScintillaWin::EncodeWString(std::wstring_view wsv) {
+	if (IsUnicodeMode()) {
+		const size_t len = UTF8Length(wsv);
+		std::string putf(len, 0);
+		UTF8FromUTF16(wsv, putf.data(), len);
+		return putf;
+	} else {
+		// Not in Unicode mode so convert from Unicode to current Scintilla code page
+		return StringEncode(wsv, CodePageOfDocument());
+	}
 }
 
 sptr_t ScintillaWin::GetTextLength() {
-	return pdoc->CountUTF16(0, pdoc->Length());
+	if (pdoc->dbcsCodePage == 0 || pdoc->dbcsCodePage == CpUtf8) {
+		return pdoc->CountUTF16(0, pdoc->Length());
+	} else {
+		// Count the number of UTF-16 code units line by line
+		const UINT cpSrc = CodePageOfDocument();
+		const Sci::Line lines = pdoc->LinesTotal();
+		Sci::Position codeUnits = 0;
+		std::string lineBytes;
+		for (Sci::Line line = 0; line < lines; line++) {
+			const Sci::Position start = pdoc->LineStart(line);
+			const Sci::Position width = pdoc->LineStart(line+1) - start;
+			lineBytes.resize(width);
+			pdoc->GetCharRange(lineBytes.data(), start, width);
+			codeUnits += WideCharLenFromMultiByte(cpSrc, lineBytes);
+		}
+		return codeUnits;
+	}
 }
 
 sptr_t ScintillaWin::GetText(uptr_t wParam, sptr_t lParam) {
 	if (lParam == 0) {
-		return pdoc->CountUTF16(0, pdoc->Length());
+		return GetTextLength();
 	}
 	if (wParam == 0) {
 		return 0;
@@ -1220,52 +1415,591 @@ sptr_t ScintillaWin::GetText(uptr_t wParam, sptr_t lParam) {
 		return 0;
 	}
 	const Sci::Position lengthWanted = wParam - 1;
-	Sci::Position sizeRequestedRange = pdoc->GetRelativePositionUTF16(0, lengthWanted);
-	if (sizeRequestedRange < 0) {
-		// Requested more text than there is in the document.
-		sizeRequestedRange = pdoc->CountUTF16(0, pdoc->Length());
-	}
-	std::string docBytes(sizeRequestedRange, '\0');
-	pdoc->GetCharRange(&docBytes[0], 0, sizeRequestedRange);
 	if (IsUnicodeMode()) {
+		Sci::Position sizeRequestedRange = pdoc->GetRelativePositionUTF16(0, lengthWanted);
+		if (sizeRequestedRange < 0) {
+			// Requested more text than there is in the document.
+			sizeRequestedRange = pdoc->Length();
+		}
+		std::string docBytes(sizeRequestedRange, '\0');
+		pdoc->GetCharRange(&docBytes[0], 0, sizeRequestedRange);
 		const size_t uLen = UTF16FromUTF8(docBytes, ptr, lengthWanted);
 		ptr[uLen] = L'\0';
 		return uLen;
 	} else {
 		// Not Unicode mode
 		// Convert to Unicode using the current Scintilla code page
+		// Retrieve as UTF-16 line by line
 		const UINT cpSrc = CodePageOfDocument();
-		int lengthUTF16 = WideCharLenFromMultiByte(cpSrc, docBytes);
-		if (lengthUTF16 > lengthWanted)
-			lengthUTF16 = static_cast<int>(lengthWanted);
-		WideCharFromMultiByte(cpSrc, docBytes, ptr, lengthUTF16);
-		ptr[lengthUTF16] = L'\0';
-		return lengthUTF16;
+		const Sci::Line lines = pdoc->LinesTotal();
+		Sci::Position codeUnits = 0;
+		std::string lineBytes;
+		std::wstring lineAsUTF16;
+		for (Sci::Line line = 0; line < lines && codeUnits < lengthWanted; line++) {
+			const Sci::Position start = pdoc->LineStart(line);
+			const Sci::Position width = pdoc->LineStart(line + 1) - start;
+			lineBytes.resize(width);
+			pdoc->GetCharRange(lineBytes.data(), start, width);
+			const Sci::Position codeUnitsLine = WideCharLenFromMultiByte(cpSrc, lineBytes);
+			lineAsUTF16.resize(codeUnitsLine);
+			const Sci::Position lengthLeft = lengthWanted - codeUnits;
+			WideCharFromMultiByte(cpSrc, lineBytes, lineAsUTF16.data(), lineAsUTF16.length());
+			const Sci::Position lengthToCopy = std::min(lengthLeft, codeUnitsLine);
+			lineAsUTF16.copy(ptr + codeUnits, lengthToCopy);
+			codeUnits += lengthToCopy;
+		}
+		ptr[codeUnits] = L'\0';
+		return codeUnits;
 	}
 }
 
-sptr_t ScintillaWin::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
+Window::Cursor ScintillaWin::ContextCursor(Point pt) {
+	if (inDragDrop == DragDrop::dragging) {
+		return Window::Cursor::up;
+	} else {
+		// Display regular (drag) cursor over selection
+		if (PointInSelMargin(pt)) {
+			return GetMarginCursor(pt);
+		} else if (!SelectionEmpty() && PointInSelection(pt)) {
+			return Window::Cursor::arrow;
+		} else if (PointIsHotspot(pt)) {
+			return Window::Cursor::hand;
+		} else if (hoverIndicatorPos != Sci::invalidPosition) {
+			const Sci::Position pos = PositionFromLocation(pt, true, true);
+			if (pos != Sci::invalidPosition) {
+				return Window::Cursor::hand;
+			}
+		}
+	}
+	return Window::Cursor::text;
+}
+
+sptr_t ScintillaWin::ShowContextMenu(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
+	Point pt = PointFromLParam(lParam);
+	POINT rpt = POINTFromPoint(pt);
+	::ScreenToClient(MainHWND(), &rpt);
+	const Point ptClient = PointFromPOINT(rpt);
+	if (ShouldDisplayPopup(ptClient)) {
+		if ((pt.x == -1) && (pt.y == -1)) {
+			// Caused by keyboard so display menu near caret
+			pt = PointMainCaret();
+			POINT spt = POINTFromPoint(pt);
+			::ClientToScreen(MainHWND(), &spt);
+			pt = PointFromPOINT(spt);
+		}
+		ContextMenu(pt);
+		return 0;
+	}
+	return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+}
+
+PRectangle ScintillaWin::GetClientRectangle() const {
+	return rectangleClient;
+}
+
+void ScintillaWin::SizeWindow() {
+#if defined(USE_D2D)
+	if (paintState == PaintState::notPainting) {
+		DropRenderTarget();
+	} else {
+		renderTargetValid = false;
+	}
+#endif
+	//Platform::DebugPrintf("Scintilla WM_SIZE %d %d\n", LOWORD(lParam), HIWORD(lParam));
+	rectangleClient = wMain.GetClientPosition();
+	ChangeSize();
+}
+
+sptr_t ScintillaWin::MouseMessage(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
+	switch (iMessage) {
+	case WM_LBUTTONDOWN: {
+			// For IME, set the composition string as the result string.
+			IMContext imc(MainHWND());
+			if (imc.hIMC) {
+				::ImmNotifyIME(imc.hIMC, NI_COMPOSITIONSTR, CPS_COMPLETE, 0);
+			}
+			//
+			//Platform::DebugPrintf("Buttdown %d %x %x %x %x %x\n",iMessage, wParam, lParam,
+			//	KeyboardIsKeyDown(VK_SHIFT),
+			//	KeyboardIsKeyDown(VK_CONTROL),
+			//	KeyboardIsKeyDown(VK_MENU));
+			::SetFocus(MainHWND());
+			ButtonDownWithModifiers(PointFromLParam(lParam), ::GetMessageTime(),
+						MouseModifiers(wParam));
+		}
+		break;
+
+	case WM_LBUTTONUP:
+		ButtonUpWithModifiers(PointFromLParam(lParam),
+				      ::GetMessageTime(), MouseModifiers(wParam));
+		break;
+
+	case WM_RBUTTONDOWN: {
+			::SetFocus(MainHWND());
+			const Point pt = PointFromLParam(lParam);
+			if (!PointInSelection(pt)) {
+				CancelModes();
+				SetEmptySelection(PositionFromLocation(PointFromLParam(lParam)));
+			}
+
+			RightButtonDownWithModifiers(pt, ::GetMessageTime(), MouseModifiers(wParam));
+		}
+		break;
+
+	case WM_MBUTTONDOWN:
+		::SetFocus(MainHWND());
+		break;
+
+	case WM_MOUSEMOVE: {
+			const Point pt = PointFromLParam(lParam);
+
+			// Windows might send WM_MOUSEMOVE even though the mouse has not been moved:
+			// http://blogs.msdn.com/b/oldnewthing/archive/2003/10/01/55108.aspx
+			if (ptMouseLast != pt) {
+				SetTrackMouseLeaveEvent(true);
+				ButtonMoveWithModifiers(pt, ::GetMessageTime(), MouseModifiers(wParam));
+			}
+		}
+		break;
+
+	case WM_MOUSELEAVE:
+		SetTrackMouseLeaveEvent(false);
+		MouseLeave();
+		return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+
+	case WM_MOUSEWHEEL:
+		if (!mouseWheelCaptures) {
+			// if the mouse wheel is not captured, test if the mouse
+			// pointer is over the editor window and if not, don't
+			// handle the message but pass it on.
+			RECT rc;
+			GetWindowRect(MainHWND(), &rc);
+			const POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+			if (!PtInRect(&rc, pt))
+				return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+		}
+		// if autocomplete list active then send mousewheel message to it
+		if (ac.Active()) {
+			HWND hWnd = HwndFromWindow(*(ac.lb));
+			::SendMessage(hWnd, iMessage, wParam, lParam);
+			break;
+		}
+
+		// Don't handle datazoom.
+		// (A good idea for datazoom would be to "fold" or "unfold" details.
+		// i.e. if datazoomed out only class structures are visible, when datazooming in the control
+		// structures appear, then eventually the individual statements...)
+		if (wParam & MK_SHIFT) {
+			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+		}
+		// Either SCROLL or ZOOM. We handle the wheel steppings calculation
+		wheelDelta -= GET_WHEEL_DELTA_WPARAM(wParam);
+		if (std::abs(wheelDelta) >= WHEEL_DELTA && linesPerScroll > 0) {
+			Sci::Line linesToScroll = linesPerScroll;
+			if (linesPerScroll == WHEEL_PAGESCROLL)
+				linesToScroll = LinesOnScreen() - 1;
+			if (linesToScroll == 0) {
+				linesToScroll = 1;
+			}
+			linesToScroll *= (wheelDelta / WHEEL_DELTA);
+			if (wheelDelta >= 0)
+				wheelDelta = wheelDelta % WHEEL_DELTA;
+			else
+				wheelDelta = -(-wheelDelta % WHEEL_DELTA);
+
+			if (wParam & MK_CONTROL) {
+				// Zoom! We play with the font sizes in the styles.
+				// Number of steps/line is ignored, we just care if sizing up or down
+				if (linesToScroll < 0) {
+					KeyCommand(Message::ZoomIn);
+				} else {
+					KeyCommand(Message::ZoomOut);
+				}
+			} else {
+				// Scroll
+				ScrollTo(topLine + linesToScroll);
+			}
+		}
+		return 0;
+	}
+	return 0;
+}
+
+sptr_t ScintillaWin::KeyMessage(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
+	switch (iMessage) {
+
+	case WM_SYSKEYDOWN:
+	case WM_KEYDOWN: {
+			// Platform::DebugPrintf("Keydown %c %c%c%c%c %x %x\n",
+			// iMessage == WM_KEYDOWN ? 'K' : 'S',
+			// (lParam & (1 << 24)) ? 'E' : '-',
+			// KeyboardIsKeyDown(VK_SHIFT) ? 'S' : '-',
+			// KeyboardIsKeyDown(VK_CONTROL) ? 'C' : '-',
+			// KeyboardIsKeyDown(VK_MENU) ? 'A' : '-',
+			// wParam, lParam);
+			lastKeyDownConsumed = false;
+			const bool altDown = KeyboardIsKeyDown(VK_MENU);
+			if (altDown && KeyboardIsNumericKeypadFunction(wParam, lParam)) {
+				// Don't interpret these as they may be characters entered by number.
+				return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+			}
+			const int ret = KeyDownWithModifiers(
+								 KeyTranslate(wParam),
+							     ModifierFlags(KeyboardIsKeyDown(VK_SHIFT),
+									     KeyboardIsKeyDown(VK_CONTROL),
+									     altDown),
+							     &lastKeyDownConsumed);
+			if (!ret && !lastKeyDownConsumed) {
+				return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+			}
+			break;
+		}
+
+	case WM_KEYUP:
+		//Platform::DebugPrintf("S keyup %d %x %x\n",iMessage, wParam, lParam);
+		return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+
+	case WM_CHAR:
+		if (((wParam >= 128) || !iscntrl(static_cast<int>(wParam))) || !lastKeyDownConsumed) {
+			wchar_t wcs[3] = { static_cast<wchar_t>(wParam), 0 };
+			unsigned int wclen = 1;
+			if (IS_HIGH_SURROGATE(wcs[0])) {
+				// If this is a high surrogate character, we need a second one
+				lastHighSurrogateChar = wcs[0];
+				return 0;
+			} else if (IS_LOW_SURROGATE(wcs[0])) {
+				wcs[1] = wcs[0];
+				wcs[0] = lastHighSurrogateChar;
+				lastHighSurrogateChar = 0;
+				wclen = 2;
+			}
+			AddWString(std::wstring_view(wcs, wclen), CharacterSource::DirectInput);
+		}
+		return 0;
+
+	case WM_UNICHAR:
+		if (wParam == UNICODE_NOCHAR) {
+			return TRUE;
+		} else if (lastKeyDownConsumed) {
+			return 1;
+		} else {
+			wchar_t wcs[3] = { 0 };
+			const size_t wclen = UTF16FromUTF32Character(static_cast<unsigned int>(wParam), wcs);
+			AddWString(std::wstring_view(wcs, wclen), CharacterSource::DirectInput);
+			return FALSE;
+		}
+	}
+
+	return 0;
+}
+
+sptr_t ScintillaWin::FocusMessage(unsigned int iMessage, uptr_t wParam, sptr_t) {
+	switch (iMessage) {
+	case WM_KILLFOCUS: {
+		HWND wOther = reinterpret_cast<HWND>(wParam);
+		HWND wThis = MainHWND();
+		const HWND wCT = HwndFromWindow(ct.wCallTip);
+		if (!wParam ||
+			!(::IsChild(wThis, wOther) || (wOther == wCT))) {
+			SetFocusState(false);
+			DestroySystemCaret();
+		}
+		// Explicitly complete any IME composition
+		IMContext imc(MainHWND());
+		if (imc.hIMC) {
+			::ImmNotifyIME(imc.hIMC, NI_COMPOSITIONSTR, CPS_COMPLETE, 0);
+		}
+		break;
+	}
+
+	case WM_SETFOCUS:
+		SetFocusState(true);
+		DestroySystemCaret();
+		CreateSystemCaret();
+		break;
+	}
+	return 0;
+}
+
+sptr_t ScintillaWin::IMEMessage(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
+	switch (iMessage) {
+
+	case WM_INPUTLANGCHANGE:
+		return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+
+	case WM_INPUTLANGCHANGEREQUEST:
+		return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+
+	case WM_IME_KEYDOWN: {
+			if (wParam == VK_HANJA) {
+				ToggleHanja();
+			}
+			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+		}
+
+	case WM_IME_REQUEST: {
+			if (wParam == IMR_RECONVERTSTRING) {
+				return ImeOnReconvert(lParam);
+			}
+			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+		}
+
+	case WM_IME_STARTCOMPOSITION:
+		if (KoreanIME() || imeInteraction == IMEInteraction::Inline) {
+			return 0;
+		} else {
+			ImeStartComposition();
+			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+		}
+
+	case WM_IME_ENDCOMPOSITION:
+		ImeEndComposition();
+		return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+
+	case WM_IME_COMPOSITION:
+		if (KoreanIME() || imeInteraction == IMEInteraction::Inline) {
+			return HandleCompositionInline(wParam, lParam);
+		} else {
+			return HandleCompositionWindowed(wParam, lParam);
+		}
+
+	case WM_IME_SETCONTEXT:
+		if (KoreanIME() || imeInteraction == IMEInteraction::Inline) {
+			if (wParam) {
+				LPARAM NoImeWin = lParam;
+				NoImeWin = NoImeWin & (~ISC_SHOWUICOMPOSITIONWINDOW);
+				return ::DefWindowProc(MainHWND(), iMessage, wParam, NoImeWin);
+			}
+		}
+		return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+
+	case WM_IME_NOTIFY:
+		return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+
+	}
+	return 0;
+}
+
+sptr_t ScintillaWin::EditMessage(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
+	switch (iMessage) {
+
+	case EM_LINEFROMCHAR:
+		if (PositionFromUPtr(wParam) < 0) {
+			wParam = SelectionStart().Position();
+		}
+		return pdoc->LineFromPosition(wParam);
+
+	case EM_EXLINEFROMCHAR:
+		return pdoc->LineFromPosition(lParam);
+
+	case EM_GETSEL:
+		if (wParam) {
+			*reinterpret_cast<DWORD *>(wParam) = static_cast<DWORD>(SelectionStart().Position());
+		}
+		if (lParam) {
+			*reinterpret_cast<DWORD *>(lParam) = static_cast<DWORD>(SelectionEnd().Position());
+		}
+		return MAKELRESULT(SelectionStart().Position(), SelectionEnd().Position());
+
+	case EM_EXGETSEL: {
+			if (lParam == 0) {
+				return 0;
+			}
+			CHARRANGE *pCR = reinterpret_cast<CHARRANGE *>(lParam);
+			pCR->cpMin = static_cast<LONG>(SelectionStart().Position());
+			pCR->cpMax = static_cast<LONG>(SelectionEnd().Position());
+		}
+		break;
+
+	case EM_SETSEL: {
+			Sci::Position nStart = wParam;
+			Sci::Position nEnd = lParam;
+			if (nStart == 0 && nEnd == -1) {
+				nEnd = pdoc->Length();
+			}
+			if (nStart == -1) {
+				nStart = nEnd;	// Remove selection
+			}
+			SetSelection(nEnd, nStart);
+			EnsureCaretVisible();
+		}
+		break;
+
+	case EM_EXSETSEL: {
+			if (lParam == 0) {
+				return 0;
+			}
+			const CHARRANGE *pCR = reinterpret_cast<const CHARRANGE *>(lParam);
+			sel.selType = Selection::SelTypes::stream;
+			if (pCR->cpMin == 0 && pCR->cpMax == -1) {
+				SetSelection(pCR->cpMin, pdoc->Length());
+			} else {
+				SetSelection(pCR->cpMin, pCR->cpMax);
+			}
+			EnsureCaretVisible();
+			return pdoc->LineFromPosition(SelectionStart().Position());
+		}
+	}
+	return 0;
+}
+
+sptr_t ScintillaWin::IdleMessage(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
+	switch (iMessage) {
+	case SC_WIN_IDLE:
+		// wParam=dwTickCountInitial, or 0 to initialize.  lParam=bSkipUserInputTest
+		if (idler.state) {
+			if (lParam || (WAIT_TIMEOUT == MsgWaitForMultipleObjects(0, nullptr, 0, 0, QS_INPUT | QS_HOTKEY))) {
+				if (Idle()) {
+					// User input was given priority above, but all events do get a turn.  Other
+					// messages, notifications, etc. will get interleaved with the idle messages.
+
+					// However, some things like WM_PAINT are a lower priority, and will not fire
+					// when there's a message posted.  So, several times a second, we stop and let
+					// the low priority events have a turn (after which the timer will fire again).
+
+					// Suppress a warning from Code Analysis that the GetTickCount function
+					// wraps after 49 days. The WM_TIMER will kick off another SC_WIN_IDLE
+					// after the wrap.
+#ifdef _MSC_VER
+#pragma warning(suppress: 28159)
+#endif
+					const DWORD dwCurrent = GetTickCount();
+					const DWORD dwStart = wParam ? static_cast<DWORD>(wParam) : dwCurrent;
+					constexpr DWORD maxWorkTime = 50;
+
+					if (dwCurrent >= dwStart && dwCurrent > maxWorkTime &&dwCurrent - maxWorkTime < dwStart)
+						PostMessage(MainHWND(), SC_WIN_IDLE, dwStart, 0);
+				} else {
+					SetIdle(false);
+				}
+			}
+		}
+		break;
+
+	case SC_WORK_IDLE:
+		IdleWork();
+		break;
+	}
+	return 0;
+}
+
+sptr_t ScintillaWin::SciMessage(Message iMessage, uptr_t wParam, sptr_t lParam) {
+	switch (iMessage) {
+	case Message::GetDirectFunction:
+		return reinterpret_cast<sptr_t>(DirectFunction);
+
+	case Message::GetDirectStatusFunction:
+		return reinterpret_cast<sptr_t>(DirectStatusFunction);
+
+	case Message::GetDirectPointer:
+		return reinterpret_cast<sptr_t>(this);
+
+#ifdef SCI_OWNREGEX
+	case Message::GetBoostRegexErrmsg:
+	{
+		// copies behavior of SCI_GETTEXT
+		if (lParam == 0)
+			return g_exceptionMessage.length() + 1;
+		if (wParam == 0)
+			return 0;
+		char *ptr = CharPtrFromSPtr(lParam);
+		const Sci_Position len = std::min<Sci_Position>(wParam - 1, g_exceptionMessage.length());
+		strncpy (ptr, g_exceptionMessage.c_str(), len);
+		ptr [len] = '\0';
+		return len;
+	}
+#endif
+
+	case Message::GrabFocus:
+		::SetFocus(MainHWND());
+		break;
+
+#ifdef INCLUDE_DEPRECATED_FEATURES
+	case Message::SETKEYSUNICODE:
+		break;
+
+	case Message::GETKEYSUNICODE:
+		return true;
+#endif
+
+	case Message::SetTechnology:
+		if (const Technology technologyNew = static_cast<Technology>(wParam);
+			(technologyNew == Technology::Default) ||
+			(technologyNew == Technology::DirectWriteRetain) ||
+			(technologyNew == Technology::DirectWriteDC) ||
+			(technologyNew == Technology::DirectWrite)) {
+			if (technology != technologyNew) {
+				if (technologyNew > Technology::Default) {
+#if defined(USE_D2D)
+					if (!LoadD2D()) {
+						// Failed to load Direct2D or DirectWrite so no effect
+						return 0;
+					}
+					UpdateRenderingParams(true);
+#else
+					return 0;
+#endif
+				} else {
+					bidirectional = Bidirectional::Disabled;
+				}
+				DropRenderTarget();
+				technology = technologyNew;
+				view.bufferedDraw = technologyNew == Technology::Default;
+				// Invalidate all cached information including layout.
+				InvalidateStyleRedraw();
+			}
+		}
+		break;
+
+	case Message::SetBidirectional:
+		if (technology == Technology::Default) {
+			bidirectional = Bidirectional::Disabled;
+		} else if (static_cast<Bidirectional>(wParam) <= Bidirectional::R2L) {
+			bidirectional = static_cast<Bidirectional>(wParam);
+		}
+		// Invalidate all cached information including layout.
+		InvalidateStyleRedraw();
+		break;
+
+	case Message::TargetAsUTF8:
+		return TargetAsUTF8(CharPtrFromSPtr(lParam));
+
+	case Message::EncodedFromUTF8:
+		return EncodedFromUTF8(ConstCharPtrFromUPtr(wParam),
+			CharPtrFromSPtr(lParam));
+
+	default:
+		break;
+
+	}
+	return 0;
+}
+
+sptr_t ScintillaWin::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 	try {
 		//Platform::DebugPrintf("S M:%x WP:%x L:%x\n", iMessage, wParam, lParam);
-		iMessage = SciMessageFromEM(iMessage);
-		switch (iMessage) {
+		const unsigned int msg = static_cast<unsigned int>(iMessage);
+		switch (msg) {
 
 		case WM_CREATE:
-			ctrlID = ::GetDlgCtrlID(static_cast<HWND>(wMain.GetID()));
+			ctrlID = ::GetDlgCtrlID(HwndFromWindow(wMain));
+			UpdateBaseElements();
 			// Get Intellimouse scroll line parameters
 			GetIntelliMouseParameters();
 			::RegisterDragDrop(MainHWND(), reinterpret_cast<IDropTarget *>(&dt));
 			break;
+
 		case WM_COMMAND:
 			Command(LOWORD(wParam));
 			break;
+
 		case WM_PAINT:
 			return WndPaint();
 
 		case WM_PRINTCLIENT: {
 				HDC hdc = reinterpret_cast<HDC>(wParam);
 				if (!IsCompatibleDC(hdc)) {
-					return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+					return ::DefWindowProc(MainHWND(), msg, wParam, lParam);
 				}
 				FullPaintDC(hdc);
 			}
@@ -1279,75 +2013,9 @@ sptr_t ScintillaWin::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam
 			HorizontalScrollMessage(wParam);
 			break;
 
-		case WM_SIZE: {
-#if defined(USE_D2D)
-				if (paintState == notPainting) {
-					DropRenderTarget();
-				} else {
-					renderTargetValid = false;
-				}
-#endif
-				//Platform::DebugPrintf("Scintilla WM_SIZE %d %d\n", LOWORD(lParam), HIWORD(lParam));
-				ChangeSize();
-			}
+		case WM_SIZE:
+			SizeWindow();
 			break;
-
-		case WM_MOUSEWHEEL:
-			if (!mouseWheelCaptures) {
-				// if the mouse wheel is not captured, test if the mouse
-				// pointer is over the editor window and if not, don't
-				// handle the message but pass it on.
-				RECT rc;
-				GetWindowRect(MainHWND(), &rc);
-				POINT pt;
-				pt.x = GET_X_LPARAM(lParam);
-				pt.y = GET_Y_LPARAM(lParam);
-				if (!PtInRect(&rc, pt))
-					return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
-			}
-			// if autocomplete list active then send mousewheel message to it
-			if (ac.Active()) {
-				HWND hWnd = static_cast<HWND>(ac.lb->GetID());
-				::SendMessage(hWnd, iMessage, wParam, lParam);
-				break;
-			}
-
-			// Don't handle datazoom.
-			// (A good idea for datazoom would be to "fold" or "unfold" details.
-			// i.e. if datazoomed out only class structures are visible, when datazooming in the control
-			// structures appear, then eventually the individual statements...)
-			if (wParam & MK_SHIFT) {
-				return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
-			}
-			// Either SCROLL or ZOOM. We handle the wheel steppings calculation
-			wheelDelta -= GET_WHEEL_DELTA_WPARAM(wParam);
-			if (std::abs(wheelDelta) >= WHEEL_DELTA && linesPerScroll > 0) {
-				Sci::Line linesToScroll = linesPerScroll;
-				if (linesPerScroll == WHEEL_PAGESCROLL)
-					linesToScroll = LinesOnScreen() - 1;
-				if (linesToScroll == 0) {
-					linesToScroll = 1;
-				}
-				linesToScroll *= (wheelDelta / WHEEL_DELTA);
-				if (wheelDelta >= 0)
-					wheelDelta = wheelDelta % WHEEL_DELTA;
-				else
-					wheelDelta = - (-wheelDelta % WHEEL_DELTA);
-
-				if (wParam & MK_CONTROL) {
-					// Zoom! We play with the font sizes in the styles.
-					// Number of steps/line is ignored, we just care if sizing up or down
-					if (linesToScroll < 0) {
-						KeyCommand(SCI_ZOOMIN);
-					} else {
-						KeyCommand(SCI_ZOOMOUT);
-					}
-				} else {
-					// Scroll
-					ScrollTo(topLine + linesToScroll);
-				}
-			}
-			return 0;
 
 		case WM_TIMER:
 			if (wParam == idleTimerID && idler.state) {
@@ -1358,279 +2026,97 @@ sptr_t ScintillaWin::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam
 			break;
 
 		case SC_WIN_IDLE:
-			// wParam=dwTickCountInitial, or 0 to initialize.  lParam=bSkipUserInputTest
-			if (idler.state) {
-				if (lParam || (WAIT_TIMEOUT == MsgWaitForMultipleObjects(0, nullptr, 0, 0, QS_INPUT|QS_HOTKEY))) {
-					if (Idle()) {
-						// User input was given priority above, but all events do get a turn.  Other
-						// messages, notifications, etc. will get interleaved with the idle messages.
-
-						// However, some things like WM_PAINT are a lower priority, and will not fire
-						// when there's a message posted.  So, several times a second, we stop and let
-						// the low priority events have a turn (after which the timer will fire again).
-
-						// Suppress a warning from Code Analysis that the GetTickCount function
-						// wraps after 49 days. The WM_TIMER will kick off another SC_WIN_IDLE
-						// after the wrap.
-#ifdef _MSC_VER
-#pragma warning(suppress: 28159)
-#endif
-						const DWORD dwCurrent = GetTickCount();
-						const DWORD dwStart = wParam ? static_cast<DWORD>(wParam) : dwCurrent;
-						const DWORD maxWorkTime = 50;
-
-						if (dwCurrent >= dwStart && dwCurrent > maxWorkTime && dwCurrent - maxWorkTime < dwStart)
-							PostMessage(MainHWND(), SC_WIN_IDLE, dwStart, 0);
-					} else {
-						SetIdle(false);
-					}
-				}
-			}
-			break;
-
 		case SC_WORK_IDLE:
-			IdleWork();
-			break;
+			return IdleMessage(msg, wParam, lParam);
 
 		case WM_GETMINMAXINFO:
-			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+			return ::DefWindowProc(MainHWND(), msg, wParam, lParam);
 
-		case WM_LBUTTONDOWN: {
-			// For IME, set the composition string as the result string.
-			IMContext imc(MainHWND());
-			::ImmNotifyIME(imc.hIMC, NI_COMPOSITIONSTR, CPS_COMPLETE, 0);
-			//
-			//Platform::DebugPrintf("Buttdown %d %x %x %x %x %x\n",iMessage, wParam, lParam,
-			//	KeyboardIsKeyDown(VK_SHIFT),
-			//	KeyboardIsKeyDown(VK_CONTROL),
-			//	KeyboardIsKeyDown(VK_MENU));
-			::SetFocus(MainHWND());
-			ButtonDownWithModifiers(PointFromLParam(lParam), ::GetMessageTime(),
-				MouseModifiers(wParam));
-			}
-			break;
-
-		case WM_MBUTTONDOWN:
-			::SetFocus(MainHWND());
-			break;
-
-		case WM_MOUSEMOVE: {
-				const Point pt = PointFromLParam(lParam);
-
-				// Windows might send WM_MOUSEMOVE even though the mouse has not been moved:
-				// http://blogs.msdn.com/b/oldnewthing/archive/2003/10/01/55108.aspx
-				if (ptMouseLast != pt) {
-					SetTrackMouseLeaveEvent(true);
-					ButtonMoveWithModifiers(pt, ::GetMessageTime(), MouseModifiers(wParam));
-				}
-			}
-			break;
-
-		case WM_MOUSELEAVE:
-			SetTrackMouseLeaveEvent(false);
-			MouseLeave();
-			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
-
+		case WM_LBUTTONDOWN:
 		case WM_LBUTTONUP:
-			ButtonUpWithModifiers(PointFromLParam(lParam),
-				::GetMessageTime(), MouseModifiers(wParam));
-			break;
+		case WM_RBUTTONDOWN:
+		case WM_MOUSEMOVE:
+		case WM_MOUSELEAVE:
+		case WM_MOUSEWHEEL:
+			return MouseMessage(msg, wParam, lParam);
 
-		case WM_RBUTTONDOWN: {
-				::SetFocus(MainHWND());
-				const Point pt = PointFromLParam(lParam);
-				if (!PointInSelection(pt)) {
-					CancelModes();
-					SetEmptySelection(PositionFromLocation(PointFromLParam(lParam)));
-				}
-
-				RightButtonDownWithModifiers(pt, ::GetMessageTime(), MouseModifiers(wParam));
-			}
-			break;
 		case WM_SETCURSOR:
 			if (LOWORD(lParam) == HTCLIENT) {
-				if (inDragDrop == ddDragging) {
-					DisplayCursor(Window::cursorUp);
-				} else {
-					// Display regular (drag) cursor over selection
-					POINT pt;
-					if (0 != ::GetCursorPos(&pt)) {
-						::ScreenToClient(MainHWND(), &pt);
-						if (PointInSelMargin(PointFromPOINT(pt))) {
-							DisplayCursor(GetMarginCursor(PointFromPOINT(pt)));
-						} else if (PointInSelection(PointFromPOINT(pt)) && !SelectionEmpty()) {
-							DisplayCursor(Window::cursorArrow);
-						} else if (PointIsHotspot(PointFromPOINT(pt))) {
-							DisplayCursor(Window::cursorHand);
-						} else {
-							DisplayCursor(Window::cursorText);
-						}
-					}
+				POINT pt;
+				if (::GetCursorPos(&pt)) {
+					::ScreenToClient(MainHWND(), &pt);
+					DisplayCursor(ContextCursor(PointFromPOINT(pt)));
 				}
 				return TRUE;
 			} else {
-				return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
-			}
-
-		case WM_CHAR:
-			if (((wParam >= 128) || !iscntrl(static_cast<int>(wParam))) || !lastKeyDownConsumed) {
-				wchar_t wcs[3] = {static_cast<wchar_t>(wParam), 0};
-				unsigned int wclen = 1;
-				if (IS_HIGH_SURROGATE(wcs[0])) {
-					// If this is a high surrogate character, we need a second one
-					lastHighSurrogateChar = wcs[0];
-					return 0;
-				} else if (IS_LOW_SURROGATE(wcs[0])) {
-					wcs[1] = wcs[0];
-					wcs[0] = lastHighSurrogateChar;
-					lastHighSurrogateChar = 0;
-					wclen = 2;
-				}
-				AddWString(std::wstring_view(wcs, wclen), CharacterSource::directInput);
-			}
-			return 0;
-
-		case WM_UNICHAR:
-			if (wParam == UNICODE_NOCHAR) {
-				return TRUE;
-			} else if (lastKeyDownConsumed) {
-				return 1;
-			} else {
-				wchar_t wcs[3] = {0};
-				const unsigned int wclen = UTF16FromUTF32Character(static_cast<unsigned int>(wParam), wcs);
-				AddWString(std::wstring_view(wcs, wclen), CharacterSource::directInput);
-				return FALSE;
+				return ::DefWindowProc(MainHWND(), msg, wParam, lParam);
 			}
 
 		case WM_SYSKEYDOWN:
-		case WM_KEYDOWN: {
-			//Platform::DebugPrintf("S keydown %d %x %x %x %x\n",iMessage, wParam, lParam, ::IsKeyDown(VK_SHIFT), ::IsKeyDown(VK_CONTROL));
-				lastKeyDownConsumed = false;
-				const int ret = KeyDownWithModifiers(KeyTranslate(static_cast<int>(wParam)),
-					ModifierFlags(KeyboardIsKeyDown(VK_SHIFT),
-					KeyboardIsKeyDown(VK_CONTROL),
-					KeyboardIsKeyDown(VK_MENU)),
-					&lastKeyDownConsumed);
-				if (!ret && !lastKeyDownConsumed) {
-					return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
-				}
-				break;
-			}
-
-		case WM_IME_KEYDOWN: {
-				if (wParam == VK_HANJA) {
-					ToggleHanja();
-				}
-				return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
-			}
-
-		case WM_IME_REQUEST: {
-			if (wParam == IMR_RECONVERTSTRING) {
-				return ImeOnReconvert(lParam);
-			}
-			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
-		}
-
+		case WM_KEYDOWN:
 		case WM_KEYUP:
-			//Platform::DebugPrintf("S keyup %d %x %x\n",iMessage, wParam, lParam);
-			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+		case WM_CHAR:
+		case WM_UNICHAR:
+			return KeyMessage(msg, wParam, lParam);
 
 		case WM_SETTINGCHANGE:
 			//Platform::DebugPrintf("Setting Changed\n");
-			InvalidateStyleData();
+#if defined(USE_D2D)
+			if (technology != Technology::Default) {
+				UpdateRenderingParams(true);
+			}
+#endif
+			UpdateBaseElements();
 			// Get Intellimouse scroll line parameters
 			GetIntelliMouseParameters();
+			InvalidateStyleRedraw();
 			break;
 
 		case WM_GETDLGCODE:
 			return DLGC_HASSETSEL | DLGC_WANTALLKEYS;
 
-		case WM_KILLFOCUS: {
-				HWND wOther = reinterpret_cast<HWND>(wParam);
-				HWND wThis = MainHWND();
-				const HWND wCT = static_cast<HWND>(ct.wCallTip.GetID());
-				if (!wParam ||
-					!(::IsChild(wThis, wOther) || (wOther == wCT))) {
-					SetFocusState(false);
-					DestroySystemCaret();
-				}
-				// Explicitly complete any IME composition
-				IMContext imc(MainHWND());
-				if (imc.hIMC) {
-					::ImmNotifyIME(imc.hIMC, NI_COMPOSITIONSTR, CPS_COMPLETE, 0);
-				}
-			}
-			break;
-
+		case WM_KILLFOCUS:
 		case WM_SETFOCUS:
-			SetFocusState(true);
-			DestroySystemCaret();
-			CreateSystemCaret();
-			break;
+			return FocusMessage(msg, wParam, lParam);
 
 		case WM_SYSCOLORCHANGE:
 			//Platform::DebugPrintf("Setting Changed\n");
+			UpdateBaseElements();
 			InvalidateStyleData();
 			break;
 
-		case WM_IME_STARTCOMPOSITION: 	// dbcs
-			if (KoreanIME() || imeInteraction == imeInline) {
-				return 0;
-			} else {
-				ImeStartComposition();
-				return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
-			}
+		case WM_DPICHANGED:
+			dpi = HIWORD(wParam);
+			InvalidateStyleRedraw();
+			break;
 
-		case WM_IME_ENDCOMPOSITION: 	// dbcs
-			ImeEndComposition();
-			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
-
-		case WM_IME_COMPOSITION:
-			if (KoreanIME() || imeInteraction == imeInline) {
-				return HandleCompositionInline(wParam, lParam);
-			} else {
-				return HandleCompositionWindowed(wParam, lParam);
-			}
-
-		case WM_CONTEXTMENU: {
-				Point pt = PointFromLParam(lParam);
-				POINT rpt = {static_cast<int>(pt.x), static_cast<int>(pt.y)};
-				::ScreenToClient(MainHWND(), &rpt);
-				const Point ptClient = PointFromPOINT(rpt);
-				if (ShouldDisplayPopup(ptClient)) {
-					if ((pt.x == -1) && (pt.y == -1)) {
-						// Caused by keyboard so display menu near caret
-						pt = PointMainCaret();
-						POINT spt = POINTFromPoint(pt);
-						::ClientToScreen(MainHWND(), &spt);
-						pt = PointFromPOINT(spt);
-					}
-					ContextMenu(pt);
-					return 0;
+		case WM_DPICHANGED_AFTERPARENT: {
+				const UINT dpiNow = DpiForWindow(wMain.GetID());
+				if (dpi != dpiNow) {
+					dpi = dpiNow;
+					InvalidateStyleRedraw();
 				}
 			}
-			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
-		case WM_INPUTLANGCHANGE:
-			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
-		case WM_INPUTLANGCHANGEREQUEST:
-			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+			break;
+
+		case WM_CONTEXTMENU:
+			return ShowContextMenu(msg, wParam, lParam);
 
 		case WM_ERASEBKGND:
 			return 1;   // Avoid any background erasure as whole window painted.
 
+		case WM_SETREDRAW:
+			::DefWindowProc(MainHWND(), msg, wParam, lParam);
+			if (wParam) {
+				SetScrollBars();
+				SetVerticalScrollPos();
+				SetHorizontalScrollPos();
+			}
+			return 0;
+
 		case WM_CAPTURECHANGED:
 			capturedMouse = false;
 			return 0;
-
-		case WM_IME_SETCONTEXT:
-			if (KoreanIME() || imeInteraction == imeInline) {
-				if (wParam) {
-					LPARAM NoImeWin = lParam;
-					NoImeWin = NoImeWin & (~ISC_SHOWUICOMPOSITIONWINDOW);
-					return ::DefWindowProc(MainHWND(), iMessage, wParam, NoImeWin);
-				}
-			}
-			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
 
 		// These are not handled in Scintilla and its faster to dispatch them here.
 		// Also moves time out to here so profile doesn't count lots of empty message calls.
@@ -1642,11 +2128,20 @@ sptr_t ScintillaWin::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam
 		case WM_NCPAINT:
 		case WM_NCMOUSEMOVE:
 		case WM_NCLBUTTONDOWN:
-		case WM_IME_NOTIFY:
 		case WM_SYSCOMMAND:
 		case WM_WINDOWPOSCHANGING:
+			return ::DefWindowProc(MainHWND(), msg, wParam, lParam);
+
 		case WM_WINDOWPOSCHANGED:
-			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+#if defined(USE_D2D)
+			if (technology != Technology::Default) {
+				if (UpdateRenderingParams(false)) {
+					DropGraphics();
+					Redraw();
+				}
+			}
+#endif
+			return ::DefWindowProc(MainHWND(), msg, wParam, lParam);
 
 		case WM_GETTEXTLENGTH:
 			return GetTextLength();
@@ -1654,172 +2149,102 @@ sptr_t ScintillaWin::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam
 		case WM_GETTEXT:
 			return GetText(wParam, lParam);
 
+		case WM_INPUTLANGCHANGE:
+		case WM_INPUTLANGCHANGEREQUEST:
+		case WM_IME_KEYDOWN:
+		case WM_IME_REQUEST:
+		case WM_IME_STARTCOMPOSITION:
+		case WM_IME_ENDCOMPOSITION:
+		case WM_IME_COMPOSITION:
+		case WM_IME_SETCONTEXT:
+		case WM_IME_NOTIFY:
+			return IMEMessage(msg, wParam, lParam);
+
 		case EM_LINEFROMCHAR:
-			if (static_cast<int>(wParam) < 0) {
-				wParam = SelectionStart().Position();
-			}
-			return pdoc->LineFromPosition(static_cast<int>(wParam));
-
 		case EM_EXLINEFROMCHAR:
-			return pdoc->LineFromPosition(static_cast<int>(lParam));
-
 		case EM_GETSEL:
-			if (wParam) {
-				*reinterpret_cast<int *>(wParam) = static_cast<int>(SelectionStart().Position());
-			}
-			if (lParam) {
-				*reinterpret_cast<int *>(lParam) = static_cast<int>(SelectionEnd().Position());
-			}
-			return MAKELRESULT(SelectionStart().Position(), SelectionEnd().Position());
+		case EM_EXGETSEL:
+		case EM_SETSEL:
+		case EM_EXSETSEL:
+			return EditMessage(msg, wParam, lParam);
+		}
 
-		case EM_EXGETSEL: {
-				if (lParam == 0) {
-					return 0;
-				}
-				Sci_CharacterRange *pCR = reinterpret_cast<Sci_CharacterRange *>(lParam);
-				pCR->cpMin = static_cast<Sci_PositionCR>(SelectionStart().Position());
-				pCR->cpMax = static_cast<Sci_PositionCR>(SelectionEnd().Position());
-			}
-			break;
-
-		case EM_SETSEL: {
-				Sci::Position nStart = static_cast<Sci::Position>(wParam);
-				Sci::Position nEnd = lParam;
-				if (nStart == 0 && nEnd == -1) {
-					nEnd = pdoc->Length();
-				}
-				if (nStart == -1) {
-					nStart = nEnd;	// Remove selection
-				}
-				SetSelection(nEnd, nStart);
-				EnsureCaretVisible();
-			}
-			break;
-
-		case EM_EXSETSEL: {
-				if (lParam == 0) {
-					return 0;
-				}
-				const Sci_CharacterRange *pCR = reinterpret_cast<const Sci_CharacterRange *>(lParam);
-				sel.selType = Selection::selStream;
-				if (pCR->cpMin == 0 && pCR->cpMax == -1) {
-					SetSelection(pCR->cpMin, pdoc->Length());
-				} else {
-					SetSelection(pCR->cpMin, pCR->cpMax);
-				}
-				EnsureCaretVisible();
-				return pdoc->LineFromPosition(SelectionStart().Position());
-			}
-
-		case SCI_GETDIRECTFUNCTION:
-			return reinterpret_cast<sptr_t>(DirectFunction);
-
-		case SCI_GETDIRECTPOINTER:
-			return reinterpret_cast<sptr_t>(this);
-
-		case SCI_GRABFOCUS:
-			::SetFocus(MainHWND());
-			break;
-
-#ifdef INCLUDE_DEPRECATED_FEATURES
-		case SCI_SETKEYSUNICODE:
-			break;
-
-		case SCI_GETKEYSUNICODE:
-			return true;
+		iMessage = SciMessageFromEM(msg);
+		switch (iMessage) {
+		case Message::GetDirectFunction:
+		case Message::GetDirectStatusFunction:
+		case Message::GetDirectPointer:
+#ifdef SCI_OWNREGEX
+		case Message::GetBoostRegexErrmsg:
 #endif
-
-		case SCI_SETTECHNOLOGY:
-			if ((wParam == SC_TECHNOLOGY_DEFAULT) ||
-				(wParam == SC_TECHNOLOGY_DIRECTWRITERETAIN) ||
-				(wParam == SC_TECHNOLOGY_DIRECTWRITEDC) ||
-				(wParam == SC_TECHNOLOGY_DIRECTWRITE)) {
-				const int technologyNew = static_cast<int>(wParam);
-				if (technology != technologyNew) {
-					if (technologyNew > SC_TECHNOLOGY_DEFAULT) {
-#if defined(USE_D2D)
-						if (!LoadD2D())
-							// Failed to load Direct2D or DirectWrite so no effect
-							return 0;
-#else
-						return 0;
-#endif
-					} else {
-						bidirectional = EditModel::Bidirectional::bidiDisabled;
-					}
-#if defined(USE_D2D)
-					DropRenderTarget();
-#endif
-					technology = technologyNew;
-					// Invalidate all cached information including layout.
-					DropGraphics(true);
-					InvalidateStyleRedraw();
-				}
-			}
-			break;
-
-		case SCI_SETBIDIRECTIONAL:
-			if (technology == SC_TECHNOLOGY_DEFAULT) {
-				bidirectional = EditModel::Bidirectional::bidiDisabled;
-			} else if (wParam <= SC_BIDIRECTIONAL_R2L) {
-				bidirectional = static_cast<EditModel::Bidirectional>(wParam);
-			}
-			// Invalidate all cached information including layout.
-			DropGraphics(true);
-			InvalidateStyleRedraw();
-			break;
-
-#ifdef SCI_LEXER
-		case SCI_LOADLEXERLIBRARY:
-			LexerManager::GetInstance()->Load(ConstCharPtrFromSPtr(lParam));
-			break;
-#endif
-
-		case SCI_TARGETASUTF8:
-			return TargetAsUTF8(CharPtrFromSPtr(lParam));
-
-		case SCI_ENCODEDFROMUTF8:
-			return EncodedFromUTF8(ConstCharPtrFromUPtr(wParam),
-				CharPtrFromSPtr(lParam));
+		case Message::GrabFocus:
+		case Message::SetTechnology:
+		case Message::SetBidirectional:
+		case Message::TargetAsUTF8:
+		case Message::EncodedFromUTF8:
+			return SciMessage(iMessage, wParam, lParam);
 
 		default:
 			return ScintillaBase::WndProc(iMessage, wParam, lParam);
 		}
 	} catch (std::bad_alloc &) {
-		errorStatus = SC_STATUS_BADALLOC;
+		errorStatus = Status::BadAlloc;
 	} catch (...) {
-		errorStatus = SC_STATUS_FAILURE;
+		errorStatus = Status::Failure;
 	}
 	return 0;
 }
 
 bool ScintillaWin::ValidCodePage(int codePage) const {
-	return codePage == 0 || codePage == SC_CP_UTF8 ||
+	return codePage == 0 || codePage == CpUtf8 ||
 	       codePage == 932 || codePage == 936 || codePage == 949 ||
 	       codePage == 950 || codePage == 1361;
 }
 
-sptr_t ScintillaWin::DefWndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
-	return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+std::string ScintillaWin::UTF8FromEncoded(std::string_view encoded) const {
+	if (IsUnicodeMode()) {
+		return std::string(encoded);
+	} else {
+		// Pivot through wide string
+		std::wstring ws = StringDecode(encoded, CodePageOfDocument());
+		return StringEncode(ws, CpUtf8);
+	}
+}
+
+std::string ScintillaWin::EncodedFromUTF8(std::string_view utf8) const {
+	if (IsUnicodeMode()) {
+		return std::string(utf8);
+	} else {
+		// Pivot through wide string
+		std::wstring ws = StringDecode(utf8, CpUtf8);
+		return StringEncode(ws, CodePageOfDocument());
+	}
+}
+
+sptr_t ScintillaWin::DefWndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
+	return ::DefWindowProc(MainHWND(), static_cast<unsigned int>(iMessage), wParam, lParam);
 }
 
 bool ScintillaWin::FineTickerRunning(TickReason reason) {
-	return timers[reason] != 0;
+	return timers[static_cast<size_t>(reason)] != 0;
 }
 
 void ScintillaWin::FineTickerStart(TickReason reason, int millis, int tolerance) {
 	FineTickerCancel(reason);
+	const UINT_PTR reasonIndex = static_cast<UINT_PTR>(reason);
+	const UINT_PTR eventID = static_cast<UINT_PTR>(fineTimerStart) + reasonIndex;
 	if (SetCoalescableTimerFn && tolerance) {
-		timers[reason] = SetCoalescableTimerFn(MainHWND(), fineTimerStart + reason, millis, nullptr, tolerance);
+		timers[reasonIndex] = SetCoalescableTimerFn(MainHWND(), eventID, millis, nullptr, tolerance);
 	} else {
-		timers[reason] = ::SetTimer(MainHWND(), fineTimerStart + reason, millis, nullptr);
+		timers[reasonIndex] = ::SetTimer(MainHWND(), eventID, millis, nullptr);
 	}
 }
 
 void ScintillaWin::FineTickerCancel(TickReason reason) {
-	if (timers[reason]) {
-		::KillTimer(MainHWND(), timers[reason]);
-		timers[reason] = 0;
+	const UINT_PTR reasonIndex = static_cast<UINT_PTR>(reason);
+	if (timers[reasonIndex]) {
+		::KillTimer(MainHWND(), timers[reasonIndex]);
+		timers[reasonIndex] = 0;
 	}
 }
 
@@ -1846,7 +2271,7 @@ void ScintillaWin::IdleWork() {
 	Editor::IdleWork();
 }
 
-void ScintillaWin::QueueIdleWork(WorkNeeded::workItems items, Sci::Position upTo) {
+void ScintillaWin::QueueIdleWork(WorkItems items, Sci::Position upTo) {
 	Editor::QueueIdleWork(items, upTo);
 	if (!styleIdleInQueue) {
 		if (PostMessage(MainHWND(), SC_WORK_IDLE, 0, 0)) {
@@ -1874,7 +2299,7 @@ bool ScintillaWin::HaveMouseCapture() {
 
 void ScintillaWin::SetTrackMouseLeaveEvent(bool on) noexcept {
 	if (on && !trackedMouseLeave) {
-		TRACKMOUSEEVENT tme;
+		TRACKMOUSEEVENT tme {};
 		tme.cbSize = sizeof(tme);
 		tme.dwFlags = TME_LEAVE;
 		tme.hwndTrack = MainHWND();
@@ -1884,8 +2309,25 @@ void ScintillaWin::SetTrackMouseLeaveEvent(bool on) noexcept {
 	trackedMouseLeave = on;
 }
 
+void ScintillaWin::UpdateBaseElements() {
+	struct ElementToIndex { Element element; int nIndex; };
+	ElementToIndex eti[] = {
+		{ Element::List, COLOR_WINDOWTEXT },
+		{ Element::ListBack, COLOR_WINDOW },
+		{ Element::ListSelected, COLOR_HIGHLIGHTTEXT },
+		{ Element::ListSelectedBack, COLOR_HIGHLIGHT },
+	};
+	bool changed = false;
+	for (const ElementToIndex &ei : eti) {
+		changed = vs.SetElementBase(ei.element, ColourRGBA::FromRGB(static_cast<int>(::GetSysColor(ei.nIndex)))) || changed;
+	}
+	if (changed) {
+		Redraw();
+	}
+}
+
 bool ScintillaWin::PaintContains(PRectangle rc) {
-	if (paintState == painting) {
+	if (paintState == PaintState::painting) {
 		return BoundsContains(rcPaint, hRgnUpdate, rc);
 	}
 	return true;
@@ -1906,6 +2348,11 @@ void ScintillaWin::NotifyCaretMove() {
 
 void ScintillaWin::UpdateSystemCaret() {
 	if (hasFocus) {
+		if (pdoc->TentativeActive()) {
+			// ongoing inline mode IME composition, don't inform IME of system caret position.
+			// fix candidate window for Google Japanese IME moved on typing on Win7.
+			return;
+		}
 		if (HasCaretSizeChanged()) {
 			DestroySystemCaret();
 			CreateSystemCaret();
@@ -1913,6 +2360,10 @@ void ScintillaWin::UpdateSystemCaret() {
 		const Point pos = PointMainCaret();
 		::SetCaretPos(static_cast<int>(pos.x), static_cast<int>(pos.y));
 	}
+}
+
+bool ScintillaWin::IsVisible() const noexcept {
+	return GetWindowStyle(MainHWND()) & WS_VISIBLE;
 }
 
 int ScintillaWin::SetScrollInfo(int nBar, LPCSCROLLINFO lpsi, BOOL bRedraw) noexcept {
@@ -1925,6 +2376,10 @@ bool ScintillaWin::GetScrollInfo(int nBar, LPSCROLLINFO lpsi) noexcept {
 
 // Change the scroll position but avoid repaint if changing to same value
 void ScintillaWin::ChangeScrollPos(int barType, Sci::Position pos) {
+	if (!IsVisible()) {
+		return;
+	}
+
 	SCROLLINFO sci = {
 		sizeof(sci), 0, 0, 0, 0, 0, 0
 	};
@@ -1945,97 +2400,88 @@ void ScintillaWin::SetHorizontalScrollPos() {
 	ChangeScrollPos(SB_HORZ, xOffset);
 }
 
+bool ScintillaWin::ChangeScrollRange(int nBar, int nMin, int nMax, UINT nPage) noexcept {
+	SCROLLINFO sci = { sizeof(sci), SIF_PAGE | SIF_RANGE, 0, 0, 0, 0, 0 };
+	GetScrollInfo(nBar, &sci);
+	if ((sci.nMin != nMin) || (sci.nMax != nMax) ||	(sci.nPage != nPage)) {
+		sci.nMin = nMin;
+		sci.nMax = nMax;
+		sci.nPage = nPage;
+		SetScrollInfo(nBar, &sci, TRUE);
+		return true;
+	}
+	return false;
+}
+
 bool ScintillaWin::ModifyScrollBars(Sci::Line nMax, Sci::Line nPage) {
+	if (!IsVisible()) {
+		return false;
+	}
+
 	bool modified = false;
-	SCROLLINFO sci = {
-		sizeof(sci), 0, 0, 0, 0, 0, 0
-	};
-	sci.fMask = SIF_PAGE | SIF_RANGE;
-	GetScrollInfo(SB_VERT, &sci);
 	const Sci::Line vertEndPreferred = nMax;
 	if (!verticalScrollBarVisible)
 		nPage = vertEndPreferred + 1;
-	if ((sci.nMin != 0) ||
-		(sci.nMax != vertEndPreferred) ||
-	        (sci.nPage != static_cast<unsigned int>(nPage)) ||
-	        (sci.nPos != 0)) {
-		sci.fMask = SIF_PAGE | SIF_RANGE;
-		sci.nMin = 0;
-		sci.nMax = static_cast<int>(vertEndPreferred);
-		sci.nPage = static_cast<UINT>(nPage);
-		sci.nPos = 0;
-		sci.nTrackPos = 1;
-		SetScrollInfo(SB_VERT, &sci, TRUE);
+	if (ChangeScrollRange(SB_VERT, 0, static_cast<int>(vertEndPreferred), static_cast<unsigned int>(nPage))) {
 		modified = true;
 	}
 
 	const PRectangle rcText = GetTextRectangle();
-	int horizEndPreferred = scrollWidth;
-	if (horizEndPreferred < 0)
-		horizEndPreferred = 0;
 	int pageWidth = static_cast<int>(rcText.Width());
+	const int horizEndPreferred = std::max({scrollWidth, pageWidth - 1, 0});
 	if (!horizontalScrollBarVisible || Wrapping())
 		pageWidth = horizEndPreferred + 1;
-	sci.fMask = SIF_PAGE | SIF_RANGE;
-	GetScrollInfo(SB_HORZ, &sci);
-	if ((sci.nMin != 0) ||
-		(sci.nMax != horizEndPreferred) ||
-		(sci.nPage != static_cast<unsigned int>(pageWidth)) ||
-	        (sci.nPos != 0)) {
-		sci.fMask = SIF_PAGE | SIF_RANGE;
-		sci.nMin = 0;
-		sci.nMax = horizEndPreferred;
-		sci.nPage = pageWidth;
-		sci.nPos = 0;
-		sci.nTrackPos = 1;
-		SetScrollInfo(SB_HORZ, &sci, TRUE);
+	if (ChangeScrollRange(SB_HORZ, 0, horizEndPreferred, pageWidth)) {
 		modified = true;
 		if (scrollWidth < pageWidth) {
 			HorizontalScrollTo(0);
 		}
 	}
+
 	return modified;
 }
 
 void ScintillaWin::NotifyChange() {
 	::SendMessage(::GetParent(MainHWND()), WM_COMMAND,
-	        MAKEWPARAM(GetCtrlID(), SCEN_CHANGE),
+	        MAKEWPARAM(GetCtrlID(), FocusChange::Change),
 		reinterpret_cast<LPARAM>(MainHWND()));
 }
 
 void ScintillaWin::NotifyFocus(bool focus) {
 	if (commandEvents) {
 		::SendMessage(::GetParent(MainHWND()), WM_COMMAND,
-			MAKEWPARAM(GetCtrlID(), focus ? SCEN_SETFOCUS : SCEN_KILLFOCUS),
+			MAKEWPARAM(GetCtrlID(), focus ? FocusChange::Setfocus : FocusChange::Killfocus),
 			reinterpret_cast<LPARAM>(MainHWND()));
 	}
 	Editor::NotifyFocus(focus);
 }
 
 void ScintillaWin::SetCtrlID(int identifier) {
-	::SetWindowID(static_cast<HWND>(wMain.GetID()), identifier);
+	::SetWindowID(HwndFromWindow(wMain), identifier);
 }
 
 int ScintillaWin::GetCtrlID() {
-	return ::GetDlgCtrlID(static_cast<HWND>(wMain.GetID()));
+	return ::GetDlgCtrlID(HwndFromWindow(wMain));
 }
 
-void ScintillaWin::NotifyParent(SCNotification scn) {
+void ScintillaWin::NotifyParent(NotificationData scn) {
 	scn.nmhdr.hwndFrom = MainHWND();
 	scn.nmhdr.idFrom = GetCtrlID();
 	::SendMessage(::GetParent(MainHWND()), WM_NOTIFY,
 	              GetCtrlID(), reinterpret_cast<LPARAM>(&scn));
 }
 
-void ScintillaWin::NotifyDoubleClick(Point pt, int modifiers) {
+void ScintillaWin::NotifyDoubleClick(Point pt, KeyMod modifiers) {
 	//Platform::DebugPrintf("ScintillaWin Double click 0\n");
 	ScintillaBase::NotifyDoubleClick(pt, modifiers);
 	// Send myself a WM_LBUTTONDBLCLK, so the container can handle it too.
 	::SendMessage(MainHWND(),
 			  WM_LBUTTONDBLCLK,
-			  (modifiers & SCI_SHIFT) ? MK_SHIFT : 0,
+			  FlagSet(modifiers, KeyMod::Shift) ? MK_SHIFT : 0,
 			  MAKELPARAM(pt.x, pt.y));
 }
+
+namespace {
 
 class CaseFolderDBCS : public CaseFolderTable {
 	// Allocate the expandable storage here so that it does not need to be reallocated
@@ -2070,7 +2516,7 @@ public:
 			for (size_t mixIndex=0; mixIndex < nUtf16Mixed; mixIndex++) {
 				if ((lenFlat + 20) > utf16Folded.size())
 					utf16Folded.resize(lenFlat + 60);
-				const char *foldedUTF8 = CaseConvert(utf16Mixed[mixIndex], CaseConversionFold);
+				const char *foldedUTF8 = CaseConvert(utf16Mixed[mixIndex], CaseConversion::fold);
 				if (foldedUTF8) {
 					// Maximum length of a case conversion is 6 bytes, 3 characters
 					wchar_t wFolded[20];
@@ -2096,13 +2542,15 @@ public:
 	}
 };
 
-CaseFolder *ScintillaWin::CaseFolderForEncoding() {
+}
+
+std::unique_ptr<CaseFolder> ScintillaWin::CaseFolderForEncoding() {
 	const UINT cpDest = CodePageOfDocument();
-	if (cpDest == SC_CP_UTF8) {
-		return new CaseFolderUnicode();
+	if (cpDest == CpUtf8) {
+		return std::make_unique<CaseFolderUnicode>();
 	} else {
 		if (pdoc->dbcsCodePage == 0) {
-			CaseFolderTable *pcf = new CaseFolderTable();
+			std::unique_ptr<CaseFolderTable> pcf = std::make_unique<CaseFolderTable>();
 			pcf->StandardASCII();
 			// Only for single byte encodings
 			for (int i=0x80; i<0x100; i++) {
@@ -2112,7 +2560,7 @@ CaseFolder *ScintillaWin::CaseFolderForEncoding() {
 				const unsigned int lengthUTF16 = WideCharFromMultiByte(cpDest, sCharacter,
 					wCharacter, std::size(wCharacter));
 				if (lengthUTF16 == 1) {
-					const char *caseFolded = CaseConvert(wCharacter[0], CaseConversionFold);
+					const char *caseFolded = CaseConvert(wCharacter[0], CaseConversion::fold);
 					if (caseFolded) {
 						wchar_t wLower[20];
 						const size_t charsConverted = UTF16FromUTF8(std::string_view(caseFolded),
@@ -2131,25 +2579,25 @@ CaseFolder *ScintillaWin::CaseFolderForEncoding() {
 			}
 			return pcf;
 		} else {
-			return new CaseFolderDBCS(cpDest);
+			return std::make_unique<CaseFolderDBCS>(cpDest);
 		}
 	}
 }
 
-std::string ScintillaWin::CaseMapString(const std::string &s, int caseMapping) {
-	if ((s.size() == 0) || (caseMapping == cmSame))
+std::string ScintillaWin::CaseMapString(const std::string &s, CaseMapping caseMapping) {
+	if ((s.size() == 0) || (caseMapping == CaseMapping::same))
 		return s;
 
 	const UINT cpDoc = CodePageOfDocument();
-	if (cpDoc == SC_CP_UTF8) {
-		return CaseConvertString(s, (caseMapping == cmUpper) ? CaseConversionUpper : CaseConversionLower);
+	if (cpDoc == CpUtf8) {
+		return CaseConvertString(s, (caseMapping == CaseMapping::upper) ? CaseConversion::upper : CaseConversion::lower);
 	}
 
 	// Change text to UTF-16
 	const std::wstring wsText = StringDecode(s, cpDoc);
 
 	const DWORD mapFlags = LCMAP_LINGUISTIC_CASING |
-		((caseMapping == cmUpper) ? LCMAP_UPPERCASE : LCMAP_LOWERCASE);
+		((caseMapping == CaseMapping::upper) ? LCMAP_UPPERCASE : LCMAP_LOWERCASE);
 
 	// Change case
 	const std::wstring wsConverted = StringMapCase(wsText, mapFlags);
@@ -2169,20 +2617,10 @@ void ScintillaWin::Copy() {
 	}
 }
 
-void ScintillaWin::CopyAllowLine() {
-	SelectionText selectedText;
-	CopySelectionRange(&selectedText, true);
-	CopyToClipboard(selectedText);
-}
-
 bool ScintillaWin::CanPaste() {
 	if (!Editor::CanPaste())
 		return false;
-	if (::IsClipboardFormatAvailable(CF_TEXT))
-		return true;
-	if (IsUnicodeMode())
-		return ::IsClipboardFormatAvailable(CF_UNICODETEXT) != 0;
-	return false;
+	return ::IsClipboardFormatAvailable(CF_UNICODETEXT) != FALSE;
 }
 
 namespace {
@@ -2248,6 +2686,18 @@ bool OpenClipboardRetry(HWND hwnd) noexcept {
 	return false;
 }
 
+bool IsValidFormatEtc(const FORMATETC *pFE) noexcept {
+	return pFE->ptd == nullptr &&
+		(pFE->dwAspect & DVASPECT_CONTENT) != 0 &&
+		pFE->lindex == -1 &&
+		(pFE->tymed & TYMED_HGLOBAL) != 0;
+}
+
+bool SupportedFormat(const FORMATETC *pFE) noexcept {
+	return pFE->cfFormat == CF_UNICODETEXT &&
+		IsValidFormatEtc(pFE);
+}
+
 }
 
 void ScintillaWin::Paste() {
@@ -2257,7 +2707,7 @@ void ScintillaWin::Paste() {
 	UndoGroup ug(pdoc);
 	const bool isLine = SelectionEmpty() &&
 		(::IsClipboardFormatAvailable(cfLineSelect) || ::IsClipboardFormatAvailable(cfVSLineTag));
-	ClearSelection(multiPasteMode == SC_MULTIPASTE_EACH);
+	ClearSelection(multiPasteMode == MultiPaste::Each);
 	bool isRectangular = (::IsClipboardFormatAvailable(cfColumnSelect) != 0);
 
 	if (!isRectangular) {
@@ -2268,66 +2718,14 @@ void ScintillaWin::Paste() {
 			memBorlandSelection.Unlock();
 		}
 	}
-	const PasteShape pasteShape = isRectangular ? pasteRectangular : (isLine ? pasteLine : pasteStream);
+	const PasteShape pasteShape = isRectangular ? PasteShape::rectangular : (isLine ? PasteShape::line : PasteShape::stream);
 
-	// Always use CF_UNICODETEXT if available
+	// Use CF_UNICODETEXT if available
 	GlobalMemory memUSelection(::GetClipboardData(CF_UNICODETEXT));
-	if (memUSelection) {
-		const wchar_t *uptr = static_cast<const wchar_t *>(memUSelection.ptr);
-		if (uptr) {
-			size_t len;
-			std::vector<char> putf;
-			// Default Scintilla behaviour in Unicode mode
-			if (IsUnicodeMode()) {
-				const size_t bytes = memUSelection.Size();
-				const std::wstring_view wsv(uptr, bytes / 2);
-				len = UTF8Length(wsv);
-				putf.resize(len + 1);
-				UTF8FromUTF16(wsv, &putf[0], len);
-			} else {
-				// CF_UNICODETEXT available, but not in Unicode mode
-				// Convert from Unicode to current Scintilla code page
-				const UINT cpDest = CodePageOfDocument();
-				len = MultiByteLenFromWideChar(cpDest, uptr);
-				putf.resize(len);
-				MultiByteFromWideChar(cpDest, uptr, &putf[0], len);
-			}
-
-			InsertPasteShape(&putf[0], len, pasteShape);
-		}
+	if (const wchar_t *uptr = static_cast<const wchar_t *>(memUSelection.ptr)) {
+		const std::string putf = EncodeWString(uptr);
+		InsertPasteShape(putf.c_str(), putf.length(), pasteShape);
 		memUSelection.Unlock();
-	} else {
-		// CF_UNICODETEXT not available, paste ANSI text
-		GlobalMemory memSelection(::GetClipboardData(CF_TEXT));
-		if (memSelection) {
-			const char *ptr = static_cast<const char *>(memSelection.ptr);
-			if (ptr) {
-				const size_t bytes = memSelection.Size();
-				size_t len = bytes;
-				for (size_t i = 0; i < bytes; i++) {
-					if ((len == bytes) && (0 == ptr[i]))
-						len = i;
-				}
-
-				// In Unicode mode, convert clipboard text to UTF-8
-				if (IsUnicodeMode()) {
-					std::vector<wchar_t> uptr(len+1);
-
-					const size_t ulen = WideCharFromMultiByte(CP_ACP,
-					                    std::string_view(ptr, len), &uptr[0], len + 1);
-
-					const std::wstring_view wsv(&uptr[0], ulen);
-					const size_t mlen = UTF8Length(wsv);
-					std::vector<char> putf(mlen+1);
-					UTF8FromUTF16(wsv, &putf[0], mlen);
-
-					InsertPasteShape(&putf[0], mlen, pasteShape);
-				} else {
-					InsertPasteShape(ptr, len, pasteShape);
-				}
-			}
-			memSelection.Unlock();
-		}
 	}
 	::CloseClipboard();
 	Redraw();
@@ -2387,7 +2785,7 @@ STDMETHODIMP_(ULONG)FormatEnumerator_Release(FormatEnumerator *fe) {
 /// Implement IEnumFORMATETC
 STDMETHODIMP FormatEnumerator_Next(FormatEnumerator *fe, ULONG celt, FORMATETC *rgelt, ULONG *pceltFetched) {
 	if (!rgelt) return E_POINTER;
-	unsigned int putPos = 0;
+	ULONG putPos = 0;
 	while ((fe->pos < fe->formats.size()) && (putPos < celt)) {
 		rgelt->cfFormat = fe->formats[fe->pos];
 		rgelt->ptd = nullptr;
@@ -2431,7 +2829,7 @@ static VFunction *vtFormatEnumerator[] = {
 	(VFunction *)(FormatEnumerator_Clone)
 };
 
-FormatEnumerator::FormatEnumerator(int pos_, CLIPFORMAT formats_[], size_t formatsLen_) {
+FormatEnumerator::FormatEnumerator(ULONG pos_, const CLIPFORMAT formats_[], size_t formatsLen_) {
 	vtbl = vtFormatEnumerator;
 	ref = 0;   // First QI adds first reference...
 	pos = pos_;
@@ -2497,37 +2895,20 @@ STDMETHODIMP DataObject_GetDataHere(DataObject *, FORMATETC *, STGMEDIUM *) {
 }
 
 STDMETHODIMP DataObject_QueryGetData(DataObject *pd, FORMATETC *pFE) {
-	if (pd->sci->DragIsRectangularOK(pFE->cfFormat) &&
-	    pFE->ptd == nullptr &&
-	    (pFE->dwAspect & DVASPECT_CONTENT) != 0 &&
-	    pFE->lindex == -1 &&
-	    (pFE->tymed & TYMED_HGLOBAL) != 0
-	) {
+	if (pd->sci->DragIsRectangularOK(pFE->cfFormat) && IsValidFormatEtc(pFE)) {
 		return S_OK;
 	}
 
-	const bool formatOK = (pFE->cfFormat == CF_TEXT) ||
-		((pFE->cfFormat == CF_UNICODETEXT) && pd->sci->IsUnicodeMode());
-	if (!formatOK ||
-	    pFE->ptd != nullptr ||
-	    (pFE->dwAspect & DVASPECT_CONTENT) == 0 ||
-	    pFE->lindex != -1 ||
-	    (pFE->tymed & TYMED_HGLOBAL) == 0
-	) {
-		//Platform::DebugPrintf("DOB QueryGetData No %x\n",pFE->cfFormat);
-		//return DATA_E_FORMATETC;
+	if (SupportedFormat(pFE)) {
+		return S_OK;
+	} else {
 		return S_FALSE;
 	}
-	//Platform::DebugPrintf("DOB QueryGetData OK %x\n",pFE->cfFormat);
-	return S_OK;
 }
 
-STDMETHODIMP DataObject_GetCanonicalFormatEtc(DataObject *pd, FORMATETC *, FORMATETC *pFEOut) {
+STDMETHODIMP DataObject_GetCanonicalFormatEtc(DataObject *, FORMATETC *, FORMATETC *pFEOut) {
 	//Platform::DebugPrintf("DOB GetCanon\n");
-	if (pd->sci->IsUnicodeMode())
-		pFEOut->cfFormat = CF_UNICODETEXT;
-	else
-		pFEOut->cfFormat = CF_TEXT;
+	pFEOut->cfFormat = CF_UNICODETEXT;
 	pFEOut->ptd = nullptr;
 	pFEOut->dwAspect = DVASPECT_CONTENT;
 	pFEOut->lindex = -1;
@@ -2547,21 +2928,16 @@ STDMETHODIMP DataObject_EnumFormatEtc(DataObject *pd, DWORD dwDirection, IEnumFO
 			*ppEnum = nullptr;
 			return E_FAIL;
 		}
-		FormatEnumerator *pfe;
-		if (pd->sci->IsUnicodeMode()) {
-			CLIPFORMAT formats[] = {CF_UNICODETEXT, CF_TEXT};
-			pfe = new FormatEnumerator(0, formats, std::size(formats));
-		} else {
-			CLIPFORMAT formats[] = {CF_TEXT};
-			pfe = new FormatEnumerator(0, formats, std::size(formats));
-		}
+
+		const CLIPFORMAT formats[] = {CF_UNICODETEXT};
+		FormatEnumerator *pfe = new FormatEnumerator(0, formats, std::size(formats));
 		return FormatEnumerator_QueryInterface(pfe, IID_IEnumFORMATETC,
 											   reinterpret_cast<void **>(ppEnum));
 	} catch (std::bad_alloc &) {
-		pd->sci->errorStatus = SC_STATUS_BADALLOC;
+		pd->sci->errorStatus = Status::BadAlloc;
 		return E_OUTOFMEMORY;
 	} catch (...) {
-		pd->sci->errorStatus = SC_STATUS_FAILURE;
+		pd->sci->errorStatus = Status::Failure;
 		return E_FAIL;
 	}
 }
@@ -2619,7 +2995,7 @@ STDMETHODIMP DropTarget_DragEnter(DropTarget *dt, LPDATAOBJECT pIDataSource, DWO
 	try {
 		return dt->sci->DragEnter(pIDataSource, grfKeyState, pt, pdwEffect);
 	} catch (...) {
-		dt->sci->errorStatus = SC_STATUS_FAILURE;
+		dt->sci->errorStatus = Status::Failure;
 	}
 	return E_FAIL;
 }
@@ -2627,7 +3003,7 @@ STDMETHODIMP DropTarget_DragOver(DropTarget *dt, DWORD grfKeyState, POINTL pt, P
 	try {
 		return dt->sci->DragOver(grfKeyState, pt, pdwEffect);
 	} catch (...) {
-		dt->sci->errorStatus = SC_STATUS_FAILURE;
+		dt->sci->errorStatus = Status::Failure;
 	}
 	return E_FAIL;
 }
@@ -2635,7 +3011,7 @@ STDMETHODIMP DropTarget_DragLeave(DropTarget *dt) {
 	try {
 		return dt->sci->DragLeave();
 	} catch (...) {
-		dt->sci->errorStatus = SC_STATUS_FAILURE;
+		dt->sci->errorStatus = Status::Failure;
 	}
 	return E_FAIL;
 }
@@ -2644,7 +3020,7 @@ STDMETHODIMP DropTarget_Drop(DropTarget *dt, LPDATAOBJECT pIDataSource, DWORD gr
 	try {
 		return dt->sci->Drop(pIDataSource, grfKeyState, pt, pdwEffect);
 	} catch (...) {
-		dt->sci->errorStatus = SC_STATUS_FAILURE;
+		dt->sci->errorStatus = Status::Failure;
 	}
 	return E_FAIL;
 }
@@ -2685,18 +3061,13 @@ void ScintillaWin::ImeStartComposition() {
 			// The logfont for the IME is recreated here.
 			const int styleHere = pdoc->StyleIndexAt(sel.MainCaret());
 			LOGFONTW lf = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, L""};
-			int sizeZoomed = vs.styles[styleHere].size + vs.zoomLevel * SC_FONT_SIZE_MULTIPLIER;
-			if (sizeZoomed <= 2 * SC_FONT_SIZE_MULTIPLIER)	// Hangs if sizeZoomed <= 1
-				sizeZoomed = 2 * SC_FONT_SIZE_MULTIPLIER;
-			AutoSurface surface(this);
-			int deviceHeight = sizeZoomed;
-			if (surface) {
-				deviceHeight = (sizeZoomed * surface->LogPixelsY()) / 72;
-			}
+			int sizeZoomed = vs.styles[styleHere].size + vs.zoomLevel * FontSizeMultiplier;
+			if (sizeZoomed <= 2 * FontSizeMultiplier)	// Hangs if sizeZoomed <= 1
+				sizeZoomed = 2 * FontSizeMultiplier;
 			// The negative is to allow for leading
-			lf.lfHeight = -(std::abs(deviceHeight / SC_FONT_SIZE_MULTIPLIER));
-			lf.lfWeight = vs.styles[styleHere].weight;
-			lf.lfItalic = static_cast<BYTE>(vs.styles[styleHere].italic ? 1 : 0);
+			lf.lfHeight = -::MulDiv(sizeZoomed, dpi, 72*FontSizeMultiplier);
+			lf.lfWeight = static_cast<LONG>(vs.styles[styleHere].weight);
+			lf.lfItalic = vs.styles[styleHere].italic ? 1 : 0;
 			lf.lfCharSet = DEFAULT_CHARSET;
 			lf.lfFaceName[0] = L'\0';
 			if (vs.styles[styleHere].fontName) {
@@ -2713,6 +3084,9 @@ void ScintillaWin::ImeStartComposition() {
 
 /** Called when IME Window closed. */
 void ScintillaWin::ImeEndComposition() {
+	// clear IME composition state.
+	view.imeCaretBlockOverride = false;
+	pdoc->TentativeUndo();
 	ShowCaretAtCurrentPosition();
 }
 
@@ -2799,8 +3173,31 @@ LRESULT ScintillaWin::ImeOnReconvert(LPARAM lParam) {
 }
 
 void ScintillaWin::GetIntelliMouseParameters() noexcept {
-	// This retrieves the number of lines per scroll as configured inthe Mouse Properties sheet in Control Panel
+	// This retrieves the number of lines per scroll as configured in the Mouse Properties sheet in Control Panel
 	::SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &linesPerScroll, 0);
+}
+
+void ScintillaWin::CopyToGlobal(GlobalMemory &gmUnicode, const SelectionText &selectedText) {
+	const std::string_view svSelected(selectedText.Data(), selectedText.LengthWithTerminator());
+	if (IsUnicodeMode()) {
+		const size_t uchars = UTF16Length(svSelected);
+		gmUnicode.Allocate(2 * uchars);
+		if (gmUnicode) {
+			UTF16FromUTF8(svSelected,
+				static_cast<wchar_t *>(gmUnicode.ptr), uchars);
+		}
+	} else {
+		// Not Unicode mode
+		// Convert to Unicode using the current Scintilla code page
+		const UINT cpSrc = CodePageFromCharSet(
+			selectedText.characterSet, selectedText.codePage);
+		const size_t uLen = WideCharLenFromMultiByte(cpSrc, svSelected);
+		gmUnicode.Allocate(2 * uLen);
+		if (gmUnicode) {
+			WideCharFromMultiByte(cpSrc, svSelected,
+				static_cast<wchar_t *>(gmUnicode.ptr), uLen);
+		}
+	}
 }
 
 void ScintillaWin::CopyToClipboard(const SelectionText &selectedText) {
@@ -2810,40 +3207,9 @@ void ScintillaWin::CopyToClipboard(const SelectionText &selectedText) {
 	::EmptyClipboard();
 
 	GlobalMemory uniText;
-
-	// Default Scintilla behaviour in Unicode mode
-	if (IsUnicodeMode()) {
-                const std::string_view sv(selectedText.Data(), selectedText.LengthWithTerminator());
-		const size_t uchars = UTF16Length(sv);
-		uniText.Allocate(2 * uchars);
-		if (uniText) {
-			UTF16FromUTF8(sv,
-				static_cast<wchar_t *>(uniText.ptr), uchars);
-		}
-	} else {
-		// Not Unicode mode
-		// Convert to Unicode using the current Scintilla code page
-		const UINT cpSrc = CodePageFromCharSet(
-					selectedText.characterSet, selectedText.codePage);
-		const std::string_view svSelected(selectedText.Data(), selectedText.LengthWithTerminator());
-		const size_t uLen = WideCharLenFromMultiByte(cpSrc, svSelected);
-		uniText.Allocate(2 * uLen);
-		if (uniText) {
-			WideCharFromMultiByte(cpSrc, svSelected,
-				static_cast<wchar_t *>(uniText.ptr), uLen);
-		}
-	}
-
+	CopyToGlobal(uniText, selectedText);
 	if (uniText) {
 		uniText.SetClip(CF_UNICODETEXT);
-	} else {
-		// There was a failure - try to copy at least ANSI text
-		GlobalMemory ansiText;
-		ansiText.Allocate(selectedText.LengthWithTerminator());
-		if (ansiText) {
-			memcpy(ansiText.ptr, selectedText.Data(), selectedText.LengthWithTerminator());
-			ansiText.SetClip(CF_TEXT);
-		}
 	}
 
 	if (selectedText.rectangular) {
@@ -2925,7 +3291,7 @@ void ScintillaWin::HorizontalScrollMessage(WPARAM wParam) {
 	case SB_THUMBPOSITION:
 	case SB_THUMBTRACK: {
 			// Do NOT use wParam, its 16 bit and not enough for very long lines. Its still possible to overflow the 32 bit but you have to try harder =]
-			SCROLLINFO si;
+			SCROLLINFO si {};
 			si.cbSize = sizeof(si);
 			si.fMask = SIF_TRACKPOS;
 			if (GetScrollInfo(SB_HORZ, &si)) {
@@ -2942,12 +3308,12 @@ void ScintillaWin::HorizontalScrollMessage(WPARAM wParam) {
  * This paint will not be abandoned.
  */
 void ScintillaWin::FullPaint() {
-	if ((technology == SC_TECHNOLOGY_DEFAULT) || (technology == SC_TECHNOLOGY_DIRECTWRITEDC)) {
+	if ((technology == Technology::Default) || (technology == Technology::DirectWriteDC)) {
 		HDC hdc = ::GetDC(MainHWND());
 		FullPaintDC(hdc);
 		::ReleaseDC(MainHWND(), hdc);
 	} else {
-		FullPaintDC(0);
+		FullPaintDC({});
 	}
 }
 
@@ -2956,31 +3322,11 @@ void ScintillaWin::FullPaint() {
  * This paint will not be abandoned.
  */
 void ScintillaWin::FullPaintDC(HDC hdc) {
-	paintState = painting;
+	paintState = PaintState::painting;
 	rcPaint = GetClientRectangle();
 	paintingAllText = true;
-	if (technology == SC_TECHNOLOGY_DEFAULT) {
-		AutoSurface surfaceWindow(hdc, this);
-		if (surfaceWindow) {
-			Paint(surfaceWindow, rcPaint);
-			surfaceWindow->Release();
-		}
-	} else {
-#if defined(USE_D2D)
-		EnsureRenderTarget(hdc);
-		AutoSurface surfaceWindow(pRenderTarget, this);
-		if (surfaceWindow) {
-			pRenderTarget->BeginDraw();
-			Paint(surfaceWindow, rcPaint);
-			surfaceWindow->Release();
-			const HRESULT hr = pRenderTarget->EndDraw();
-			if (hr == static_cast<HRESULT>(D2DERR_RECREATE_TARGET)) {
-				DropRenderTarget();
-			}
-		}
-#endif
-	}
-	paintState = notPainting;
+	PaintDC(hdc);
+	paintState = PaintState::notPainting;
 }
 
 namespace {
@@ -3006,7 +3352,7 @@ bool ScintillaWin::IsCompatibleDC(HDC hOtherDC) noexcept {
 DWORD ScintillaWin::EffectFromState(DWORD grfKeyState) const noexcept {
 	// These are the Wordpad semantics.
 	DWORD dwEffect;
-	if (inDragDrop == ddDragging)	// Internal defaults to move
+	if (inDragDrop == DragDrop::dragging)	// Internal defaults to move
 		dwEffect = DROPEFFECT_MOVE;
 	else
 		dwEffect = DROPEFFECT_COPY;
@@ -3049,17 +3395,12 @@ STDMETHODIMP ScintillaWin::DragEnter(LPDATAOBJECT pIDataSource, DWORD grfKeyStat
 	FORMATETC fmtu = {CF_UNICODETEXT, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 	const HRESULT hrHasUText = pIDataSource->QueryGetData(&fmtu);
 	hasOKText = (hrHasUText == S_OK);
-	if (!hasOKText) {
-		FORMATETC fmte = {CF_TEXT, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-		const HRESULT hrHasText = pIDataSource->QueryGetData(&fmte);
-		hasOKText = (hrHasText == S_OK);
-	}
-	if (!hasOKText) {
+	if (hasOKText) {
+		*pdwEffect = EffectFromState(grfKeyState);
+	} else {
 		*pdwEffect = DROPEFFECT_NONE;
-		return S_OK;
 	}
 
-	*pdwEffect = EffectFromState(grfKeyState);
 	return S_OK;
 }
 
@@ -3079,7 +3420,7 @@ STDMETHODIMP ScintillaWin::DragOver(DWORD grfKeyState, POINTL pt, PDWORD pdwEffe
 
 		return S_OK;
 	} catch (...) {
-		errorStatus = SC_STATUS_FAILURE;
+		errorStatus = Status::Failure;
 	}
 	return E_FAIL;
 }
@@ -3089,7 +3430,7 @@ STDMETHODIMP ScintillaWin::DragLeave() {
 		SetDragPosition(SelectionPosition(Sci::invalidPosition));
 		return S_OK;
 	} catch (...) {
-		errorStatus = SC_STATUS_FAILURE;
+		errorStatus = Status::Failure;
 	}
 	return E_FAIL;
 }
@@ -3104,109 +3445,75 @@ STDMETHODIMP ScintillaWin::Drop(LPDATAOBJECT pIDataSource, DWORD grfKeyState,
 
 		SetDragPosition(SelectionPosition(Sci::invalidPosition));
 
-		STGMEDIUM medium {};
-
-		std::vector<char> data;	// Includes terminating NUL
-
-		FORMATETC fmtu = {CF_UNICODETEXT, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-		HRESULT hr = pIDataSource->GetData(&fmtu, &medium);
-		if (SUCCEEDED(hr) && medium.hGlobal) {
+		std::string putf;
+		FORMATETC fmtu = {CF_UNICODETEXT, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL};
+		STGMEDIUM medium{};
+		const HRESULT hr = pIDataSource->GetData(&fmtu, &medium);
+		if (!SUCCEEDED(hr)) {
+			return hr;
+		}
+		if (medium.hGlobal) {
 			GlobalMemory memUDrop(medium.hGlobal);
-			const wchar_t *udata = static_cast<const wchar_t *>(memUDrop.ptr);
-			if (udata) {
-				if (IsUnicodeMode()) {
-					const size_t tlen = memUDrop.Size();
-					// Convert UTF-16 to UTF-8
-					const std::wstring_view wsv(udata, tlen / 2);
-					const size_t dataLen = UTF8Length(wsv);
-					data.resize(dataLen);
-					UTF8FromUTF16(wsv, &data[0], dataLen);
-				} else {
-					// Convert UTF-16 to ANSI
-					//
-					// Default Scintilla behavior in Unicode mode
-					// CF_UNICODETEXT available, but not in Unicode mode
-					// Convert from Unicode to current Scintilla code page
-					const UINT cpDest = CodePageOfDocument();
-					const int tlen = MultiByteLenFromWideChar(cpDest, udata);
-					data.resize(tlen);
-					MultiByteFromWideChar(cpDest, udata, &data[0], tlen);
-				}
+			if (const wchar_t *uptr = static_cast<const wchar_t *>(memUDrop.ptr)) {
+				putf = EncodeWString(uptr);
 			}
 			memUDrop.Unlock();
-		} else {
-			FORMATETC fmte = {CF_TEXT, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-			hr = pIDataSource->GetData(&fmte, &medium);
-			if (SUCCEEDED(hr) && medium.hGlobal) {
-				GlobalMemory memDrop(medium.hGlobal);
-				const char *cdata = static_cast<const char *>(memDrop.ptr);
-				if (cdata)
-					data.assign(cdata, cdata+strlen(cdata));
-				memDrop.Unlock();
-			}
 		}
 
-		if (!SUCCEEDED(hr) || data.empty()) {
-			//Platform::DebugPrintf("Bad data format: 0x%x\n", hres);
-			return hr;
+		if (putf.empty()) {
+			return S_OK;
 		}
 
 		FORMATETC fmtr = {cfColumnSelect, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL};
-		const HRESULT hrRectangular = pIDataSource->QueryGetData(&fmtr);
+		const bool isRectangular = S_OK == pIDataSource->QueryGetData(&fmtr);
 
 		POINT rpt = {pt.x, pt.y};
 		::ScreenToClient(MainHWND(), &rpt);
 		const SelectionPosition movePos = SPositionFromLocation(PointFromPOINT(rpt), false, false, UserVirtualSpace());
 
-		DropAt(movePos, &data[0], data.size(), *pdwEffect == DROPEFFECT_MOVE, hrRectangular == S_OK);
+		DropAt(movePos, putf.c_str(), putf.size(), *pdwEffect == DROPEFFECT_MOVE, isRectangular);
 
 		// Free data
-		if (medium.pUnkForRelease)
-			medium.pUnkForRelease->Release();
-		else
-			::GlobalFree(medium.hGlobal);
+		::ReleaseStgMedium(&medium);
 
 		return S_OK;
 	} catch (...) {
-		errorStatus = SC_STATUS_FAILURE;
+		errorStatus = Status::Failure;
 	}
 	return E_FAIL;
 }
 
 /// Implement important part of IDataObject
 STDMETHODIMP ScintillaWin::GetData(FORMATETC *pFEIn, STGMEDIUM *pSTM) {
-	const bool formatOK = (pFEIn->cfFormat == CF_TEXT) ||
-		((pFEIn->cfFormat == CF_UNICODETEXT) && IsUnicodeMode());
-	if (!formatOK ||
-	    pFEIn->ptd != nullptr ||
-	    (pFEIn->dwAspect & DVASPECT_CONTENT) == 0 ||
-	    pFEIn->lindex != -1 ||
-	    (pFEIn->tymed & TYMED_HGLOBAL) == 0
-	) {
+	if (!SupportedFormat(pFEIn)) {
 		//Platform::DebugPrintf("DOB GetData No %d %x %x fmt=%x\n", lenDrag, pFEIn, pSTM, pFEIn->cfFormat);
 		return DATA_E_FORMATETC;
 	}
+
 	pSTM->tymed = TYMED_HGLOBAL;
 	//Platform::DebugPrintf("DOB GetData OK %d %x %x\n", lenDrag, pFEIn, pSTM);
 
-	GlobalMemory text;
-	if (pFEIn->cfFormat == CF_UNICODETEXT) {
-                const std::string_view sv(drag.Data(), drag.LengthWithTerminator());
-		const size_t uchars = UTF16Length(sv);
-		text.Allocate(2 * uchars);
-		if (text) {
-			UTF16FromUTF8(sv,
-				static_cast<wchar_t *>(text.ptr), uchars);
-		}
-	} else {
-		text.Allocate(drag.LengthWithTerminator());
-		if (text) {
-			memcpy(text.ptr, drag.Data(), drag.LengthWithTerminator());
-		}
-	}
-	pSTM->hGlobal = text ? text.Unlock() : 0;
+	GlobalMemory uniText;
+	CopyToGlobal(uniText, drag);
+	pSTM->hGlobal = uniText ? uniText.Unlock() : 0;
 	pSTM->pUnkForRelease = nullptr;
 	return S_OK;
+}
+
+void ScintillaWin::Prepare() noexcept {
+	Platform_Initialise(hInstance);
+
+	// Register the CallTip class
+	WNDCLASSEX wndclassc{};
+	wndclassc.cbSize = sizeof(wndclassc);
+	wndclassc.style = CS_GLOBALCLASS | CS_HREDRAW | CS_VREDRAW;
+	wndclassc.cbWndExtra = sizeof(ScintillaWin *);
+	wndclassc.hInstance = hInstance;
+	wndclassc.lpfnWndProc = ScintillaWin::CTWndProc;
+	wndclassc.hCursor = ::LoadCursor(NULL, IDC_ARROW);
+	wndclassc.lpszClassName = callClassName;
+
+	callClassAtom = ::RegisterClassEx(&wndclassc);
 }
 
 bool ScintillaWin::Register(HINSTANCE hInstance_) noexcept {
@@ -3223,22 +3530,7 @@ bool ScintillaWin::Register(HINSTANCE hInstance_) noexcept {
 	wndclass.hInstance = hInstance;
 	wndclass.lpszClassName = L"Scintilla";
 	scintillaClassAtom = ::RegisterClassExW(&wndclass);
-	bool result = 0 != scintillaClassAtom;
-
-	if (result) {
-		// Register the CallTip class
-		WNDCLASSEX wndclassc {};
-		wndclassc.cbSize = sizeof(wndclassc);
-		wndclassc.style = CS_GLOBALCLASS | CS_HREDRAW | CS_VREDRAW;
-		wndclassc.cbWndExtra = sizeof(ScintillaWin *);
-		wndclassc.hInstance = hInstance;
-		wndclassc.lpfnWndProc = ScintillaWin::CTWndProc;
-		wndclassc.hCursor = ::LoadCursor(NULL, IDC_ARROW);
-		wndclassc.lpszClassName = callClassName;
-
-		callClassAtom = ::RegisterClassEx(&wndclassc);
-		result = 0 != callClassAtom;
-	}
+	const bool result = 0 != scintillaClassAtom;
 
 	return result;
 }
@@ -3262,7 +3554,7 @@ bool ScintillaWin::Unregister() noexcept {
 
 bool ScintillaWin::HasCaretSizeChanged() const noexcept {
 	if (
-		( (0 != vs.caretWidth) && (sysCaretWidth != vs.caretWidth) )
+		( (0 != vs.caret.width) && (sysCaretWidth != vs.caret.width) )
 		|| ((0 != vs.lineHeight) && (sysCaretHeight != vs.lineHeight))
 		) {
 		return true;
@@ -3271,7 +3563,7 @@ bool ScintillaWin::HasCaretSizeChanged() const noexcept {
 }
 
 BOOL ScintillaWin::CreateSystemCaret() {
-	sysCaretWidth = vs.caretWidth;
+	sysCaretWidth = vs.caret.width;
 	if (0 == sysCaretWidth) {
 		sysCaretWidth = 1;
 	}
@@ -3284,7 +3576,7 @@ BOOL ScintillaWin::CreateSystemCaret() {
 	const BOOL retval = ::CreateCaret(
 		MainHWND(), sysCaretBitmap,
 		sysCaretWidth, sysCaretHeight);
-	if (technology == SC_TECHNOLOGY_DEFAULT) {
+	if (technology == Technology::Default) {
 		// System caret interferes with Direct2D drawing so only show it for GDI.
 		::ShowCaret(MainHWND());
 	}
@@ -3296,7 +3588,7 @@ BOOL ScintillaWin::DestroySystemCaret() noexcept {
 	const BOOL retval = ::DestroyCaret();
 	if (sysCaretBitmap) {
 		::DeleteObject(sysCaretBitmap);
-		sysCaretBitmap = 0;
+		sysCaretBitmap = {};
 	}
 	return retval;
 }
@@ -3318,7 +3610,7 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 			}
 		} else {
 			if (iMessage == WM_NCDESTROY) {
-				::SetWindowLong(hWnd, 0, 0);
+				SetWindowPointer(hWnd, nullptr);
 				return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
 			} else if (iMessage == WM_PAINT) {
 				PAINTSTRUCT ps;
@@ -3329,18 +3621,18 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 #endif
 				RECT rc;
 				GetClientRect(hWnd, &rc);
-				// Create a Direct2D render target.
-				if (sciThis->technology == SC_TECHNOLOGY_DEFAULT) {
+				if (sciThis->technology == Technology::Default) {
 					surfaceWindow->Init(ps.hdc, hWnd);
 				} else {
 #if defined(USE_D2D)
-					D2D1_HWND_RENDER_TARGET_PROPERTIES dhrtp;
+					// Create a Direct2D render target.
+					D2D1_HWND_RENDER_TARGET_PROPERTIES dhrtp {};
 					dhrtp.hwnd = hWnd;
 					dhrtp.pixelSize = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
-					dhrtp.presentOptions = (sciThis->technology == SC_TECHNOLOGY_DIRECTWRITERETAIN) ?
+					dhrtp.presentOptions = (sciThis->technology == Technology::DirectWriteRetain) ?
 						D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS : D2D1_PRESENT_OPTIONS_NONE;
 
-					D2D1_RENDER_TARGET_PROPERTIES drtp;
+					D2D1_RENDER_TARGET_PROPERTIES drtp {};
 					drtp.type = D2D1_RENDER_TARGET_TYPE_DEFAULT;
 					drtp.pixelFormat.format = DXGI_FORMAT_UNKNOWN;
 					drtp.pixelFormat.alphaMode = D2D1_ALPHA_MODE_UNKNOWN;
@@ -3356,13 +3648,14 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 					}
 					// If above SUCCEEDED, then pCTRenderTarget not nullptr
 					assert(pCTRenderTarget);
-					surfaceWindow->Init(pCTRenderTarget, hWnd);
-					pCTRenderTarget->BeginDraw();
+					if (pCTRenderTarget) {
+						surfaceWindow->Init(pCTRenderTarget, hWnd);
+						pCTRenderTarget->BeginDraw();
+					}
 #endif
 				}
-				surfaceWindow->SetUnicodeMode(SC_CP_UTF8 == sciThis->ct.codePage);
-				surfaceWindow->SetDBCSMode(sciThis->ct.codePage);
-				surfaceWindow->SetBidiR2L(sciThis->BidirectionalR2L());
+				surfaceWindow->SetMode(sciThis->CurrentSurfaceMode());
+				sciThis->SetRenderingParams(surfaceWindow.get());
 				sciThis->ct.PaintCT(surfaceWindow.get());
 #if defined(USE_D2D)
 				if (pCTRenderTarget)
@@ -3370,8 +3663,7 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 #endif
 				surfaceWindow->Release();
 #if defined(USE_D2D)
-				if (pCTRenderTarget)
-					pCTRenderTarget->Release();
+				ReleaseUnknown(pCTRenderTarget);
 #endif
 				::EndPaint(hWnd, &ps);
 				return 0;
@@ -3396,22 +3688,32 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 			}
 		}
 	} catch (...) {
-		sciThis->errorStatus = SC_STATUS_FAILURE;
+		sciThis->errorStatus = Status::Failure;
 	}
 	return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
 }
 
 sptr_t ScintillaWin::DirectFunction(
     sptr_t ptr, UINT iMessage, uptr_t wParam, sptr_t lParam) {
-	PLATFORM_ASSERT(::GetCurrentThreadId() == ::GetWindowThreadProcessId(reinterpret_cast<ScintillaWin *>(ptr)->MainHWND(), nullptr));
-	return reinterpret_cast<ScintillaWin *>(ptr)->WndProc(iMessage, wParam, lParam);
+	ScintillaWin *sci = reinterpret_cast<ScintillaWin *>(ptr);
+	PLATFORM_ASSERT(::GetCurrentThreadId() == ::GetWindowThreadProcessId(sci->MainHWND(), nullptr));
+	return sci->WndProc(static_cast<Message>(iMessage), wParam, lParam);
 }
 
-namespace Scintilla {
+sptr_t ScintillaWin::DirectStatusFunction(
+    sptr_t ptr, UINT iMessage, uptr_t wParam, sptr_t lParam, int *pStatus) {
+	ScintillaWin *sci = reinterpret_cast<ScintillaWin *>(ptr);
+	PLATFORM_ASSERT(::GetCurrentThreadId() == ::GetWindowThreadProcessId(sci->MainHWND(), nullptr));
+	const sptr_t returnValue = sci->WndProc(static_cast<Message>(iMessage), wParam, lParam);
+	*pStatus = static_cast<int>(sci->errorStatus);
+	return returnValue;
+}
+
+namespace Scintilla::Internal {
 
 sptr_t DirectFunction(
     ScintillaWin *sci, UINT iMessage, uptr_t wParam, sptr_t lParam) {
-	return sci->WndProc(iMessage, wParam, lParam);
+	return sci->WndProc(static_cast<Message>(iMessage), wParam, lParam);
 }
 
 }
@@ -3426,10 +3728,12 @@ LRESULT PASCAL ScintillaWin::SWndProc(
 	if (sci == nullptr) {
 		try {
 			if (iMessage == WM_CREATE) {
+				static std::once_flag once;
+				std::call_once(once, Prepare);
 				// Create C++ object associated with window
 				sci = new ScintillaWin(hWnd);
 				SetWindowPointer(hWnd, sci);
-				return sci->WndProc(iMessage, wParam, lParam);
+				return sci->WndProc(static_cast<Message>(iMessage), wParam, lParam);
 			}
 		} catch (...) {
 		}
@@ -3441,36 +3745,37 @@ LRESULT PASCAL ScintillaWin::SWndProc(
 				delete sci;
 			} catch (...) {
 			}
-			::SetWindowLong(hWnd, 0, 0);
+			SetWindowPointer(hWnd, nullptr);
 			return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
 		} else {
-			return sci->WndProc(iMessage, wParam, lParam);
+			return sci->WndProc(static_cast<Message>(iMessage), wParam, lParam);
 		}
 	}
 }
 
 // This function is externally visible so it can be called from container when building statically.
 // Must be called once only.
-int Scintilla_RegisterClasses(void *hInstance) {
-	Platform_Initialise(hInstance);
+extern "C" int Scintilla_RegisterClasses(void *hInstance) {
 	const bool result = ScintillaWin::Register(static_cast<HINSTANCE>(hInstance));
-#ifdef SCI_LEXER
-	Scintilla_LinkLexers();
-#endif
 	return result;
 }
 
-namespace Scintilla {
+namespace Scintilla::Internal {
 
-int ResourcesRelease(bool fromDllMain) {
+int ResourcesRelease(bool fromDllMain) noexcept {
 	const bool result = ScintillaWin::Unregister();
 	Platform_Finalise(fromDllMain);
+	return result;
+}
+
+int RegisterClasses(void *hInstance) noexcept {
+	const bool result = ScintillaWin::Register(static_cast<HINSTANCE>(hInstance));
 	return result;
 }
 
 }
 
 // This function is externally visible so it can be called from container when building statically.
-int Scintilla_ReleaseResources() {
-	return Scintilla::ResourcesRelease(false);
+extern "C" int Scintilla_ReleaseResources() {
+	return Scintilla::Internal::ResourcesRelease(false);
 }

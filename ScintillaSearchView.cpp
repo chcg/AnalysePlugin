@@ -1,13 +1,13 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 
 #include <windows.h>
@@ -75,9 +74,7 @@ void ScintillaSearchView::init(HINSTANCE hInst, HWND hPere)
 
     if (!_hSelf)
     {
-//		systemMessage(TEXT("System Error"));
-        MessageBox( NULL, TEXT("System Error no handle"), TEXT("ScintillaSearchView ERROR : "), MB_OK | MB_ICONSTOP);
-        throw int(106901);
+		throw std::runtime_error("ScintillaEditView::init : CreateWindowEx() function return null");
     }
 
     _pScintillaFunc = (SCINTILLA_FUNC)::SendMessage(_hSelf, SCI_GETDIRECTFUNCTION, 0, 0);
@@ -85,78 +82,106 @@ void ScintillaSearchView::init(HINSTANCE hInst, HWND hPere)
 
 //    _userDefineDlg.init(_hInst, _hParent, this);
 
-    if (!_pScintillaFunc || !_pScintillaPtr)
-    {
-        //systemMessage(TEXT("System Err"));
-        MessageBox( NULL, TEXT("System Error no scintilla pointer"), TEXT("ScintillaSearchView ERROR : "), MB_OK | MB_ICONSTOP);
-        throw int(106902);
-    }
+	if (!_pScintillaFunc)
+	{
+		throw std::runtime_error("ScintillaEditView::init : SCI_GETDIRECTFUNCTION message failed");
+	}
 
-    //execute(SCI_SETMARGINMASKN, _SC_MARGE_FOLDER, SC_MASK_FOLDERS);
-    // showMargin(_SC_MARGE_FOLDER, true);
-//new 5.3 begin
- //   execute(SCI_SETMARGINMASKN, _SC_MARGE_SYBOLE, (1<<MARK_BOOKMARK) | (1<<MARK_HIDELINESBEGIN) | (1<<MARK_HIDELINESEND));
+	if (!_pScintillaPtr)
+	{
+		throw std::runtime_error("ScintillaEditView::init : SCI_GETDIRECTPOINTER message failed");
+	}
 
-    //execute(SCI_SETMARGINMASKN, _SC_MARGE_MODIFMARKER, (1<<MARK_LINEMODIFIEDUNSAVED)|(1<<MARK_LINEMODIFIEDSAVED));
-    //execute(SCI_SETMARGINTYPEN, _SC_MARGE_MODIFMARKER, SC_MARGIN_BACK);
-    //showMargin(_SC_MARGE_MODIFMARKER, true);
+	execute(SCI_SETMARGINMASKN, _SC_MARGE_FOLDER, SC_MASK_FOLDERS);
+	showMargin(_SC_MARGE_FOLDER, true);
 
-    //execute(SCI_MARKERDEFINE, MARK_LINEMODIFIEDSAVED, SCI_MARKERDEFINE);
-    //execute(SCI_MARKERDEFINE, MARK_LINEMODIFIEDUNSAVED, SCI_MARKERDEFINE);
+	execute(SCI_SETMARGINMASKN, _SC_MARGE_SYBOLE, (1<<MARK_BOOKMARK) | (1<<MARK_HIDELINESBEGIN) | (1<<MARK_HIDELINESEND) | (1<<MARK_HIDELINESUNDERLINE));
 
-    //execute(SCI_MARKERSETALPHA, MARK_BOOKMARK, 70);
-    //execute(SCI_MARKERDEFINEPIXMAP, MARK_BOOKMARK, (LPARAM)bookmark_xpm);
-    //execute(SCI_MARKERDEFINEPIXMAP, MARK_HIDELINESBEGIN, (LPARAM)acTop_xpm);
-    //execute(SCI_MARKERDEFINEPIXMAP, MARK_HIDELINESEND, (LPARAM)acBottom_xpm);
-// new 5.3 end
-    //execute(SCI_SETMARGINSENSITIVEN, _SC_MARGE_FOLDER, true);
-    //execute(SCI_SETMARGINSENSITIVEN, _SC_MARGE_SYBOLE, true);
+	execute(SCI_MARKERSETALPHA, MARK_BOOKMARK, 70);
 
-   execute(SCI_SETMARGINWIDTHN, _SC_MARGE_SYBOLE, 0);
-   execute(SCI_SETMARGINWIDTHN, _SC_MARGE_FOLDER, 0);
+	execute(SCI_MARKERDEFINE, MARK_HIDELINESUNDERLINE, SC_MARK_UNDERLINE);
+	execute(SCI_MARKERSETBACK, MARK_HIDELINESUNDERLINE, 0x77CC77);
 
-    execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold"), reinterpret_cast<LPARAM>("1"));
-    execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold.compact"), reinterpret_cast<LPARAM>("0"));
+	if (NppParameters::getInstance()._dpiManager.scaleX(100) >= 150)
+	{
+		execute(SCI_RGBAIMAGESETWIDTH, 18);
+		execute(SCI_RGBAIMAGESETHEIGHT, 18);
+		execute(SCI_MARKERDEFINERGBAIMAGE, MARK_BOOKMARK, reinterpret_cast<LPARAM>(bookmark18));
+		execute(SCI_MARKERDEFINERGBAIMAGE, MARK_HIDELINESBEGIN, reinterpret_cast<LPARAM>(hidelines_begin18));
+		execute(SCI_MARKERDEFINERGBAIMAGE, MARK_HIDELINESEND, reinterpret_cast<LPARAM>(hidelines_end18));
+	}
+	else
+	{
+		execute(SCI_RGBAIMAGESETWIDTH, 14);
+		execute(SCI_RGBAIMAGESETHEIGHT, 14);
+		execute(SCI_MARKERDEFINERGBAIMAGE, MARK_BOOKMARK, reinterpret_cast<LPARAM>(bookmark14));
+		execute(SCI_MARKERDEFINERGBAIMAGE, MARK_HIDELINESBEGIN, reinterpret_cast<LPARAM>(hidelines_begin14));
+		execute(SCI_MARKERDEFINERGBAIMAGE, MARK_HIDELINESEND, reinterpret_cast<LPARAM>(hidelines_end14));
+	}
 
-    execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold.html"), reinterpret_cast<LPARAM>("1"));
-    execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold.comment"), reinterpret_cast<LPARAM>("1"));
-    execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold.preprocessor"), reinterpret_cast<LPARAM>("1"));
+    execute(SCI_SETMARGINSENSITIVEN, _SC_MARGE_FOLDER, true);
+    execute(SCI_SETMARGINSENSITIVEN, _SC_MARGE_SYBOLE, true);
+
     execute(SCI_SETFOLDFLAGS, 16);
-    execute(SCI_SETSCROLLWIDTHTRACKING, true);
-    execute(SCI_SETSCROLLWIDTH, 1);	//default empty document: override default width of 2000
+	execute(SCI_SETSCROLLWIDTHTRACKING, true);
+	execute(SCI_SETSCROLLWIDTH, 1);	//default empty document: override default width of 2000
 
-    // smart hilighting
-    execute(SCI_INDICSETSTYLE, SCE_UNIVERSAL_FOUND_STYLE_SMART, INDIC_ROUNDBOX);
-    execute(SCI_INDICSETSTYLE, SCE_UNIVERSAL_FOUND_STYLE, INDIC_ROUNDBOX);
-    execute(SCI_INDICSETSTYLE, SCE_UNIVERSAL_FOUND_STYLE_INC, INDIC_ROUNDBOX);
-    execute(SCI_INDICSETSTYLE, SCE_UNIVERSAL_TAGMATCH, INDIC_ROUNDBOX);
-    execute(SCI_INDICSETSTYLE, SCE_UNIVERSAL_TAGATTR, INDIC_ROUNDBOX);
+	// smart hilighting
+	execute(SCI_INDICSETSTYLE, SCE_UNIVERSAL_FOUND_STYLE_SMART, INDIC_ROUNDBOX);
+	execute(SCI_INDICSETSTYLE, SCE_UNIVERSAL_FOUND_STYLE, INDIC_ROUNDBOX);
+	execute(SCI_INDICSETSTYLE, SCE_UNIVERSAL_FOUND_STYLE_INC, INDIC_ROUNDBOX);
+	execute(SCI_INDICSETSTYLE, SCE_UNIVERSAL_TAGMATCH, INDIC_ROUNDBOX);
+	execute(SCI_INDICSETSTYLE, SCE_UNIVERSAL_TAGATTR, INDIC_ROUNDBOX);
+	execute(SCI_INDICSETSTYLE, SCE_UNIVERSAL_FOUND_STYLE_EXT1, INDIC_ROUNDBOX);
+	execute(SCI_INDICSETSTYLE, SCE_UNIVERSAL_FOUND_STYLE_EXT2, INDIC_ROUNDBOX);
+	execute(SCI_INDICSETSTYLE, SCE_UNIVERSAL_FOUND_STYLE_EXT3, INDIC_ROUNDBOX);
+	execute(SCI_INDICSETSTYLE, SCE_UNIVERSAL_FOUND_STYLE_EXT4, INDIC_ROUNDBOX);
+	execute(SCI_INDICSETSTYLE, SCE_UNIVERSAL_FOUND_STYLE_EXT5, INDIC_ROUNDBOX);
+
+	execute(SCI_INDICSETALPHA, SCE_UNIVERSAL_FOUND_STYLE_SMART, 100);
+	execute(SCI_INDICSETALPHA, SCE_UNIVERSAL_FOUND_STYLE, 100);
+	execute(SCI_INDICSETALPHA, SCE_UNIVERSAL_FOUND_STYLE_INC, 100);
+	execute(SCI_INDICSETALPHA, SCE_UNIVERSAL_TAGMATCH, 100);
+	execute(SCI_INDICSETALPHA, SCE_UNIVERSAL_TAGATTR, 100);
+	execute(SCI_INDICSETALPHA, SCE_UNIVERSAL_FOUND_STYLE_EXT1, 100);
+	execute(SCI_INDICSETALPHA, SCE_UNIVERSAL_FOUND_STYLE_EXT2, 100);
+	execute(SCI_INDICSETALPHA, SCE_UNIVERSAL_FOUND_STYLE_EXT3, 100);
+	execute(SCI_INDICSETALPHA, SCE_UNIVERSAL_FOUND_STYLE_EXT4, 100);
+	execute(SCI_INDICSETALPHA, SCE_UNIVERSAL_FOUND_STYLE_EXT5, 100);
+
+	execute(SCI_INDICSETUNDER, SCE_UNIVERSAL_FOUND_STYLE_SMART, true);
+	execute(SCI_INDICSETUNDER, SCE_UNIVERSAL_FOUND_STYLE, true);
+	execute(SCI_INDICSETUNDER, SCE_UNIVERSAL_FOUND_STYLE_INC, true);
+	execute(SCI_INDICSETUNDER, SCE_UNIVERSAL_TAGMATCH, true);
+	execute(SCI_INDICSETUNDER, SCE_UNIVERSAL_TAGATTR, true);
+	execute(SCI_INDICSETUNDER, SCE_UNIVERSAL_FOUND_STYLE_EXT1, true);
+	execute(SCI_INDICSETUNDER, SCE_UNIVERSAL_FOUND_STYLE_EXT2, true);
+	execute(SCI_INDICSETUNDER, SCE_UNIVERSAL_FOUND_STYLE_EXT3, true);
+	execute(SCI_INDICSETUNDER, SCE_UNIVERSAL_FOUND_STYLE_EXT4, true);
+	execute(SCI_INDICSETUNDER, SCE_UNIVERSAL_FOUND_STYLE_EXT5, true);
     
-
-   execute(SCI_INDICSETALPHA, SCE_UNIVERSAL_FOUND_STYLE_SMART, 100);
-    execute(SCI_INDICSETALPHA, SCE_UNIVERSAL_FOUND_STYLE, 100);
-    execute(SCI_INDICSETALPHA, SCE_UNIVERSAL_FOUND_STYLE_INC, 100);
-    execute(SCI_INDICSETALPHA, SCE_UNIVERSAL_TAGMATCH, 100);
-    execute(SCI_INDICSETALPHA, SCE_UNIVERSAL_TAGATTR, 100);
-
-   execute(SCI_INDICSETUNDER, SCE_UNIVERSAL_FOUND_STYLE_SMART, true);
-    execute(SCI_INDICSETUNDER, SCE_UNIVERSAL_FOUND_STYLE, true);
-    execute(SCI_INDICSETUNDER, SCE_UNIVERSAL_FOUND_STYLE_INC, true);
-    execute(SCI_INDICSETUNDER, SCE_UNIVERSAL_TAGMATCH, true);
-    execute(SCI_INDICSETUNDER, SCE_UNIVERSAL_TAGATTR, true);
-    
+//	if ((NppParameters::getInstance()).getNppGUI()._writeTechnologyEngine == directWriteTechnology)
+//		execute(SCI_SETTECHNOLOGY, SC_TECHNOLOGY_DIRECTWRITE);
    //switch off the context menu off scintilla as we have our own
    execute(SCI_USEPOPUP, 0);
 //TODO evtl doch benutzen	_pParameter = NppParameters::getInstance();
     
     _codepage = ::GetACP();
-    _oemCodepage = ::GetOEMCP();
 
 
     ::SetWindowLongPtr(_hSelf, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
     _callWindowProc = CallWindowProc;
     _scintillaDefaultProc = reinterpret_cast<WNDPROC>(::SetWindowLongPtr(_hSelf, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(ScintillaSearchView::scintillaStatic_Proc)));
 
+//	if (_defaultCharList.empty())
+//	{
+//		auto defaultCharListLen = execute(SCI_GETWORDCHARS);
+//		char *defaultCharList = new char[defaultCharListLen + 1];
+//		execute(SCI_GETWORDCHARS, 0, reinterpret_cast<LPARAM>(defaultCharList));
+//		defaultCharList[defaultCharListLen] = '\0';
+//		_defaultCharList = defaultCharList;
+//		delete[] defaultCharList;
+//	}
     //Get the startup document and make a buffer for it so it can be accessed like a file
     //attachDefaultDoc();
 #pragma warning(default:4312 4311)
@@ -352,7 +377,7 @@ bool ScintillaSearchView::prepareRtfClip(char *pGlobalText, int& iClipLength, ch
          if(iClipLength <= 0) { assert(iClipLength > 0); return false; }
          strcpy(pDest, RTF_COLNUM);
          pDest += strlen(RTF_COLNUM);
-         _itoa((transStylePos[style] * 2), styleNum, 10); // every first of two is fgColor
+         _i64toa((transStylePos[style] * 2), styleNum, 10); // every first of two is fgColor
          iClipLength -= (int)strlen(styleNum);
          if (iClipLength <= 0) { assert(iClipLength > 0); return false; }
          strcpy(pDest, styleNum);
@@ -361,7 +386,7 @@ bool ScintillaSearchView::prepareRtfClip(char *pGlobalText, int& iClipLength, ch
          if (iClipLength <= 0) { assert(iClipLength > 0); return false; }
          strcpy(pDest, RTF_BGCOLNUM);
          pDest += strlen(RTF_BGCOLNUM);
-         _itoa((transStylePos[style] * 2) + 1, styleNum, 10); // every second color is bgColor
+         _i64toa((transStylePos[style] * 2) + 1, styleNum, 10); // every second color is bgColor
          iClipLength -= (int)strlen(styleNum);
          if(iClipLength <= 0) { assert(iClipLength > 0); return false; }
          strcpy(pDest, styleNum);

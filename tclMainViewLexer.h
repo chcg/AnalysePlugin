@@ -1,9 +1,24 @@
+/* -------------------------------------
+This file is part of AnalysePlugin for NotePad++ 
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either
+version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+------------------------------------- */
 // Scintilla source code edit control
 /** @file tclMainViewLexer.*
 ** Lexer for AnalysePlaugin result data
 **/
-// Copyright 2019 by Mattes H. mattes_h(at)gmx.net
-// TODO License
 
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +27,7 @@
 #include <assert.h>
 #include <ctype.h>
 
+#include <string>
 #include "ILexer.h"
 #include "Scintilla.h"
 #include "SciLexer.h"
@@ -23,7 +39,7 @@
 #include "CharacterSet.h"
 #include "LexerModule.h"
 
-using namespace Scintilla;
+using namespace Lexilla;
 
 // Extended to accept accented characters
 static inline bool IsAWordChar(int ch) {

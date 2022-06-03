@@ -12,18 +12,15 @@
 #include "CaseFolder.h"
 #include "CaseConvert.h"
 
-using namespace Scintilla;
+using namespace Scintilla::Internal;
 
 CaseFolder::~CaseFolder() {
 }
 
-CaseFolderTable::CaseFolderTable() : mapping{}  {
+CaseFolderTable::CaseFolderTable() noexcept : mapping{}  {
 	for (size_t iChar=0; iChar<sizeof(mapping); iChar++) {
 		mapping[iChar] = static_cast<char>(iChar);
 	}
-}
-
-CaseFolderTable::~CaseFolderTable() {
 }
 
 size_t CaseFolderTable::Fold(char *folded, size_t sizeFolded, const char *mixed, size_t lenMixed) {
@@ -37,7 +34,7 @@ size_t CaseFolderTable::Fold(char *folded, size_t sizeFolded, const char *mixed,
 	}
 }
 
-void CaseFolderTable::SetTranslation(char ch, char chTranslation) {
+void CaseFolderTable::SetTranslation(char ch, char chTranslation) noexcept {
 	mapping[static_cast<unsigned char>(ch)] = chTranslation;
 }
 
@@ -53,7 +50,7 @@ void CaseFolderTable::StandardASCII() noexcept {
 
 CaseFolderUnicode::CaseFolderUnicode() {
 	StandardASCII();
-	converter = ConverterFor(CaseConversionFold);
+	converter = ConverterFor(CaseConversion::fold);
 }
 
 size_t CaseFolderUnicode::Fold(char *folded, size_t sizeFolded, const char *mixed, size_t lenMixed) {

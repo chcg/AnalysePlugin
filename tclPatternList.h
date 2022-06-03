@@ -1,11 +1,11 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,8 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 /**
 class tclPatternList contains a vector of tclPatterns
@@ -29,6 +28,36 @@ class tclPatternList contains a vector of tclPatterns
 
 typedef std::map < tPatId , tclPattern > tlmPatternList;
 typedef std::set < tPatId > tlsPatId;
+
+// declare member getter function types for sorting
+typedef int (*tFuncInt)(const tclPattern&);
+typedef const generic_string& (*tFuncStr)(const tclPattern&);
+
+// function template adator used to specify the function to be used in different sortings
+// implementation in application code is with last step class_func_decl(Class, Func)
+template <class Type>
+struct func;
+
+template <class Type, class Ret>
+struct func<Ret(Type::*)()>
+{
+   template <Ret(Type::* Func)()>
+   static Ret adapt(Type& obj)
+   {
+      return (obj.*Func)();
+   }
+};
+
+template <class Type, class Ret>
+struct func<Ret(Type::*)() const>
+{
+   template <Ret(Type::* Func)() const>
+   static Ret adapt(const Type& obj)
+   {
+      return (obj.*Func)();
+   }
+};
+#define class_func_decl(CF) &func<decltype(&CF)>::adapt<&CF>
 
 /**
  * Is the list of Patterns.
@@ -50,7 +79,8 @@ public:
 
    /** id conversion to index */
    virtual unsigned getPatternIndex(tPatId id) const;
-    
+   virtual generic_string getPatternIdentification(tPatId id) const;
+
    /**
    * set the values in the pattern with index i
    * @return true if setting was successfull
@@ -93,6 +123,15 @@ public:
    * calculate the max width of all comments
    */
    virtual unsigned getCommentWidth() const;
+
+   /**
+   * Sort the list by a given key either ascending or descending
+   * template type is used in std::map
+   */
+   void sort(tFuncStr func, bool bAscending = true);
+   void sort(tFuncInt func, bool bAscending = true);
+
+   void sortByOrderNum(bool bAscending = true);
 
    const_iterator begin() const {
       return mlmPattern.begin();

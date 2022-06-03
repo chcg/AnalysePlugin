@@ -1,11 +1,11 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,8 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 /**
 tclPattern stores the infos to execute one search
@@ -26,6 +25,8 @@ tclPattern stores the infos to execute one search
 #include <string>
 #include "Common.h"
 #include "tclColor.h"
+
+#define MAX_ORDER_NUM_CHARS 20
 
 /**
 * A Pattern is a text and additionaly stores the configuration information for it.
@@ -61,6 +62,7 @@ public:
    tclPattern();
 
    tclPattern(const tclPattern& right) {
+      mOrderNum = right.mOrderNum;
       mDoSearch = right.mDoSearch;
       mSearchText = right.mSearchText;
       mReplaceText = right.mReplaceText;
@@ -85,6 +87,7 @@ public:
       if(&right == this) {
          return *this;
       }
+      mOrderNum = right.mOrderNum;
       mDoSearch = right.mDoSearch;
       mSearchText = right.mSearchText;
       mReplaceText = right.mReplaceText;
@@ -108,7 +111,8 @@ public:
       if(&right == this) {
          return true;
       }
-      bool bRet =((mDoSearch == right.mDoSearch) &&
+      bool bRet =((mOrderNum == right.mOrderNum) &&
+                  (mDoSearch == right.mDoSearch) &&
                   (mSearchText == right.mSearchText) &&
                   (mReplaceText == right.mReplaceText) &&
                   (mSearchType == right.mSearchType) &&
@@ -131,7 +135,8 @@ public:
       if(&right == this) {
          return true;
       }
-      bool bRet =((mDoSearch == right.mDoSearch) &&
+      bool bRet =((mOrderNum == right.mOrderNum) &&
+                  (mDoSearch == right.mDoSearch) &&
                   (mSearchText == right.mSearchText) &&
                   (mSearchType == right.mSearchType) &&
                   (mWholeWord == right.mWholeWord) &&
@@ -141,22 +146,32 @@ public:
      return bRet;
    }
 
-   bool getDoSearch() const{
+   bool getDoSearch() const {
       return mDoSearch;
-   }
-   generic_string tclPattern::getDoSearchStr() const {
+   }   
+   
+   generic_string getDoSearchStr() const {
       return transBool[mDoSearch];
+   }
+
+   const generic_string& getOrderNumStr() const {
+      return mOrderNum;
    }
 
    void setDoSearch(bool bActive) {
       mDoSearch = bActive;
    }
-   void setDoSearchStr(const generic_string& val){
+
+   void setDoSearchStr(const generic_string& val) {
       mDoSearch = convBool(val);
    }
 
-   generic_string getSearchText() const;
-   generic_string getComment() const;
+   void setOrderNumStr(const generic_string& val) {
+      mOrderNum = val;
+   }
+
+   const generic_string& getSearchText() const;
+   const generic_string& getComment() const;
 
    generic_string getReplaceText() const;
 
@@ -320,7 +335,7 @@ public:
    void setSelectionType(int selectionType) ;
 
    void setSelectionTypeStr(const generic_string& type);
-   generic_string getGroup() const {
+   const generic_string& getGroup() const {
       return mGroup;
    }
    void setGroup(const generic_string& str) {
@@ -335,6 +350,7 @@ protected:
    bool convBool(const generic_string& val) const;
 
 protected:
+   generic_string mOrderNum;
    /** set to true in case that the pattern shall be regarded in the search **/
    bool mDoSearch;
    /** the search pattern as entered by the user */

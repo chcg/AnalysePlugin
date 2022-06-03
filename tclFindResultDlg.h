@@ -1,11 +1,11 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,8 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 /* tclFindResultDlg.h 
 This class implements the handling of the search result window 
@@ -46,7 +45,7 @@ public:
 
    void setCodePage(WPARAM cp);
 
-   void setLineNumColSize(int size); 
+   void setLineNumColSize(int size);
 
    int getLineNumColSize() const ;
 
@@ -62,14 +61,14 @@ public:
 
    void create(tTbData * data, bool isRTL = false);
    
-   int insertPosInfo(tPatId patternId, tiLine iResultLine, tclPosInfo pos); 
+   tiLine insertPosInfo(tPatId patternId, tiLine iResultLine, tclPosInfo pos);
 
    bool getLineAvail(tiLine foundLine) const ;
-   int getNextFoundLine(int iEdittorsLine) const;
+   tiLine getNextFoundLine(tiLine iEdittorsLine) const;
 
-   const std::string& getLineText(int iResultLine); 
+   const std::string& getLineText(tiLine iResultLine);
 
-   void setLineText(int iFoundLine, const std::string& text, const std::string& comment, unsigned commentWidth); 
+   void setLineText(tiLine iFoundLine, const std::string& text, const std::string& comment, unsigned commentWidth);
    
    void moveResult(tPatId oldPattId, tPatId newPattId);
 
@@ -78,12 +77,12 @@ public:
    void clear_view();
    void clear(bool initial = false);
 
-   int getCurrentMarkedLine() const ;
+   tiLine getCurrentMarkedLine() const ;
    
    /**
    * set the marked line with
    */ 
-   void setCurrentMarkedLine(int line); 
+   void setCurrentMarkedLine(tiLine line);
    
    /**
    function is called whenever the styles in the result window have to be changed
@@ -104,12 +103,12 @@ public:
       return _scintView.getWrapMode();
    }
 
-   int getDisplayLineNo() const {
+   bool getDisplayLineNo() const {
       return _scintView.getLineNumbersInResult();
    }
-   void setDisplayLineNo(int useIt){
-      if (_scintView.getLineNumbersInResult() != (useIt!=0)) {
-         _scintView.setLineNumbersInResult((useIt != 0));
+   void setDisplayLineNo(bool useIt){
+      if (_scintView.getLineNumbersInResult() != useIt) {
+         _scintView.setLineNumbersInResult(useIt);
       }
    }
 
@@ -128,13 +127,13 @@ public:
    void saveCurrentViewPos();
    void restoreCurrentViewPos();
 #endif
-   void setCurrentViewPos(int iThisMainLine);
-   void updateViewScrollState(int iLineInMain, bool bInMain, bool bAnyway=false);
+   void setCurrentViewPos(tiLine iThisMainLine);
+   void updateViewScrollState(tiLine iLineInMain, bool bInMain, bool bAnyway=false);
 
 protected :
    static const int transStyleId[MY_STYLE_COUNT];
    // public version calls internal with correct start and end values
-   void doStyle(int iFoundLine); 
+   void doStyle(tiLine iFoundLine);
 
    // open search dialog in result window
    void doFindResultSearchDlg();
@@ -148,11 +147,11 @@ protected :
    this function sends the series of commands to 
    scintilla win with the corresponding style id 
    **/
-   void setStyle(tPatId iPatternId, int iBeginPos, int iLength);
-   void setDefaultStyle(int iBeginPos, int iLength);
+   void setStyle(tPatId iPatternId, tiLine iBeginPos, tiLine iLength);
+   void setDefaultStyle(tiLine iBeginPos, tiLine iLength);
 
    // callback from scintilla to colorize the search window
-   void doStyle(int startResultLineNo, int startStyleNeeded, int endStyleNeeded);
+   void doStyle(tiLine startResultLineNo, tiLine startStyleNeeded, tiLine endStyleNeeded);
 
    bool notify(SCNotification *notification);
    
@@ -167,7 +166,7 @@ protected :
    tclFindResultDoc mFindResults;
 
    ScintillaSearchView _scintView;
-   int _markedLine;  // -1 or the line actually marked in the main window
+   tiLine _markedLine;  // -1 or the line actually marked in the main window
    // InWhat _mode;
    size_t _lineCounter; // incremented when a line has been added to the edit window
 
@@ -188,7 +187,7 @@ protected :
    int mDisplayComment;
    generic_string mSearchResultFile;
 #ifdef FEATURE_RESVIEW_POS_KEEP_AT_SEARCH
-   int mCurrentViewLineNo;
+   tiLine mCurrentViewLineNo;
 #endif
    bool mFromMainWindow; // flag if main window moves the result window
    bool mFromFindResult; // flag set if double click moves the main window

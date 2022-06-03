@@ -1,29 +1,18 @@
 // This file is part of Notepad++ project
-// Copyright (C)2003 Don HO <don.h@free.fr>
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later version.
-//
-// Note that the GPL places important restrictions on "derived works", yet
-// it does not provide a detailed definition of that term.  To avoid
-// misunderstandings, we consider an application to constitute a
-// "derivative work" for the purpose of this license if it does any of the
-// following:
-// 1. Integrates source code from Notepad++.
-// 2. Integrates/includes/aggregates Notepad++ into a proprietary executable
-//    installer, such as those produced by InstallShield.
-// 3. Links to a library or executes a program that does any of the above.
+// Copyright (C)2021 Don HO <don.h@free.fr>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// at your option any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #pragma once
 #include <vector>
 #include <string>
@@ -31,6 +20,9 @@
 #include <windows.h>
 #include <iso646.h>
 #include <cstdint>
+#include <unordered_set>
+#include <algorithm>
+#include <tchar.h>
 
 
 const bool dirUp = true;
@@ -47,22 +39,21 @@ const bool dirDown = false;
 
 #define generic_strtol wcstol
 #define generic_strncpy wcsncpy
-#define generic_stricmp _wcsicmp
+#define generic_stricmp wcsicmp
 #define generic_strncmp wcsncmp
 #define generic_strnicmp wcsnicmp
 #define generic_strncat wcsncat
 #define generic_strchr wcschr
 #define generic_atoi _wtoi
-#define generic_itoa _itow
+#define generic_itoa _i64tow
 #define generic_atof _wtof
-#define generic_strtok(a,b) wcstok(a,b,LC_ALL)
+#define generic_strtok(a,b) wcstok(a,b,LC_ALL) // Mattes
 #define generic_strftime wcsftime
 #define generic_fprintf fwprintf
 #define generic_sprintf swprintf
 #define generic_sscanf swscanf
 #define generic_fopen _wfopen
 #define generic_fgets fgetws
-#define generic_stat _wstat
 #define COPYDATA_FILENAMES COPYDATA_FILENAMESW
 #define NPP_INTERNAL_FUCTION_STR TEXT("Notepad++::InternalFunction")
 
@@ -93,6 +84,8 @@ std::string getFileContent(const TCHAR *file2read);
 generic_string relativeFilePathToFullFilePath(const TCHAR *relativeFilePath);
 void writeFileContent(const TCHAR *file2write, const char *content2write);
 bool matchInList(const TCHAR *fileName, const std::vector<generic_string> & patterns);
+bool matchInExcludeDirList(const TCHAR* dirName, const std::vector<generic_string>& patterns, size_t level);
+bool allPatternsAreExclusion(const std::vector<generic_string> patterns);
 
 class WcharMbcsConvertor final
 {
@@ -102,12 +95,12 @@ public:
 		return instance;
 	}
 
-	const wchar_t * char2wchar(const char *mbStr, UINT codepage, int lenIn=-1, int *pLenOut=NULL, int *pBytesNotProcessed=NULL);
-	const wchar_t * char2wchar(const char *mbcs2Convert, UINT codepage, int *mstart, int *mend);
-	const char * wchar2char(const wchar_t *wcStr, UINT codepage, int lenIn = -1, int *pLenOut = NULL);
-	const char * wchar2char(const wchar_t *wcStr, UINT codepage, long *mstart, long *mend);
+	const wchar_t * char2wchar(const char *mbStr, size_t codepage, int lenMbcs =-1, int* pLenOut=NULL, int* pBytesNotProcessed=NULL);
+	const wchar_t * char2wchar(const char *mbcs2Convert, size_t codepage, intptr_t* mstart, intptr_t* mend);
+	const char * wchar2char(const wchar_t *wcStr, size_t codepage, int lenIn = -1, int* pLenOut = NULL);
+	const char * wchar2char(const wchar_t *wcStr, size_t codepage, intptr_t* mstart, intptr_t* mend);
 
-	const char * encode(UINT fromCodepage, UINT toCodepage, const char *txt2Encode, int lenIn=-1, int *pLenOut=NULL, int *pBytesNotProcessed=NULL)
+	const char * encode(UINT fromCodepage, UINT toCodepage, const char *txt2Encode, int lenIn = -1, int* pLenOut=NULL, int* pBytesNotProcessed=NULL)
 	{
 		int lenWc = 0;
         const wchar_t * strW = char2wchar(txt2Encode, fromCodepage, lenIn, &lenWc, pBytesNotProcessed);
@@ -167,19 +160,16 @@ protected:
 };
 
 
-
-#define MACRO_RECORDING_IN_PROGRESS 1
-#define MACRO_RECORDING_HAS_STOPPED 2
-
 #define REBARBAND_SIZE sizeof(REBARBANDINFO)
 
 generic_string PathRemoveFileSpec(generic_string & path);
-generic_string PathAppend(generic_string &strDest, const generic_string & str2append);
+generic_string pathAppend(generic_string &strDest, const generic_string & str2append);
 COLORREF getCtrlBgColor(HWND hWnd);
 generic_string stringToUpper(generic_string strToConvert);
 generic_string stringToLower(generic_string strToConvert);
 generic_string stringReplace(generic_string subject, const generic_string& search, const generic_string& replace);
 std::vector<generic_string> stringSplit(const generic_string& input, const generic_string& delimiter);
+bool str2numberVector(generic_string str2convert, std::vector<size_t>& numVect);
 generic_string stringJoin(const std::vector<generic_string>& strings, const generic_string& separator);
 generic_string stringTakeWhileAdmissable(const generic_string& input, const generic_string& admissable);
 double stodLocale(const generic_string& str, _locale_t loc, size_t* idx = NULL);
@@ -187,13 +177,16 @@ double stodLocale(const generic_string& str, _locale_t loc, size_t* idx = NULL);
 int OrdinalIgnoreCaseCompareStrings(LPCTSTR sz1, LPCTSTR sz2);
 
 bool str2Clipboard(const generic_string &str2cpy, HWND hwnd);
+class Buffer;
+bool buf2Clipborad(const std::vector<Buffer*>& buffers, bool isFullPath, HWND hwnd);
 
 generic_string GetLastErrorAsString(DWORD errorCode = 0);
 
 generic_string intToString(int val);
 generic_string uintToString(unsigned int val);
 
-HWND CreateToolTip(int toolID, HWND hDlg, HINSTANCE hInst, const PTSTR pszText);
+HWND CreateToolTip(int toolID, HWND hDlg, HINSTANCE hInst, const PTSTR pszText, bool isRTL);
+HWND CreateToolTipRect(int toolID, HWND hWnd, HINSTANCE hInst, const PTSTR pszText, const RECT rc);
 
 bool isCertificateValidated(const generic_string & fullFilePath, const generic_string & subjectName2check);
 bool isAssoCommandExisting(LPCTSTR FullPathName);
@@ -204,3 +197,92 @@ std::string ws2s(const std::wstring& wstr);
 bool deleteFileOrFolder(const generic_string& f2delete);
 
 void getFilesInFolder(std::vector<generic_string>& files, const generic_string& extTypeFilter, const generic_string& inFolder);
+
+template<typename T> size_t vecRemoveDuplicates(std::vector<T>& vec, bool isSorted = false, bool canSort = false)
+{
+	if (!isSorted && canSort)
+	{
+		std::sort(vec.begin(), vec.end());
+		isSorted = true;
+	}
+
+	if (isSorted)
+	{
+		typename std::vector<T>::iterator it;
+		it = std::unique(vec.begin(), vec.end());
+		vec.resize(distance(vec.begin(), it));  // unique() does not shrink the vector
+	}
+	else
+	{
+		std::unordered_set<T> seen;
+		auto newEnd = std::remove_if(vec.begin(), vec.end(), [&seen](const T& value)
+			{
+				return !seen.insert(value).second;
+			});
+		vec.erase(newEnd, vec.end());
+	}
+	return vec.size();
+}
+
+void trim(generic_string& str);
+bool endsWith(const generic_string& s, const generic_string& suffix);
+
+int nbDigitsFromNbLines(size_t nbLines);
+
+generic_string getDateTimeStrFrom(const generic_string& dateTimeFormat, const SYSTEMTIME& st);
+
+HFONT createFont(const TCHAR* fontName, int fontSize, bool isBold, HWND hDestParent);
+
+class Version final
+{
+public:
+	Version() = default;
+	Version(const generic_string& versionStr);
+
+	void setVersionFrom(const generic_string& filePath);
+	generic_string toString();
+	bool isNumber(const generic_string& s) const {
+		return !s.empty() &&
+			find_if(s.begin(), s.end(), [](TCHAR c) { return !_istdigit(c); }) == s.end();
+	};
+
+	int compareTo(const Version& v2c) const;
+
+	bool operator < (const Version& v2c) const {
+		return compareTo(v2c) == -1;
+	};
+
+	bool operator <= (const Version& v2c) const {
+		int r = compareTo(v2c);
+		return r == -1 || r == 0;
+	};
+
+	bool operator > (const Version& v2c) const {
+		return compareTo(v2c) == 1;
+	};
+
+	bool operator >= (const Version& v2c) const {
+		int r = compareTo(v2c);
+		return r == 1 || r == 0;
+	};
+
+	bool operator == (const Version& v2c) const {
+		return compareTo(v2c) == 0;
+	};
+
+	bool operator != (const Version& v2c) const {
+		return compareTo(v2c) != 0;
+	};
+
+	bool empty() const {
+		return _major == 0 && _minor == 0 && _patch == 0 && _build == 0;
+	}
+
+	bool isCompatibleTo(const Version& from, const Version& to) const;
+
+private:
+	unsigned long _major = 0;
+	unsigned long _minor = 0;
+	unsigned long _patch = 0;
+	unsigned long _build = 0;
+};

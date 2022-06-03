@@ -1,13 +1,13 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 //#include "stdafx.h"
 
@@ -69,7 +68,7 @@ INT_PTR CALLBACK HelpDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM /*lPar
          _urlNppPlugins.init(_hInst, _hSelf);
          _urlNppPlugins.create(::GetDlgItem(_hSelf, IDC_NPP_PLUGINS_URL), NPP_PLUGINS_URL);
 
-         ::SendDlgItemMessage(_hSelf, IDC_VERSION_STRING, WM_SETTEXT, 0, (LPARAM)mVersionString.c_str());
+         ::SendDlgItemMessage(_hSelf, IDC_VERSION_STRING, WM_SETTEXT, 0, (LPARAM)_VersionString.c_str());
          ::SendDlgItemMessage(_hSelf, IDC_AUTHOR_NAME, WM_SETTEXT, 0,  (LPARAM)AUTHOR_NAME);
          ::SendDlgItemMessage(_hSelf, IDC_DIALOG_DESCRIPTION, WM_SETTEXT, 0, (LPARAM)mManual.c_str());
          ::SendDlgItemMessage(_hSelf, IDC_NPP_VERSION_TEXT, WM_SETTEXT, 0, (LPARAM)NOTEPAD_PLUS_VERSION);

@@ -1,11 +1,11 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,8 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 /** 
 * implementation of tclFindResultDoc
@@ -31,7 +30,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 * insert the line into the result window if not already in.
 * @return the resultwindow line number; (-1 is error case and should never come)
 */
-int tclFindResultDoc::insertPosInfo(tPatId patternId, tiLine foundLine, tclPosInfo pos) {
+tiLine tclFindResultDoc::insertPosInfo(tPatId patternId, tiLine foundLine, tclPosInfo pos) {
    // check line in
    mLines[foundLine].posInfos()[patternId].insert(pos);
    insertResLine(foundLine);
@@ -85,8 +84,8 @@ void tclFindResultDoc::clear() {
    mReslines.clear();
 }
 
-int tclFindResultDoc::size() const {
-   return (int)mLines.size();
+tiLine tclFindResultDoc::size() const {
+   return (tiLine)mLines.size();
 }
 
 void tclFindResultDoc::erase(tiLine foundLine){
@@ -111,7 +110,7 @@ void tclFindResultDoc::moveResult(tPatId oldPattId, tPatId newPattId)
 }
 
 /** make sure function is not called with resultWinLine >= size() */
-const tlpLinePosInfo& tclFindResultDoc::getLineAtRes(int resultWinLine) const {
+const tlpLinePosInfo& tclFindResultDoc::getLineAtRes(tiLine resultWinLine) const {
    if(resultWinLine >= size()) {
       if (resultWinLine == size() && resultWinLine > 0) {
          // special case click in CR from last line
@@ -167,28 +166,28 @@ tclLinePosInfo& tclFindResultDoc::refLineAtMain(tiLine foundLine) {
    return mLines[foundLine];
 }
 
-int tclFindResultDoc::getLineNoAtRes(tiLine foundLine) const {
+tiLine tclFindResultDoc::getLineNoAtRes(tiLine foundLine) const {
    //tlmLinePosInfo::const_iterator it = mLines.find(foundLine);
    // inform window to redraw the given line array
-   int i=-1;
+   tiLine i=-1;
    //// go the shorteset way to the end and count the lines before or after
    tlvLine::const_iterator first = mReslines.begin();
    tlvLine::const_iterator last, it;
 
-   if ( (int)mReslines.size() > foundLine ) {
+   if ( (tiLine)mReslines.size() > foundLine ) {
       last = mReslines.begin() + foundLine;
    } else {
       last = mReslines.end();
    }
    it = std::lower_bound(first, last, foundLine);
    if((it != mReslines.end())&&(*it == foundLine)) {
-      i = (int)(it - first);
+      i = (tiLine)(it - first);
    } else {assert(0); }
    return i;
 }
 
 /** make sure function is not called with resultWinLine >= size() */
-tiLine tclFindResultDoc::getLineNoAtMain(int resultWinLine) const {
+tiLine tclFindResultDoc::getLineNoAtMain(tiLine resultWinLine) const {
    if(resultWinLine >= size() ) {
       assert(resultWinLine <= size()); // index out of range but 0 should be not be an error as it is reset scintilla
       return -1;
@@ -201,7 +200,7 @@ void tclFindResultDoc::insertResLine(tiLine foundLine) {
    // foundline cannot be bigger as resline
    tlvLine::iterator first = mReslines.begin(),
       last, it;
-   if ( (int)mReslines.size() > foundLine) {
+   if ( (tiLine)mReslines.size() > foundLine) {
       last = mReslines.begin() + foundLine;
    } else {
       last = mReslines.end();
@@ -219,7 +218,7 @@ void tclFindResultDoc::removeResLine(tiLine foundLine) {
    // foundline cannot be bigger as resline
    tlvLine::iterator first = mReslines.begin(),
       last, it;
-   if ( (int)mReslines.size() > foundLine) {
+   if ( (tiLine)mReslines.size() > foundLine) {
       last = mReslines.begin() + foundLine;
    } else {
       last = mReslines.end();

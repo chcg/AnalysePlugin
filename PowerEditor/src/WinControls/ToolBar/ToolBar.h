@@ -1,29 +1,18 @@
 // This file is part of Notepad++ project
-// Copyright (C)2003 Don HO <don.h@free.fr>
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later version.
-//
-// Note that the GPL places important restrictions on "derived works", yet
-// it does not provide a detailed definition of that term.  To avoid      
-// misunderstandings, we consider an application to constitute a          
-// "derivative work" for the purpose of this license if it does any of the
-// following:                                                             
-// 1. Integrates source code from Notepad++.
-// 2. Integrates/includes/aggregates Notepad++ into a proprietary executable
-//    installer, such as those produced by InstallShield.
-// 3. Links to a library or executes a program that does any of the above.
+// Copyright (C)2021 Don HO <don.h@free.fr>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// at your option any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
 #pragma once
@@ -41,22 +30,16 @@
 #define _WIN32_IE	0x0600
 #endif //_WIN32_IE
 
-enum toolBarStatusType {TB_SMALL, TB_LARGE, TB_STANDARD};
+enum toolBarStatusType {TB_SMALL, TB_LARGE, TB_SMALL2, TB_LARGE2, TB_STANDARD};
 
-
-typedef struct {
-	UINT		message;		// identification of icon in tool bar (menu ID)
-	HBITMAP		hBmp;			// bitmap for toolbar
-	HICON		hIcon;			// icon for toolbar
-} tDynamicList;
 
 struct iconLocator {
-	int listIndex;
-	int iconIndex;
-	generic_string iconLocation;
+	size_t _listIndex = 0;
+	size_t _iconIndex = 0;
+	generic_string _iconLocation;
 
-	iconLocator(int iList, int iIcon, const generic_string& iconLoc)
-		: listIndex(iList), iconIndex(iIcon), iconLocation(iconLoc){};
+	iconLocator(size_t iList, size_t iIcon, const generic_string& iconLoc)
+		: _listIndex(iList), _iconIndex(iIcon), _iconLocation(iconLoc){};
 };
 
 class ReBar;
@@ -67,7 +50,7 @@ class ToolBar : public Window
 {
 public :
 	ToolBar() = default;
-	virtual ~ToolBar() = default;
+	~ToolBar() = default;
 
     void initTheme(TiXmlDocument *toolIconsDocRoot);
 	virtual bool init(HINSTANCE hInst, HWND hPere, toolBarStatusType type, 
@@ -83,7 +66,9 @@ public :
 
 	void reduce();
 	void enlarge();
-	void setToUglyIcons();
+	void reduceToSet2();
+	void enlargeToSet2();
+	void setToBmpIcons();
 
 	bool getCheckState(int ID2Check) const {
 		return bool(::SendMessage(_hSelf, TB_GETSTATE, ID2Check, 0) & TBSTATE_CHECKED);
@@ -97,19 +82,20 @@ public :
 		return _state;
 	};
 
-    bool changeIcons() {    
-	    if (!_toolIcons)
-		    return false;
+    bool change2CustomIconsIfAny() {    
+	    if (!_toolIcons) return false;
+
 	    for (size_t i = 0, len = _customIconVect.size(); i < len; ++i)
-		    changeIcons(_customIconVect[i].listIndex, _customIconVect[i].iconIndex, (_customIconVect[i].iconLocation).c_str());
+		    changeIcons(_customIconVect[i]._listIndex, _customIconVect[i]._iconIndex, (_customIconVect[i]._iconLocation).c_str());
         return true;
     };
 
-	bool changeIcons(int whichLst, int iconIndex, const TCHAR *iconLocation){
+	bool changeIcons(size_t whichLst, size_t iconIndex, const TCHAR *iconLocation){
 		return _toolBarIcons.replaceIcon(whichLst, iconIndex, iconLocation);
 	};
 
-	void registerDynBtn(UINT message, toolbarIcons* hBmp);
+	void registerDynBtn(UINT message, toolbarIcons* iconHandles, HICON absentIco);
+	void registerDynBtnDM(UINT message, toolbarIconsWithDarkMode* iconHandles);
 
 	void doPopop(POINT chevPoint);	//show the popup if buttons are hidden
 
@@ -119,24 +105,55 @@ private :
 	TBBUTTON *_pTBB = nullptr;
 	ToolBarIcons _toolBarIcons;
 	toolBarStatusType _state = TB_SMALL;
-	std::vector<tDynamicList> _vDynBtnReg;
+	std::vector<DynamicCmdIcoBmp> _vDynBtnReg;
 	size_t _nbButtons = 0;
 	size_t _nbDynButtons = 0;
 	size_t _nbTotalButtons = 0;
 	size_t _nbCurrentButtons = 0;
 	ReBar * _pRebar = nullptr;
-	REBARBANDINFO _rbBand;
+	REBARBANDINFO _rbBand = {};
     std::vector<iconLocator> _customIconVect;
+
     TiXmlNode *_toolIcons = nullptr;
 
 	void setDefaultImageList() {
 		::SendMessage(_hSelf, TB_SETIMAGELIST, 0, reinterpret_cast<LPARAM>(_toolBarIcons.getDefaultLst()));
 	};
-	void setHotImageList() {
-		::SendMessage(_hSelf, TB_SETHOTIMAGELIST, 0, reinterpret_cast<LPARAM>(_toolBarIcons.getHotLst()));
-	};
+
 	void setDisableImageList() {
 		::SendMessage(_hSelf, TB_SETDISABLEDIMAGELIST, 0, reinterpret_cast<LPARAM>(_toolBarIcons.getDisableLst()));
+	};
+
+	void setDefaultImageList2() {
+		::SendMessage(_hSelf, TB_SETIMAGELIST, 0, reinterpret_cast<LPARAM>(_toolBarIcons.getDefaultLstSet2()));
+	};
+
+	void setDisableImageList2() {
+		::SendMessage(_hSelf, TB_SETDISABLEDIMAGELIST, 0, reinterpret_cast<LPARAM>(_toolBarIcons.getDisableLstSet2()));
+	};
+
+	void setDefaultImageListDM() {
+		::SendMessage(_hSelf, TB_SETIMAGELIST, 0, reinterpret_cast<LPARAM>(_toolBarIcons.getDefaultLstDM()));
+	};
+
+	void setDisableImageListDM() {
+		::SendMessage(_hSelf, TB_SETDISABLEDIMAGELIST, 0, reinterpret_cast<LPARAM>(_toolBarIcons.getDisableLstDM()));
+	};
+
+	void setDefaultImageListDM2() {
+		::SendMessage(_hSelf, TB_SETIMAGELIST, 0, reinterpret_cast<LPARAM>(_toolBarIcons.getDefaultLstSetDM2()));
+	};
+
+	void setDisableImageListDM2() {
+		::SendMessage(_hSelf, TB_SETDISABLEDIMAGELIST, 0, reinterpret_cast<LPARAM>(_toolBarIcons.getDisableLstSetDM2()));
+	};
+	
+	void setHoveredImageListDM() {
+		::SendMessage(_hSelf, TB_SETHOTIMAGELIST, 0, reinterpret_cast<LPARAM>(_toolBarIcons.getDefaultLst()));
+	};
+
+	void setHoveredImageListDM2() {
+		::SendMessage(_hSelf, TB_SETHOTIMAGELIST, 0, reinterpret_cast<LPARAM>(_toolBarIcons.getDefaultLstSet2()));
 	};
 
 	void reset(bool create = false);

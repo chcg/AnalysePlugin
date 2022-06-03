@@ -508,10 +508,13 @@ void TiXmlDocumentA::SetError( int err, const char* pError, TiXmlParsingDataA* d
 	errorDesc = errorString[ errorId ];
 
 	errorLocation.Clear();
-	if ( pError && data )
+	if (pError) // Mattes
 	{
 		//TiXmlParsingDataA data( pError, prevData );
 		data->Stamp( pError );
+	}           // Mattes
+	if(data)    // Mattes
+	{           // Mattes
 		errorLocation = data->Cursor();
 	}
 }
@@ -701,7 +704,7 @@ const char* TiXmlElementA::Parse( const char* p, TiXmlParsingDataA* data )
 
 	if ( !p || !*p )
 	{
-		if ( document ) document->SetError( TIXMLA_ERROR_PARSING_ELEMENT, 0, 0 );
+		if ( document ) document->SetError( TIXMLA_ERROR_PARSING_ELEMENT, 0, data ); // Mattes
 		return 0;
 	}
 
@@ -868,7 +871,7 @@ const char* TiXmlElementA::ReadValue( const char* p, TiXmlParsingDataA* data )
 
 	if ( !p )
 	{
-		if ( document ) document->SetError( TIXMLA_ERROR_READING_ELEMENT_VALUE, 0, 0 );
+		if ( document ) document->SetError( TIXMLA_ERROR_READING_ELEMENT_VALUE, 0, data ); // Mattes
 	}	
 	return p;
 }
@@ -919,7 +922,7 @@ const char* TiXmlUnknownA::Parse( const char* p, TiXmlParsingDataA* data )
 
 	if ( !p )
 	{
-		if ( document )	document->SetError( TIXMLA_ERROR_PARSING_UNKNOWN, 0, 0 );
+		if ( document )	document->SetError( TIXMLA_ERROR_PARSING_UNKNOWN, 0, data ); // Mattes
 	}
 	if ( *p == '>' )
 		return p+1;
@@ -1100,7 +1103,7 @@ const char* TiXmlDeclarationA::Parse( const char* p, TiXmlParsingDataA* data )
 	TiXmlDocumentA* document = GetDocument();
 	if ( !p || !*p || !StringEqual( p, "<?xml", true ) )
 	{
-		if ( document ) document->SetError( TIXMLA_ERROR_PARSING_DECLARATION, 0, 0 );
+		if ( document ) document->SetError( TIXMLA_ERROR_PARSING_DECLARATION, 0, data ); // Mattes
 		return 0;
 	}
 //	TiXmlParsingDataA data( p, prevData );

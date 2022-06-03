@@ -490,10 +490,13 @@ void TiXmlDocument::SetError( int err, const TCHAR* pError, TiXmlParsingData* da
 	errorDesc = errorString[ errorId ];
 
 	errorLocation.Clear();
-	if ( pError && data )
+	if (pError) // Mattes
 	{
 		//TiXmlParsingData data( pError, prevData );
 		data->Stamp( pError );
+	}           // Mattes
+	if (data)   // Mattes
+	{           // Mattes
 		errorLocation = data->Cursor();
 	}
 }
@@ -683,7 +686,7 @@ const TCHAR* TiXmlElement::Parse( const TCHAR* p, TiXmlParsingData* data )
 
 	if ( !p || !*p )
 	{
-		if ( document ) document->SetError( TIXML_ERROR_PARSING_ELEMENT, 0, 0 );
+		if ( document ) document->SetError( TIXML_ERROR_PARSING_ELEMENT, 0, data); // Mattes
 		return 0;
 	}
 
@@ -850,7 +853,7 @@ const TCHAR* TiXmlElement::ReadValue( const TCHAR* p, TiXmlParsingData* data )
 
 	if ( !p )
 	{
-		if ( document ) document->SetError( TIXML_ERROR_READING_ELEMENT_VALUE, 0, 0 );
+		if ( document ) document->SetError( TIXML_ERROR_READING_ELEMENT_VALUE, 0, data ); // Mattes
 	}	
 	return p;
 }
@@ -901,7 +904,7 @@ const TCHAR* TiXmlUnknown::Parse( const TCHAR* p, TiXmlParsingData* data )
 
 	if ( !p )
 	{
-		if ( document )	document->SetError( TIXML_ERROR_PARSING_UNKNOWN, 0, 0 );
+		if ( document )	document->SetError( TIXML_ERROR_PARSING_UNKNOWN, 0, data ); // Mattes
 	}
 	if ( *p == '>' )
 		return p+1;
@@ -1082,7 +1085,7 @@ const TCHAR* TiXmlDeclaration::Parse( const TCHAR* p, TiXmlParsingData* data )
 	TiXmlDocument* document = GetDocument();
 	if ( !p || !*p || !StringEqual( p, TEXT("<?xml"), true ) )
 	{
-		if ( document ) document->SetError( TIXML_ERROR_PARSING_DECLARATION, 0, 0 );
+		if ( document ) document->SetError( TIXML_ERROR_PARSING_DECLARATION, 0, data ); // Mattes
 		return 0;
 	}
 //	TiXmlParsingData data( p, prevData );

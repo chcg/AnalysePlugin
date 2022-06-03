@@ -1,13 +1,13 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 //#include "stdafx.h"
 #include "ColourPopup.h"
@@ -85,7 +84,7 @@ INT_PTR CALLBACK ColourPopup::dlgProc(HWND hwnd, UINT message, WPARAM wParam, LP
 
    default :
       {
-         ColourPopup *pColourPopup = reinterpret_cast<ColourPopup *>(::GetWindowLongPtr(hwnd, GWLP_USERDATA)); // TODO check if GWLP_ or GWL_ is correct
+         ColourPopup *pColourPopup = reinterpret_cast<ColourPopup *>(::GetWindowLongPtr(hwnd, GWLP_USERDATA));
          if (!pColourPopup)
             return FALSE;
          return pColourPopup->run_dlgProc(message, wParam, lParam);
@@ -102,17 +101,11 @@ INT_PTR CALLBACK ColourPopup::run_dlgProc(UINT message, WPARAM wParam, LPARAM lP
       {
          int nColor;
          int size = tclPattern::getDefColorListSize();
-         //for (nColor = 0 ; nColor < int(sizeof(colourItems)/sizeof(DWORD)) ; nColor++)
          for (nColor = 0 ; nColor < size ; nColor++)
          {
             ::SendDlgItemMessage(_hSelf, IDC_COLOUR_LIST, LB_ADDSTRING, nColor, (LPARAM) "");
-            //::SendDlgItemMessage(_hSelf, IDC_COLOUR_LIST, LB_SETITEMDATA , nColor, (LPARAM) colourItems[nColor]);
             ::SendDlgItemMessage(_hSelf, IDC_COLOUR_LIST, LB_SETITEMDATA , nColor, (LPARAM) tclPattern::getDefColorNum(nColor));
-            //if (g_bgColor == colourItems[nColor])
-            //::SendDlgItemMessage(_hSelf, IDC_COLOUR_LIST, LB_SETCURSEL, nColor, 0);
          }
-         // TODO hier setSelected
-         //::SetCapture(_hSelf);
          return TRUE;
       }
 
@@ -149,8 +142,8 @@ INT_PTR CALLBACK ColourPopup::run_dlgProc(UINT message, WPARAM wParam, LPARAM lP
                DeleteObject(hbrush);
                FrameRect(hdc, &rc, (HBRUSH) GetStockObject(GRAY_BRUSH));
                break;
-            }
-            // *** FALL THROUGH ***
+            } 
+            [[fallthrough]];
          case ODA_SELECT:
             rc = pdis->rcItem;
             if (pdis->itemState & ODS_SELECTED)
@@ -220,7 +213,6 @@ INT_PTR CALLBACK ColourPopup::run_dlgProc(UINT message, WPARAM wParam, LPARAM lP
 
             return TRUE;
          }
-
       case IDC_COLOUR_LIST :
          {
             if (HIWORD(wParam) == LBN_SELCHANGE)
@@ -231,8 +223,8 @@ INT_PTR CALLBACK ColourPopup::run_dlgProc(UINT message, WPARAM wParam, LPARAM lP
                ::SendMessage(_hParent, WM_PICKUP_COLOR, _colour, 0);
                return TRUE;
             }
+            break;
          }
-
       default :
          return FALSE;
       }

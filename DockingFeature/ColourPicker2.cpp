@@ -1,13 +1,13 @@
 /* -------------------------------------
 This file is part of AnalysePlugin for NotePad++ 
-Copyright (C)2011-2020 Matthias H. mattesh(at)gmx.net
+Copyright (c) 2022 Matthias H. mattesh(at)gmx.net
 partly copied from the NotePad++ project from 
 Don HO don.h(at)free.fr 
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
+version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,12 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ------------------------------------- */
 #include <iostream>
 #include "ColourPicker2.h"
 #include "ColourPopup.h"
+// TODO #include "NppDarkMode.h"
 
 void ColourPicker2::init(HINSTANCE hInst, HWND parent)
 {
@@ -66,6 +66,18 @@ void ColourPicker2::drawBackground(HDC hDC)
    hbrush = ::CreateSolidBrush(_currentColour);
    HGDIOBJ oldObj = ::SelectObject(hDC, hbrush);
    ::Rectangle(hDC, 0, 0, rc.right, rc.bottom);
+#if 0 // Mattes TODO check support for dark mode
+	HPEN holdPen = nullptr;
+   if (NppDarkMode::isEnabled())
+	{
+		holdPen = static_cast<HPEN>(::SelectObject(hDC, NppDarkMode::getEdgePen()));
+	}
+	::Rectangle(hDC, 0, 0, rc.right, rc.bottom);
+	if (NppDarkMode::isEnabled() && holdPen)
+	{
+		::SelectObject(hDC, holdPen);
+	}
+#endif // Mattes
    ::SelectObject(hDC, oldObj);
    //FillRect(hDC, &rc, hbrush);
    ::DeleteObject(hbrush);
@@ -136,7 +148,16 @@ LRESULT ColourPicker2::runProc(UINT Message, WPARAM wParam, LPARAM lParam)
       //   ::SendMessage(_hParent, WM_COMMAND, MAKELONG(0, CPN_COLOURPICKED), (LPARAM)_hSelf);
       //   break;
       //}
-
+#if 0 // Mattes TODO check support for dark mode
+	case NPPM_INTERNAL_REFRESHDARKMODE:
+		{
+			if (_pColourPopup)
+			{
+				::SendMessage(_pColourPopup->getHSelf(), NPPM_INTERNAL_REFRESHDARKMODE, 0, 0);
+			}
+			return TRUE;
+		}
+#endif // Mattes
    case WM_ERASEBKGND:
       {
          HDC dc = (HDC)wParam;
@@ -167,7 +188,7 @@ LRESULT ColourPicker2::runProc(UINT Message, WPARAM wParam, LPARAM lParam)
       {
          if ((BOOL)wParam == FALSE)
          {
-            _currentColour = ::GetSysColor(COLOR_3DFACE);
+		    _currentColour = /* TODO NppDarkMode::isEnabled() ? NppDarkMode::getDarkerBackgroundColor() :*/ ::GetSysColor(COLOR_3DFACE);
             redraw();
          }
          return TRUE;

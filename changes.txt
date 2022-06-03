@@ -1,3 +1,14 @@
+Changes since 1.13
+ - bugfix #86 regression in 64-bit version
+ - update to NPP 8.4.1
+ - #49 Drag N Drop files to the patternlist dialog loads them
+ - ESC key in patternlist dialog resets edit fields to the selected pattern
+ - using cursor up down in pattern list updates content in upper dialog
+ - Column Order# for explicit order sorting added
+ - sync with NPP 8.1.9
+ - #85 Dark Mode support preparation step 1 (new icons added)
+ - Caused by update in NPP this splugin is now also GPLv3
+ - the result window context menu shows the order number of a pattern if specified
 Changes since 1.12
  - bugfix #76, crash at shuttdown of NPP
    since 1.12-preview-3
