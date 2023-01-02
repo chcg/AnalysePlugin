@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2021 Don HO <don.h@free.fr>
+// Copyright (C) 2022 Don HO <don.h@free.fr>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -45,7 +45,8 @@ const bool dirDown = false;
 #define generic_strncat wcsncat
 #define generic_strchr wcschr
 #define generic_atoi _wtoi
-#define generic_itoa _i64tow
+#define generic_itoa _itow
+#define generic_i64toa _i64tow
 #define generic_atof _wtof
 #define generic_strtok(a,b) wcstok(a,b,LC_ALL) // Mattes
 #define generic_strftime wcsftime
@@ -78,7 +79,7 @@ void ScreenRectToClientRect(HWND hWnd, RECT* rect);
 std::wstring string2wstring(const std::string & rString, UINT codepage);
 std::string wstring2string(const std::wstring & rwString, UINT codepage);
 bool isInList(const TCHAR *token, const TCHAR *list);
-generic_string BuildMenuFileName(int filenameLen, unsigned int pos, const generic_string &filename);
+generic_string BuildMenuFileName(int filenameLen, unsigned int pos, const generic_string &filename, bool ordinalNumber = true);
 
 std::string getFileContent(const TCHAR *file2read);
 generic_string relativeFilePathToFullFilePath(const TCHAR *relativeFilePath);
@@ -226,12 +227,18 @@ template<typename T> size_t vecRemoveDuplicates(std::vector<T>& vec, bool isSort
 
 void trim(generic_string& str);
 bool endsWith(const generic_string& s, const generic_string& suffix);
+bool startsWith(const generic_string& s, const generic_string& suffix);
 
 int nbDigitsFromNbLines(size_t nbLines);
 
 generic_string getDateTimeStrFrom(const generic_string& dateTimeFormat, const SYSTEMTIME& st);
 
 HFONT createFont(const TCHAR* fontName, int fontSize, bool isBold, HWND hDestParent);
+
+bool isWin32NamespacePrefixedFileName(const generic_string& fileName);
+bool isWin32NamespacePrefixedFileName(const TCHAR* szFileName);
+bool isUnsupportedFileName(const generic_string& fileName);
+bool isUnsupportedFileName(const TCHAR* szFileName);
 
 class Version final
 {

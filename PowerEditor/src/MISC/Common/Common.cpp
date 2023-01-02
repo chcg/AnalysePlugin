@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2021 Don HO <don.h@free.fr>
+// Copyright (C) 2022 Don HO <don.h@free.fr>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -133,7 +133,7 @@ void writeLog(const TCHAR *logFileName, const char *log2write)
 
 	if (hFile != INVALID_HANDLE_VALUE)
 	{
-		LARGE_INTEGER offset;
+		LARGE_INTEGER offset{};
 		offset.QuadPart = 0;
 		::SetFilePointerEx(hFile, offset, NULL, FILE_END);
 
@@ -192,7 +192,7 @@ generic_string getFolderName(HWND parent, const TCHAR *defaultDir)
 
 void ClientRectToScreenRect(HWND hWnd, RECT* rect)
 {
-	POINT		pt;
+	POINT		pt{};
 
 	pt.x		 = rect->left;
 	pt.y		 = rect->top;
@@ -233,7 +233,7 @@ std::vector<generic_string> tokenizeString(const generic_string & tokenString, c
 
 void ScreenRectToClientRect(HWND hWnd, RECT* rect)
 {
-	POINT		pt;
+	POINT		pt{};
 
 	pt.x		 = rect->left;
 	pt.y		 = rect->top;
@@ -265,7 +265,7 @@ bool isInList(const TCHAR *token, const TCHAR *list)
 	const size_t wordLen = 64;
 	size_t listLen = lstrlen(list);
 
-	TCHAR word[wordLen];
+	TCHAR word[wordLen] = { '\0' };
 	size_t i = 0;
 	size_t j = 0;
 
@@ -336,7 +336,7 @@ const wchar_t * WcharMbcsConvertor::char2wchar(const char * mbcs2Convert, size_t
 		return nullptr;
 
 	// Do not process empty strings
-	if (lenMbcs == 0 || lenMbcs == -1 && mbcs2Convert[0] == 0)
+	if (lenMbcs == 0 || (lenMbcs == -1 && mbcs2Convert[0] == 0))
 	{
 		_wideCharStr.empty();
 		return _wideCharStr;
@@ -561,24 +561,34 @@ generic_string uintToString(unsigned int val)
 }
 
 // Build Recent File menu entries from given
-generic_string BuildMenuFileName(int filenameLen, unsigned int pos, const generic_string &filename)
+generic_string BuildMenuFileName(int filenameLen, unsigned int pos, const generic_string &filename, bool ordinalNumber)
 {
 	generic_string strTemp;
 
-	if (pos < 9)
+	if (ordinalNumber)
 	{
-		strTemp.push_back('&');
-		strTemp.push_back('1' + static_cast<TCHAR>(pos));
-	}
-	else if (pos == 9)
-	{
-		strTemp.append(TEXT("1&0"));
+		if (pos < 9)
+		{
+			strTemp.push_back('&');
+			strTemp.push_back('1' + static_cast<TCHAR>(pos));
+		}
+		else if (pos == 9)
+		{
+			strTemp.append(TEXT("1&0"));
+		}
+		else
+		{
+			div_t splitDigits = div(pos + 1, 10);
+			strTemp.append(uintToString(splitDigits.quot));
+			strTemp.push_back('&');
+			strTemp.append(uintToString(splitDigits.rem));
+		}
+		strTemp.append(TEXT(": "));
 	}
 	else
 	{
-		strTemp.append(uintToString(pos + 1));
+		strTemp.push_back('&');
 	}
-	strTemp.append(TEXT(": "));
 
 	if (filenameLen > 0)
 	{
@@ -1143,7 +1153,7 @@ bool isCertificateValidated(const generic_string & fullFilePath, const generic_s
 	DWORD dwFormatType = 0;
 	PCMSG_SIGNER_INFO pSignerInfo = NULL;
 	DWORD dwSignerInfo = 0;
-	CERT_INFO CertInfo;
+	CERT_INFO CertInfo{};
 	LPTSTR szName = NULL;
 
 	generic_string subjectName;
@@ -1280,11 +1290,11 @@ bool isAssoCommandExisting(LPCTSTR FullPathName)
 
 		// check if association exist
 		hres = AssocQueryString(ASSOCF_VERIFY|ASSOCF_INIT_IGNOREUNKNOWN, ASSOCSTR_COMMAND, ext, NULL, buffer, &bufferLen);
-        
+
         isAssoCommandExisting = (hres == S_OK)                  // check if association exist and no error
 			&& (buffer != NULL)                                 // check if buffer is not NULL
 			&& (wcsstr(buffer, TEXT("notepad++.exe")) == NULL); // check association with notepad++
-        
+
 	}
 	return isAssoCommandExisting;
 }
@@ -1371,13 +1381,14 @@ void trim(generic_string& str)
 
 bool endsWith(const generic_string& s, const generic_string& suffix)
 {
-#if defined(_MSVC_LANG) && (_MSVC_LANG > 201402L)
-#if 0 // Mattes not yet working
-#error Replace this function with basic_string::ends_with
-#endif // Mattes
-#endif
-	size_t pos = s.find(suffix);
+	size_t pos = s.rfind(suffix);
 	return pos != s.npos && ((s.length() - pos) == suffix.length());
+}
+
+bool startsWith(const generic_string& s, const generic_string& suffix)
+{
+	size_t pos = s.find(suffix);
+	return (pos == 0);
 }
 
 int nbDigitsFromNbLines(size_t nbLines)
@@ -1525,6 +1536,109 @@ HFONT createFont(const TCHAR* fontName, int fontSize, bool isBold, HWND hDestPar
 
 	return newFont;
 }
+
+// "For file I/O, the "\\?\" prefix to a path string tells the Windows APIs to disable all string parsing
+// and to send the string that follows it straight to the file system..."
+// Ref: https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#win32-file-namespaces
+bool isWin32NamespacePrefixedFileName(const generic_string& fileName)
+{
+	// TODO:
+	// ?! how to handle similar NT Object Manager path style prefix case \??\...
+	// (the \??\ prefix instructs the NT Object Manager to search in the caller's local device directory for an alias...)
+
+	// the following covers the \\?\... raw Win32-filenames or the \\?\UNC\... UNC equivalents
+	// and also its *nix like forward slash equivalents
+	return (startsWith(fileName, TEXT("\\\\?\\")) || startsWith(fileName, TEXT("//?/")));
+}
+
+bool isWin32NamespacePrefixedFileName(const TCHAR* szFileName)
+{
+	const generic_string fileName = szFileName;
+	return isWin32NamespacePrefixedFileName(fileName);
+}
+
+bool isUnsupportedFileName(const generic_string& fileName)
+{
+	bool isUnsupported = true;
+
+	// until the N++ (and its plugins) will not be prepared for filenames longer than the MAX_PATH,
+	// we have to limit also the maximum supported length below
+	if ((fileName.size() > 0) && (fileName.size() < MAX_PATH))
+	{
+		// possible raw filenames can contain space(s) or dot(s) at its end (e.g. "\\?\C:\file."), but the N++ advanced
+		// Open/SaveAs IFileOpenDialog/IFileSaveDialog COM-interface based dialogs currently do not handle this well
+		// (but e.g. direct N++ Ctrl+S works ok even with these filenames)
+		if (!endsWith(fileName, TEXT(".")) && !endsWith(fileName, TEXT(" ")))
+		{
+			bool invalidASCIIChar = false;
+
+			for (size_t pos = 0; pos < fileName.size(); ++pos)
+			{
+				TCHAR c = fileName.at(pos);
+				if (c <= 31)
+				{
+					invalidASCIIChar = true;
+				}
+				else
+				{
+					// as this could be also a complete filename with path and there could be also a globbing used,
+					// we tolerate here some other reserved Win32-filename chars: /, \, :, ?, *
+					switch (c)
+					{
+						case '<':
+						case '>':
+						case '"':
+						case '|':
+							invalidASCIIChar = true;
+							break;
+					}
+				}
+
+				if (invalidASCIIChar)
+					break;
+			}
+
+			if (!invalidASCIIChar)
+			{
+				// strip input string to a filename without a possible path and extension(s)
+				generic_string fileNameOnly;
+				size_t pos = fileName.find_first_of(TEXT("."));
+				if (pos != std::string::npos)
+					fileNameOnly = fileName.substr(0, pos);
+				else
+					fileNameOnly = fileName;
+
+				pos = fileNameOnly.find_last_of(TEXT("\\"));
+				if (pos == std::string::npos)
+					pos = fileNameOnly.find_last_of(TEXT("/"));
+				if (pos != std::string::npos)
+					fileNameOnly = fileNameOnly.substr(pos + 1);
+
+				const std::vector<generic_string>  reservedWin32NamespaceDeviceList{
+				TEXT("CON"), TEXT("PRN"), TEXT("AUX"), TEXT("NUL"),
+				TEXT("COM1"), TEXT("COM2"), TEXT("COM3"), TEXT("COM4"), TEXT("COM5"), TEXT("COM6"), TEXT("COM7"), TEXT("COM8"), TEXT("COM9"),
+				TEXT("LPT1"), TEXT("LPT2"), TEXT("LPT3"), TEXT("LPT4"), TEXT("LPT5"), TEXT("LPT6"), TEXT("LPT7"), TEXT("LPT8"), TEXT("LPT9")
+				};
+
+				// last check is for all the old reserved Windows OS filenames
+				if (std::find(reservedWin32NamespaceDeviceList.begin(), reservedWin32NamespaceDeviceList.end(), fileNameOnly) == reservedWin32NamespaceDeviceList.end())
+				{
+					// ok, the current filename tested is not even on the blacklist
+					isUnsupported = false;
+				}
+			}
+		}
+	}
+
+	return isUnsupported;
+}
+
+bool isUnsupportedFileName(const TCHAR* szFileName)
+{
+	const generic_string fileName = szFileName;
+	return isUnsupportedFileName(fileName);
+}
+
 
 Version::Version(const generic_string& versionStr)
 {

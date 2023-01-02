@@ -344,6 +344,11 @@ in case new path and old path are different and in new path ini is not there loa
    _helpDlg.setChangesText(changes);
 // TODO   _darkModeOptions.enable = true; // TODO make ini
 // TODO   _darkModeOptions.enableMenubar = true;
+   LRESULT res = execute(teNppWindows::nppHandle, NPPM_GETBOOKMARKID);
+   if (res > 0) {
+      // since NPP version 8.4.6 new id see .../analyseplugin/bugs/92/
+      _nppBookmarkId = res;
+   }
 }
 
 void AnalysePlugin::saveSettings() {
@@ -364,7 +369,7 @@ void AnalysePlugin::saveSettings() {
    ::WritePrivateProfileString(SECTIONNAME, KEYUSEBOOKMARK, tmp, _iniFilePath);
    generic_itoa((_findResult.getWrapMode() ? 1 : 0), tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYRESWINWORDWRAP, tmp, _iniFilePath);
-   generic_itoa(_configDlg.getDisplayLineNo(), tmp, 10);
+   generic_itoa(_configDlg.getDisplayLineNo(), tmp, 10); // TODO 64-bit
    ::WritePrivateProfileString(SECTIONNAME, KEYDISPLAYLINENO, tmp, _iniFilePath);
    generic_itoa(_configDlg.getOnAutoUpdate(), tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYONAUTOUPDATE, tmp, _iniFilePath);

@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2021 Don HO <don.h@free.fr>
+// Copyright (C) 2022 Don HO <don.h@free.fr>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -38,11 +38,12 @@ static const int LF = 0x0A;
 
 long Buffer::_recentTagCtr = 0;
 
+
 namespace // anonymous
 {
 	static EolType getEOLFormatForm(const char* const data, size_t length, EolType defvalue = EolType::osdefault)
 	{
-		assert(length == 0 or data != nullptr && "invalid buffer for getEOLFormatForm()");
+		assert(length == 0 || (data != nullptr && "invalid buffer for getEOLFormatForm()"));
 
 		for (size_t i = 0; i != length; ++i)
 		{
@@ -79,7 +80,7 @@ Buffer::Buffer(FileManager * pManager, BufferID id, Document doc, DocFileStatus 
 
 	_currentStatus = type;
 
-	setFileName(fileName, ndds._lang);
+	setFileName(fileName);
 	updateTimeStamp();
 	checkFileState();
 
@@ -136,7 +137,7 @@ void Buffer::setLangType(LangType lang, const TCHAR* userLangName)
 void Buffer::updateTimeStamp()
 {
 	FILETIME timeStampLive = {};
-	WIN32_FILE_ATTRIBUTE_DATA attributes;
+	WIN32_FILE_ATTRIBUTE_DATA attributes{};
 	if (GetFileAttributesEx(_fullPathName.c_str(), GetFileExInfoStandard, &attributes) != 0)
 	{
 		timeStampLive = attributes.ftLastWriteTime;
@@ -163,7 +164,7 @@ void Buffer::updateTimeStamp()
 				std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 				std::string msg = converter.to_bytes(_fullPathName);
 				char buf[1024];
-				sprintf(buf, "  in updateTimeStamp(): timeStampLive (%u/%u) < _timeStamp (%u/%u)", timeStampLive.dwLowDateTime, timeStampLive.dwHighDateTime, _timeStamp.dwLowDateTime, _timeStamp.dwHighDateTime);
+				sprintf(buf, "  in updateTimeStamp(): timeStampLive (%lu/%lu) < _timeStamp (%lu/%lu)", timeStampLive.dwLowDateTime, timeStampLive.dwHighDateTime, _timeStamp.dwLowDateTime, _timeStamp.dwHighDateTime);
 				msg += buf;
 				writeLog(nppIssueLog.c_str(), msg.c_str());
 			}
@@ -177,8 +178,7 @@ void Buffer::updateTimeStamp()
 
 // Set full path file name in buffer object,
 // and determinate its language by its extension.
-// If the ext is not in the list, the defaultLang passed as argument will be set.
-void Buffer::setFileName(const TCHAR *fn, LangType defaultLang)
+void Buffer::setFileName(const TCHAR *fn)
 {
 	NppParameters& nppParamInst = NppParameters::getInstance();
 	if (_fullPathName == fn)
@@ -192,7 +192,7 @@ void Buffer::setFileName(const TCHAR *fn, LangType defaultLang)
 	_fileName = PathFindFileName(_fullPathName.c_str());
 
 	// for _lang
-	LangType newLang = defaultLang;
+	LangType determinatedLang = L_TEXT;
 	TCHAR *ext = PathFindExtension(_fullPathName.c_str());
 	if (*ext == '.') // extension found
 	{
@@ -202,34 +202,34 @@ void Buffer::setFileName(const TCHAR *fn, LangType defaultLang)
 		const TCHAR* langName = nppParamInst.getUserDefinedLangNameFromExt(ext, _fileName);
 		if (langName)
 		{
-			newLang = L_USER;
+			determinatedLang = L_USER;
 			_userLangExt = langName;
 		}
 		else // if it's not user lang, then check if it's supported lang
 		{
 			_userLangExt.clear();
-			newLang = nppParamInst.getLangFromExt(ext);
+			determinatedLang = nppParamInst.getLangFromExt(ext);
 		}
 	}
 
-	if (newLang == defaultLang || newLang == L_TEXT)	//language can probably be refined
+	if (determinatedLang == L_TEXT)	//language can probably be refined
 	{
 		if ((OrdinalIgnoreCaseCompareStrings(_fileName, TEXT("makefile")) == 0) || (OrdinalIgnoreCaseCompareStrings(_fileName, TEXT("GNUmakefile")) == 0))
-			newLang = L_MAKEFILE;
+			determinatedLang = L_MAKEFILE;
 		else if (OrdinalIgnoreCaseCompareStrings(_fileName, TEXT("CmakeLists.txt")) == 0)
-			newLang = L_CMAKE;
+			determinatedLang = L_CMAKE;
 		else if ((OrdinalIgnoreCaseCompareStrings(_fileName, TEXT("SConstruct")) == 0) || (OrdinalIgnoreCaseCompareStrings(_fileName, TEXT("SConscript")) == 0) || (OrdinalIgnoreCaseCompareStrings(_fileName, TEXT("wscript")) == 0))
-			newLang = L_PYTHON;
+			determinatedLang = L_PYTHON;
 		else if ((OrdinalIgnoreCaseCompareStrings(_fileName, TEXT("Rakefile")) == 0) || (OrdinalIgnoreCaseCompareStrings(_fileName, TEXT("Vagrantfile")) == 0))
-			newLang = L_RUBY;
-		else if ((OrdinalIgnoreCaseCompareStrings(_fileName, TEXT("crontab")) == 0))
-			newLang = L_BASH;
+			determinatedLang = L_RUBY;
+		else if ((OrdinalIgnoreCaseCompareStrings(_fileName, TEXT("crontab")) == 0) || (OrdinalIgnoreCaseCompareStrings(_fileName, TEXT("PKGBUILD")) == 0) || (OrdinalIgnoreCaseCompareStrings(_fileName, TEXT("APKBUILD")) == 0))
+			determinatedLang = L_BASH;
 	}
 
 	updateTimeStamp();
 
 	BufferStatusInfo lang2Change = BufferChangeNone;
-	if (!_hasLangBeenSetFromMenu && (newLang != _lang || _lang == L_USER))
+	if (!_hasLangBeenSetFromMenu && (determinatedLang != _lang || _lang == L_USER))
 	{
 		if (_isLargeFile)
 		{
@@ -237,7 +237,7 @@ void Buffer::setFileName(const TCHAR *fn, LangType defaultLang)
 		}
 		else
 		{
-			_lang = newLang;
+			_lang = determinatedLang;
 			lang2Change = BufferChangeLanguage;
 		}
 	}
@@ -254,7 +254,7 @@ bool Buffer::checkFileState() // returns true if the status has been changed (it
 	if (_currentStatus == DOC_UNNAMED || isMonitoringOn())
 		return false;
 
-	WIN32_FILE_ATTRIBUTE_DATA attributes;
+	WIN32_FILE_ATTRIBUTE_DATA attributes{};
 	bool isWow64Off = false;
 	NppParameters& nppParam = NppParameters::getInstance();
 
@@ -323,7 +323,7 @@ bool Buffer::checkFileState() // returns true if the status has been changed (it
 					std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 					std::string msg = converter.to_bytes(_fullPathName);
 					char buf[1024];
-					sprintf(buf, "  in checkFileState(): attributes.ftLastWriteTime (%u/%u) < _timeStamp (%u/%u)", attributes.ftLastWriteTime.dwLowDateTime, attributes.ftLastWriteTime.dwHighDateTime, _timeStamp.dwLowDateTime, _timeStamp.dwHighDateTime);
+					sprintf(buf, "  in checkFileState(): attributes.ftLastWriteTime (%lu/%lu) < _timeStamp (%lu/%lu)", attributes.ftLastWriteTime.dwLowDateTime, attributes.ftLastWriteTime.dwHighDateTime, _timeStamp.dwLowDateTime, _timeStamp.dwHighDateTime);
 					msg += buf;
 					writeLog(nppIssueLog.c_str(), msg.c_str());
 				}
@@ -359,7 +359,7 @@ bool Buffer::checkFileState() // returns true if the status has been changed (it
 
 void Buffer::reload()
 {
-	WIN32_FILE_ATTRIBUTE_DATA attributes;
+	WIN32_FILE_ATTRIBUTE_DATA attributes{};
 	if (GetFileAttributesEx(_fullPathName.c_str(), GetFileExInfoStandard, &attributes) != 0)
 	{
 		_timeStamp = attributes.ftLastWriteTime;
@@ -373,10 +373,10 @@ int64_t Buffer::getFileLength() const
 	if (_currentStatus == DOC_UNNAMED)
 		return -1;
 
-	WIN32_FILE_ATTRIBUTE_DATA attributes;
+	WIN32_FILE_ATTRIBUTE_DATA attributes{};
 	if (GetFileAttributesEx(_fullPathName.c_str(), GetFileExInfoStandard, &attributes) != 0)
 	{
-		LARGE_INTEGER size;
+		LARGE_INTEGER size{};
 		size.LowPart = attributes.nFileSizeLow;
 		size.HighPart = attributes.nFileSizeHigh;
 		return size.QuadPart;
@@ -391,7 +391,7 @@ generic_string Buffer::getFileTime(fileTimeType ftt) const
 
 	if (_currentStatus != DOC_UNNAMED)
 	{
-		WIN32_FILE_ATTRIBUTE_DATA attributes;
+		WIN32_FILE_ATTRIBUTE_DATA attributes{};
 		if (GetFileAttributesEx(_fullPathName.c_str(), GetFileExInfoStandard, &attributes) != 0)
 		{
 			FILETIME rawtime;
@@ -544,6 +544,29 @@ void Buffer::setDeferredReload() // triggers a reload on the next Document acces
 	doNotify(BufferChangeDirty);
 }
 
+bool Buffer::allowBraceMach() const
+{
+	NppGUI& nppGui = NppParameters::getInstance().getNppGUI();
+	return (!_isLargeFile || nppGui._largeFileRestriction._allowBraceMatch) || !nppGui._largeFileRestriction._isEnabled;
+}
+
+bool Buffer::allowAutoCompletion() const
+{
+	NppGUI& nppGui = NppParameters::getInstance().getNppGUI();
+	return (!_isLargeFile || nppGui._largeFileRestriction._allowAutoCompletion) || !nppGui._largeFileRestriction._isEnabled;
+}
+
+bool Buffer::allowSmartHilite() const
+{
+	NppGUI& nppGui = NppParameters::getInstance().getNppGUI();
+	return (!_isLargeFile || nppGui._largeFileRestriction._allowSmartHilite) || !nppGui._largeFileRestriction._isEnabled;
+}
+
+bool Buffer::allowClickableLink() const
+{
+	NppGUI& nppGui = NppParameters::getInstance().getNppGUI();
+	return (!_isLargeFile || nppGui._largeFileRestriction._allowClickableLink) || !nppGui._largeFileRestriction._isEnabled;
+}
 
 //filemanager
 
@@ -656,6 +679,7 @@ BufferID FileManager::loadFile(const TCHAR* filename, Document doc, int encoding
 	{
 		pPath = backupFileName;
 	}
+
 	if (pPath)
 	{
 		FILE* fp = generic_fopen(pPath, TEXT("rb"));
@@ -670,10 +694,13 @@ BufferID FileManager::loadFile(const TCHAR* filename, Document doc, int encoding
 	// * the auto-completion feature will be disabled for large files
 	// * the session snapshotsand periodic backups feature will be disabled for large files
 	// * the backups on save feature will be disabled for large files
-	bool isLargeFile = fileSize >= NPP_STYLING_FILESIZE_LIMIT;
+	NppGUI& nppGui = NppParameters::getInstance().getNppGUI();
+	bool isLargeFile = false;
+	if (nppGui._largeFileRestriction._isEnabled)
+		isLargeFile = fileSize >= nppGui._largeFileRestriction._largeFileSizeDefInByte;
 
 	// Due to the performance issue, the Word Wrap feature will be disabled if it's ON
-	if (isLargeFile)
+	if (isLargeFile && nppGui._largeFileRestriction._deactivateWordWrap)
 	{
 		bool isWrap = _pNotepadPlus->_pEditView->isWrap();
 		if (isWrap)
@@ -690,11 +717,19 @@ BufferID FileManager::loadFile(const TCHAR* filename, Document doc, int encoding
 		ownDoc = true;
 	}
 
-	TCHAR fullpath[MAX_PATH];
-	::GetFullPathName(filename, MAX_PATH, fullpath, NULL);
-	if (_tcschr(fullpath, '~'))
+	WCHAR fullpath[MAX_PATH] = { 0 };
+	if (isWin32NamespacePrefixedFileName(filename))
 	{
-		::GetLongPathName(fullpath, fullpath, MAX_PATH);
+		// use directly the raw file name, skip the GetFullPathName WINAPI
+		wcsncpy_s(fullpath, _countof(fullpath), filename, _TRUNCATE);
+	}
+	else
+	{
+		::GetFullPathName(filename, MAX_PATH, fullpath, NULL);
+		if (wcschr(fullpath, '~'))
+		{
+			::GetLongPathName(fullpath, fullpath, MAX_PATH);
+		}
 	}
 
 	bool isSnapshotMode = backupFileName != NULL && PathFileExists(backupFileName);
@@ -741,7 +776,7 @@ BufferID FileManager::loadFile(const TCHAR* filename, Document doc, int encoding
 		// restore the encoding (ANSI based) while opening the existing file
 		buf->setEncoding(-1);
 
-		// if no file extension, and the language has been detected,  we use the detected value
+		// if not a large file, no file extension, and the language has been detected,  we use the detected value
 		if (!newBuf->_isLargeFile && ((buf->getLangType() == L_TEXT) && (loadedFileFormat._language != L_TEXT)))
 			buf->setLangType(loadedFileFormat._language);
 
@@ -1089,11 +1124,19 @@ SavingStatus FileManager::saveBuffer(BufferID id, const TCHAR * filename, bool i
 	bool isHiddenOrSys = false;
 	DWORD attrib = 0;
 
-	TCHAR fullpath[MAX_PATH];
-	::GetFullPathName(filename, MAX_PATH, fullpath, NULL);
-	if (_tcschr(fullpath, '~'))
+	WCHAR fullpath[MAX_PATH] = { 0 };
+	if (isWin32NamespacePrefixedFileName(filename))
 	{
-		::GetLongPathName(fullpath, fullpath, MAX_PATH);
+		// use directly the raw file name, skip the GetFullPathName WINAPI
+		wcsncpy_s(fullpath, _countof(fullpath), filename, _TRUNCATE);
+	}
+	else
+	{
+		::GetFullPathName(filename, MAX_PATH, fullpath, NULL);
+		if (wcschr(fullpath, '~'))
+		{
+			::GetLongPathName(fullpath, fullpath, MAX_PATH);
+		}
 	}
 
 	if (PathFileExists(fullpath))
@@ -1156,9 +1199,6 @@ SavingStatus FileManager::saveBuffer(BufferID id, const TCHAR * filename, bool i
 			}
 		}
 
-		// check the language du fichier
-		LangType language = detectLanguageFromTextBegining((unsigned char *)buf, lengthDoc);
-
 		UnicodeConvertor.closeFile();
 
 		// Error, we didn't write the entire document to disk.
@@ -1177,12 +1217,28 @@ SavingStatus FileManager::saveBuffer(BufferID id, const TCHAR * filename, bool i
 			return SavingStatus::SaveOK;	//all done
 		}
 
-		buffer->setFileName(fullpath, language);
+		buffer->setFileName(fullpath);
+
+		// if not a large file and language is normal text (not defined)
+		// we may try determinate its language from its content 
+		if (!buffer->isLargeFile() && buffer->_lang == L_TEXT)
+		{
+			LangType detectedLang = detectLanguageFromTextBegining((unsigned char*)buf, lengthDoc);
+
+			// if a language is detected from the content
+			if (detectedLang != L_TEXT)
+			{
+				buffer->_lang = detectedLang;
+				buffer->doNotify(BufferChangeFilename | BufferChangeTimestamp | BufferChangeLanguage);
+			}
+		}
 		buffer->setDirty(false);
 		buffer->setUnsync(false);
 		buffer->setSavePointDirty(false);
 		buffer->setStatus(DOC_REGULAR);
 		buffer->checkFileState();
+
+
 		_pscratchTilla->execute(SCI_SETSAVEPOINT);
 		_pscratchTilla->execute(SCI_SETDOCPOINTER, 0, _scratchDocDefault);
 
@@ -1258,6 +1314,11 @@ BufferID FileManager::newEmptyDocument()
 
 	Document doc = (Document)_pscratchTilla->execute(SCI_CREATEDOCUMENT);	//this already sets a reference for filemanager
 	Buffer* newBuf = new Buffer(this, _nextBufferID, doc, DOC_UNNAMED, newTitle.c_str(), false);
+
+	NppParameters& nppParamInst = NppParameters::getInstance();
+	const NewDocDefaultSettings& ndds = (nppParamInst.getNppGUI()).getNewDocDefaultSettings();
+	newBuf->_lang = ndds._lang;
+
 	BufferID id = static_cast<BufferID>(newBuf);
 	newBuf->_id = id;
 	_buffers.push_back(newBuf);
@@ -1268,7 +1329,8 @@ BufferID FileManager::newEmptyDocument()
 
 BufferID FileManager::bufferFromDocument(Document doc, bool dontIncrease, bool dontRef)
 {
-	generic_string newTitle = ((NppParameters::getInstance()).getNativeLangSpeaker())->getLocalizedStrFromID("tab-untitled-string", UNTITLED_STR);
+	NppParameters& nppParamInst = NppParameters::getInstance();
+	generic_string newTitle = (nppParamInst.getNativeLangSpeaker())->getLocalizedStrFromID("tab-untitled-string", UNTITLED_STR);
 	TCHAR nb[10];
 	wsprintf(nb, TEXT("%d"), static_cast<int>(nextUntitledNewNumber()));
 	newTitle += nb;
@@ -1278,6 +1340,8 @@ BufferID FileManager::bufferFromDocument(Document doc, bool dontIncrease, bool d
 	Buffer* newBuf = new Buffer(this, _nextBufferID, doc, DOC_UNNAMED, newTitle.c_str(), false);
 	BufferID id = static_cast<BufferID>(newBuf);
 	newBuf->_id = id;
+	const NewDocDefaultSettings& ndds = (nppParamInst.getNppGUI()).getNewDocDefaultSettings();
+	newBuf->_lang = ndds._lang;
 	_buffers.push_back(newBuf);
 	++_nbBufs;
 
@@ -1494,6 +1558,8 @@ bool FileManager::loadFileData(Document doc, int64_t fileSize, const TCHAR * fil
 
             if (isFirstTime)
             {
+				NppGUI& nppGui = NppParameters::getInstance().getNppGUI();
+
 				// check if file contain any BOM
                 if (Utf8_16_Read::determineEncoding((unsigned char *)data, lenFile) != uni8Bit)
                 {
@@ -1503,11 +1569,12 @@ bool FileManager::loadFileData(Document doc, int64_t fileSize, const TCHAR * fil
 				}
 				else if (fileFormat._encoding == -1)
 				{
-					if (nppParam.getNppGUI()._detectEncoding)
+					if (nppGui._detectEncoding)
 						fileFormat._encoding = detectCodepage(data, lenFile);
                 }
-
-				if (fileFormat._language == L_TEXT)
+				
+				bool isLargeFile = fileSize >= nppGui._largeFileRestriction._largeFileSizeDefInByte;
+				if (!isLargeFile && fileFormat._language == L_TEXT)
 				{
 					// check the language du fichier
 					fileFormat._language = detectLanguageFromTextBegining((unsigned char *)data, lenFile);
@@ -1601,7 +1668,7 @@ bool FileManager::loadFileData(Document doc, int64_t fileSize, const TCHAR * fil
 		fileFormat._eolFormat = ndds._format;
 
 		//for empty files, if the default for new files is UTF8, and "Apply to opened ANSI files" is set, apply it
-		if (fileSize == 0)
+		if ((fileSize == 0) && (fileFormat._encoding < 1))
 		{
 			if (ndds._unicodeMode == uniCookie && ndds._openAnsiAsUtf8)
 				fileFormat._encoding = SC_CP_UTF8;

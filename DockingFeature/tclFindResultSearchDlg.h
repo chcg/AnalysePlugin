@@ -65,7 +65,8 @@ public :
 
    void doCount() ;
 
-   void setdefaultPattern(const tclPattern& p) ;
+   void setdefaultPattern(const tclPattern& p);
+   const tclPattern& getdefaultPattern() const;
 
 protected :
 

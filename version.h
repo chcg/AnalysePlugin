@@ -24,5 +24,5 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 // writing the version info in several flavours is caused by the fact, that 
 // MS resource compiler is only intepreting one level of macro expansion
 #define VER_FILEVERSION_MAYOR         1
-#define VER_FILEVERSION_MINOR         13
-#define VER_FILEVERSION_STR           "1.13-pre1\0"
+#define VER_FILEVERSION_MINOR         14
+#define VER_FILEVERSION_STR           "1.14-pre1\0"

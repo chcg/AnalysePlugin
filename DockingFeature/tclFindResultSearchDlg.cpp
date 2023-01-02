@@ -279,6 +279,9 @@ void tclFindResultSearchDlg::doCount() {
 void tclFindResultSearchDlg::setdefaultPattern(const tclPattern& p) {
    mDefPat = p;
 }
+const tclPattern& tclFindResultSearchDlg::getdefaultPattern() const {
+   return mDefPat;
+}
 
 INT_PTR CALLBACK tclFindResultSearchDlg::run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam)
 {
@@ -417,6 +420,7 @@ INT_PTR CALLBACK tclFindResultSearchDlg::run_dlgProc(UINT Message, WPARAM wParam
             } // switch(pscn->nmhdr.code)
          } // if
       } // WM_NOTIFY
+
    default:
       break;
    } // switch (Message)

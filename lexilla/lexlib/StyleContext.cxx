@@ -83,9 +83,9 @@ bool StyleContext::MatchIgnoreCase2(const char *s) {
 }
 
 void StyleContext::GetCurrent(char *s, Sci_PositionU len) {
-// TODO Mattes	styler.GetRange(styler.GetStartSegment(), currentPos, s, len);
+	styler.GetRange(styler.GetStartSegment(), currentPos, s, len);
 }
 
 void StyleContext::GetCurrentLowered(char *s, Sci_PositionU len) {
-// TODO Mattes	styler.GetRangeLowered(styler.GetStartSegment(), currentPos, s, len);
+	styler.GetRangeLowered(styler.GetStartSegment(), currentPos, s, len);
 }

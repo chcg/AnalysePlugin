@@ -457,7 +457,7 @@ private:
 		if (extIndex >= 0 && extIndex < static_cast<int>(_filterSpec.size()))
 		{
 			const generic_string ext = get1stExt(_filterSpec[extIndex].ext);
-			if (!endsWith(ext, _T(".*")))
+			if (!endsWith(ext, TEXT(".*")))
 				return replaceExt(name, ext);
 		}
 		return false;
@@ -707,7 +707,7 @@ public:
 				if (!hasExt(newFileName))
 				{
 					const generic_string ext = get1stExt(_filterSpec[_fileTypeIndex].ext);
-					if (!endsWith(ext, _T(".*")))
+					if (!endsWith(ext, TEXT(".*")))
 						newFileName += ext;
 				}
 			}

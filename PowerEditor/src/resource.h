@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2021 Don HO <don.h@free.fr>
+// Copyright (C) 2022 Don HO <don.h@free.fr>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,12 +19,12 @@
 //
 // Notepad++ version: begin
 //
-#define NOTEPAD_PLUS_VERSION TEXT("Notepad++ v8.4.1")
+#define NOTEPAD_PLUS_VERSION TEXT("Notepad++ v8.4.8")
 
 // should be X.Y : ie. if VERSION_DIGITALVALUE == 4, 7, 1, 0 , then X = 4, Y = 71
 // ex : #define VERSION_VALUE TEXT("5.63\0")
-#define VERSION_VALUE TEXT("8.41\0")
-#define VERSION_DIGITALVALUE 8, 4, 1, 0
+#define VERSION_VALUE TEXT("8.48\0")
+#define VERSION_DIGITALVALUE 8, 4, 8, 0
 
 // Notepad++ version: end
 
@@ -415,8 +415,8 @@
 #define ID_PLUGINS_CMD_DYNAMIC_LIMIT       24999
 
 
-#define MARKER_PLUGINS          3
-#define MARKER_PLUGINS_LIMIT   19
+#define MARKER_PLUGINS          1
+#define MARKER_PLUGINS_LIMIT   15
 
 
 
@@ -637,6 +637,13 @@
 	#define NPPM_INTERNAL_REFRESHWORKDIR                (NOTEPADPLUS_USER_INTERNAL + 61)
 	#define NPPM_INTERNAL_VIRTUALSPACE                  (NOTEPADPLUS_USER_INTERNAL + 62)
 	#define NPPM_INTERNAL_CARETLINEFRAME                (NOTEPADPLUS_USER_INTERNAL + 63)
+	#define NPPM_INTERNAL_CRLFFORMCHANGED               (NOTEPADPLUS_USER_INTERNAL + 64)
+	#define NPPM_INTERNAL_CRLFLAUNCHSTYLECONF           (NOTEPADPLUS_USER_INTERNAL + 65)
+	#define NPPM_INTERNAL_LAUNCHPREFERENCES             (NOTEPADPLUS_USER_INTERNAL + 66)
+	#define NPPM_INTERNAL_ENABLECHANGEHISTORY           (NOTEPADPLUS_USER_INTERNAL + 67)
+	#define NPPM_INTERNAL_CLEANSMARTHILITING            (NOTEPADPLUS_USER_INTERNAL + 68)
+	#define NPPM_INTERNAL_CLEANBRACEMATCH               (NOTEPADPLUS_USER_INTERNAL + 69)
+	#define NPPM_INTERNAL_WINDOWSSESSIONEXIT            (NOTEPADPLUS_USER_INTERNAL + 70)
 
 // See Notepad_plus_msgs.h
 //#define NOTEPADPLUS_USER   (WM_USER + 1000)
@@ -697,3 +704,4 @@
 #define MENUINDEX_PLUGINS  10
 #define MENUINDEX_WINDOW   11
 #define MENUINDEX_HELP     12
+#define MENUINDEX_LIST     14

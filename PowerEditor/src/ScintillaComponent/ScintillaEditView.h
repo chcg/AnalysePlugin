@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2021 Don HO <don.h@free.fr>
+// Copyright (C) 2022 Don HO <don.h@free.fr>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -115,14 +115,14 @@ const UCHAR BASE_08 = 0x02; // Oct
 const UCHAR BASE_02 = 0x03; // Bin
 
 
-const int MARK_BOOKMARK = 24;
-const int MARK_HIDELINESBEGIN = 23;
-const int MARK_HIDELINESEND = 22;
-const int MARK_HIDELINESUNDERLINE = 21;
-//const int MARK_LINEMODIFIEDUNSAVED = 20;
-//const int MARK_LINEMODIFIEDSAVED = 19;
-// 24 - 16 reserved for Notepad++ internal used
-// 15 - 0  are free to use for plugins
+const int MARK_BOOKMARK_OLD = 24; // Mattes
+
+const int MARK_BOOKMARK = 20;
+const int MARK_HIDELINESBEGIN = 19;
+const int MARK_HIDELINESEND = 18;
+const int MARK_HIDELINESUNDERLINE = 17;
+// 20 - 17 reserved for Notepad++ internal used
+// 16 - 0  are free to use for plugins
 
 
 int getNbDigits(int aNum, int base);
@@ -140,8 +140,8 @@ struct ColumnModeInfo {
 	intptr_t _selRpos = 0;
 	intptr_t _order = -1; // 0 based index
 	bool _direction = L2R; // L2R or R2L
-	intptr_t _nbVirtualCaretSpc = 0;
 	intptr_t _nbVirtualAnchorSpc = 0;
+	intptr_t _nbVirtualCaretSpc = 0;
 
 	ColumnModeInfo(intptr_t lPos, intptr_t rPos, intptr_t order, bool dir = L2R, intptr_t vAnchorNbSpc = 0, intptr_t vCaretNbSpc = 0)
 		: _selLpos(lPos), _selRpos(rPos), _order(order), _direction(dir), _nbVirtualAnchorSpc(vAnchorNbSpc), _nbVirtualCaretSpc(vCaretNbSpc){};
@@ -239,7 +239,7 @@ public:
 	void replaceSelWith(const char * replaceText);
 
 	intptr_t getSelectedTextCount() {
-		Sci_CharacterRange range = getSelection();
+		Sci_CharacterRangeFull range = getSelection();
 		return (range.cpMax - range.cpMin);
 	};
 
@@ -277,10 +277,10 @@ public:
 		return size_t(execute(SCI_GETLENGTH));
 	};
 
-	Sci_CharacterRange getSelection() const {
-		Sci_CharacterRange crange;
-		crange.cpMin = static_cast<Sci_PositionCR>(execute(SCI_GETSELECTIONSTART));
-		crange.cpMax = static_cast<Sci_PositionCR>(execute(SCI_GETSELECTIONEND));
+	Sci_CharacterRangeFull getSelection() const {
+		Sci_CharacterRangeFull crange{};
+		crange.cpMin = execute(SCI_GETSELECTIONSTART);
+		crange.cpMax = execute(SCI_GETSELECTIONEND);
 		return crange;
 	};
 
@@ -314,11 +314,12 @@ public:
 
     //Marge member and method
     static const int _SC_MARGE_LINENUMBER;
-    static const int _SC_MARGE_SYBOLE;
+    static const int _SC_MARGE_SYMBOL;
     static const int _SC_MARGE_FOLDER;
-	//static const int _SC_MARGE_MODIFMARKER;
+    static const int _SC_MARGE_CHANGEHISTORY;
 
     void showMargin(int whichMarge, bool willBeShowed = true);
+    void showChangeHistoryMargin(bool willBeShowed = true);
 
     bool hasMarginShowed(int witchMarge) {
 		return (execute(SCI_GETMARGINWIDTHN, witchMarge, 0) != 0);
@@ -534,7 +535,6 @@ public:
 	void columnReplace(ColumnModeInfos & cmi, const TCHAR *str);
 	void columnReplace(ColumnModeInfos & cmi, int initial, int incr, int repeat, UCHAR format);
 
-	void foldChanged(size_t line, int levelNow, int levelPrev);
 	void clearIndicator(int indicatorNumber) {
 		size_t docStart = 0;
 		size_t docEnd = getCurrentDocLen();
@@ -554,13 +554,13 @@ public:
 
 	void hideLines();
 
-	bool markerMarginClick(size_t lineNumber);	//true if it did something
+	bool markerMarginClick(intptr_t lineNumber);	//true if it did something
 	void notifyMarkers(Buffer * buf, bool isHide, size_t location, bool del);
 	void runMarkers(bool doHide, size_t searchStart, bool endOfDoc, bool doDelete);
 
 	bool isSelecting() const {
-		static Sci_CharacterRange previousSelRange = getSelection();
-		Sci_CharacterRange currentSelRange = getSelection();
+		static Sci_CharacterRangeFull previousSelRange = getSelection();
+		Sci_CharacterRangeFull currentSelRange = getSelection();
 
 		if (currentSelRange.cpMin == currentSelRange.cpMax)
 		{
@@ -589,6 +589,7 @@ public:
 	void addCustomWordChars();
 	void restoreDefaultWordChars();
 	void setWordChars();
+	void setCRLF(long color = -1);
 
 	void mouseWheel(WPARAM wParam, LPARAM lParam) {
 		scintillaNew_Proc(_hSelf, WM_MOUSEWHEEL, wParam, lParam);
@@ -692,8 +693,9 @@ protected:
 		setLexer(L_MAKEFILE, LIST_NONE);
 	};
 
-	void setIniLexer() {
-		setLexer(L_INI, LIST_NONE);
+	void setPropsLexer(bool isPropsButNotIni = true) {
+		LangType L_id = isPropsButNotIni ? L_PROPS : L_INI;
+		setLexer(L_id, LIST_NONE);
 		execute(SCI_STYLESETEOLFILLED, SCE_PROPS_SECTION, true);
 	};
 
@@ -762,10 +764,6 @@ protected:
 
 	void setDiffLexer(){
 		setLexer(L_DIFF, LIST_NONE);
-	};
-
-	void setPropsLexer(){
-		setLexer(L_PROPS, LIST_NONE);
 	};
 
 	void setPostscriptLexer(){
@@ -839,7 +837,7 @@ protected:
 		setLexer(L_D, LIST_0 | LIST_1 | LIST_2 | LIST_3 | LIST_4 | LIST_5 | LIST_6);
 	};
     void setPowerShellLexer() {
-		setLexer(L_POWERSHELL, LIST_0 | LIST_1 | LIST_2 | LIST_5);
+		setLexer(L_POWERSHELL, LIST_0 | LIST_1 | LIST_2 | LIST_3 | LIST_4 | LIST_5);
 	};
     void setRLexer() {
 		setLexer(L_R, LIST_0 | LIST_1 | LIST_2);
@@ -936,7 +934,7 @@ protected:
 
 	void setREBOLLexer() {
 		setLexer(L_REBOL, LIST_0 | LIST_1 | LIST_2 | LIST_3 | LIST_4 | LIST_5 | LIST_6);
-		execute(SCI_SETWORDCHARS, 0, reinterpret_cast<LPARAM>("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?!.’+-*&|=_~"));
+		execute(SCI_SETWORDCHARS, 0, reinterpret_cast<LPARAM>("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?!.'+-*&|=_~"));
 	};
 
 	void setRegistryLexer() {
@@ -963,6 +961,11 @@ protected:
     //--------------------
 
 	void setSearchResultLexer() {
+		if (execute(SCI_GETLEXER) == SCLEX_SEARCHRESULT)
+		{
+			makeStyle(L_SEARCHRESULT, nullptr);
+			return;
+		}
 		execute(SCI_STYLESETEOLFILLED, SCE_SEARCHRESULT_FILE_HEADER, true);
 		execute(SCI_STYLESETEOLFILLED, SCE_SEARCHRESULT_SEARCH_HEADER, true);
 		setLexer(L_SEARCHRESULT, LIST_NONE);
@@ -977,7 +980,6 @@ protected:
 			case L_MAKEFILE:
 			case L_ASM:
 			case L_HASKELL:
-			case L_PROPS:
 			case L_SMALLTALK:
 			case L_KIX:
 			case L_ADA:

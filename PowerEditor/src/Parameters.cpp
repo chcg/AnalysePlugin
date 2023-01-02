@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2021 Don HO <don.h@free.fr>
+// Copyright (C) 2022 Don HO <don.h@free.fr>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,14 +20,15 @@
 #include "Parameters.h"
 #include "ScintillaEditView.h"
 #include "keys.h"
-#include "localization.h" // Mattes TODO check if needed
+#include "localization.h"
 #include "localizationString.h"
 // Mattes #include "UserDefineDialog.h"
 // Mattes #include "WindowsDlgRc.h"
-
 #include "resource.h" // Mattes
 
+#ifdef _MSC_VER
 #pragma warning(disable : 4996) // for GetVersionEx()
+#endif
 
 using namespace std;
 
@@ -151,6 +152,8 @@ static const WinMenuKeyDefinition winKeyDefs[] =
 	{ VK_SPACE,   IDM_EDIT_AUTOCOMPLETE_PATH,                   true,  true,  false, nullptr },
 	{ VK_RETURN,  IDM_EDIT_AUTOCOMPLETE_CURRENTFILE,            true,  false, false, nullptr },
 	{ VK_SPACE,   IDM_EDIT_FUNCCALLTIP,                         true,  false, true,  nullptr },
+	{ VK_UP,      IDM_EDIT_FUNCCALLTIP_PREVIOUS,                false, true,  false, nullptr },
+	{ VK_DOWN,    IDM_EDIT_FUNCCALLTIP_NEXT,                    false, true,  false, nullptr },
 	{ VK_NULL,    IDM_EDIT_INSERT_DATETIME_SHORT,               false, false, false, nullptr },
 	{ VK_NULL,    IDM_EDIT_INSERT_DATETIME_LONG,                false, false, false, nullptr },
 	{ VK_NULL,    IDM_EDIT_INSERT_DATETIME_CUSTOMIZED,          false, false, false, nullptr },
@@ -290,23 +293,23 @@ static const WinMenuKeyDefinition winKeyDefs[] =
 	{ VK_0,       IDM_VIEW_UNFOLDALL,                           false, true,  true,  nullptr },
 	{ VK_F,       IDM_VIEW_FOLD_CURRENT,                        true,  true,  false, nullptr },
 	{ VK_F,       IDM_VIEW_UNFOLD_CURRENT,                      true,  true,  true,  nullptr },
-	{ VK_1,       IDM_VIEW_FOLD_1,                              false, true,  false, TEXT("Collapse Level 1") },
-	{ VK_2,       IDM_VIEW_FOLD_2,                              false, true,  false, TEXT("Collapse Level 2") },
-	{ VK_3,       IDM_VIEW_FOLD_3,                              false, true,  false, TEXT("Collapse Level 3") },
-	{ VK_4,       IDM_VIEW_FOLD_4,                              false, true,  false, TEXT("Collapse Level 4") },
-	{ VK_5,       IDM_VIEW_FOLD_5,                              false, true,  false, TEXT("Collapse Level 5") },
-	{ VK_6,       IDM_VIEW_FOLD_6,                              false, true,  false, TEXT("Collapse Level 6") },
-	{ VK_7,       IDM_VIEW_FOLD_7,                              false, true,  false, TEXT("Collapse Level 7") },
-	{ VK_8,       IDM_VIEW_FOLD_8,                              false, true,  false, TEXT("Collapse Level 8") },
+	{ VK_1,       IDM_VIEW_FOLD_1,                              false, true,  false, TEXT("Fold Level 1") },
+	{ VK_2,       IDM_VIEW_FOLD_2,                              false, true,  false, TEXT("Fold Level 2") },
+	{ VK_3,       IDM_VIEW_FOLD_3,                              false, true,  false, TEXT("Fold Level 3") },
+	{ VK_4,       IDM_VIEW_FOLD_4,                              false, true,  false, TEXT("Fold Level 4") },
+	{ VK_5,       IDM_VIEW_FOLD_5,                              false, true,  false, TEXT("Fold Level 5") },
+	{ VK_6,       IDM_VIEW_FOLD_6,                              false, true,  false, TEXT("Fold Level 6") },
+	{ VK_7,       IDM_VIEW_FOLD_7,                              false, true,  false, TEXT("Fold Level 7") },
+	{ VK_8,       IDM_VIEW_FOLD_8,                              false, true,  false, TEXT("Fold Level 8") },
 
-	{ VK_1,       IDM_VIEW_UNFOLD_1,                            false, true,  true,  TEXT("Uncollapse Level 1") },
-	{ VK_2,       IDM_VIEW_UNFOLD_2,                            false, true,  true,  TEXT("Uncollapse Level 2") },
-	{ VK_3,       IDM_VIEW_UNFOLD_3,                            false, true,  true,  TEXT("Uncollapse Level 3") },
-	{ VK_4,       IDM_VIEW_UNFOLD_4,                            false, true,  true,  TEXT("Uncollapse Level 4") },
-	{ VK_5,       IDM_VIEW_UNFOLD_5,                            false, true,  true,  TEXT("Uncollapse Level 5") },
-	{ VK_6,       IDM_VIEW_UNFOLD_6,                            false, true,  true,  TEXT("Uncollapse Level 6") },
-	{ VK_7,       IDM_VIEW_UNFOLD_7,                            false, true,  true,  TEXT("Uncollapse Level 7") },
-	{ VK_8,       IDM_VIEW_UNFOLD_8,                            false, true,  true,  TEXT("Uncollapse Level 8") },
+	{ VK_1,       IDM_VIEW_UNFOLD_1,                            false, true,  true,  TEXT("Unfold Level 1") },
+	{ VK_2,       IDM_VIEW_UNFOLD_2,                            false, true,  true,  TEXT("Unfold Level 2") },
+	{ VK_3,       IDM_VIEW_UNFOLD_3,                            false, true,  true,  TEXT("Unfold Level 3") },
+	{ VK_4,       IDM_VIEW_UNFOLD_4,                            false, true,  true,  TEXT("Unfold Level 4") },
+	{ VK_5,       IDM_VIEW_UNFOLD_5,                            false, true,  true,  TEXT("Unfold Level 5") },
+	{ VK_6,       IDM_VIEW_UNFOLD_6,                            false, true,  true,  TEXT("Unfold Level 6") },
+	{ VK_7,       IDM_VIEW_UNFOLD_7,                            false, true,  true,  TEXT("Unfold Level 7") },
+	{ VK_8,       IDM_VIEW_UNFOLD_8,                            false, true,  true,  TEXT("Unfold Level 8") },
 	{ VK_NULL,    IDM_VIEW_SUMMARY,                             false, false, false, nullptr },
 	{ VK_NULL,    IDM_VIEW_PROJECT_PANEL_1,                     false, false, false, TEXT("Toggle Project Panel 1") },
 	{ VK_NULL,    IDM_VIEW_PROJECT_PANEL_2,                     false, false, false, TEXT("Toggle Project Panel 2") },
@@ -321,6 +324,12 @@ static const WinMenuKeyDefinition winKeyDefs[] =
 	{ VK_NULL,    IDM_VIEW_SWITCHTO_FILEBROWSER,                false, false, false, TEXT("Switch to Folder as Workspace") },
 	{ VK_NULL,    IDM_VIEW_SWITCHTO_FUNC_LIST,                  false, false, false, TEXT("Switch to Function List") },
 	{ VK_NULL,    IDM_VIEW_SWITCHTO_DOCLIST,                    false, false, false, TEXT("Switch to Document List") },
+	{ VK_NULL,    IDM_VIEW_TAB_COLOUR_NONE,                     false, false, false, TEXT("Remove Tab Colour") },
+	{ VK_NULL,    IDM_VIEW_TAB_COLOUR_1,                        false, false, false, TEXT("Apply Tab Colour 1") },
+	{ VK_NULL,    IDM_VIEW_TAB_COLOUR_2,                        false, false, false, TEXT("Apply Tab Colour 2") },
+	{ VK_NULL,    IDM_VIEW_TAB_COLOUR_3,                        false, false, false, TEXT("Apply Tab Colour 3") },
+	{ VK_NULL,    IDM_VIEW_TAB_COLOUR_4,                        false, false, false, TEXT("Apply Tab Colour 4") },
+	{ VK_NULL,    IDM_VIEW_TAB_COLOUR_5,                        false, false, false, TEXT("Apply Tab Colour 5") },
 	{ VK_NULL,    IDM_VIEW_SYNSCROLLV,                          false, false, false, nullptr },
 	{ VK_NULL,    IDM_VIEW_SYNSCROLLH,                          false, false, false, nullptr },
 	{ VK_R,       IDM_EDIT_RTL,                                 true,  true,  false, nullptr },
@@ -419,7 +428,7 @@ static const WinMenuKeyDefinition winKeyDefs[] =
 	{ VK_NULL,    IDM_CMDLINEARGUMENTS,                         false, false, false, nullptr },
 	{ VK_NULL,    IDM_HOMESWEETHOME,                            false, false, false, nullptr },
 	{ VK_NULL,    IDM_PROJECTPAGE,                              false, false, false, nullptr },
-//  { VK_NULL,    IDM_ONLINEDOCUMENT,                               false, false, false, nullptr },
+	{ VK_NULL,    IDM_ONLINEDOCUMENT,                           false, false, false, nullptr },
 	{ VK_NULL,    IDM_FORUM,                                    false, false, false, nullptr },
 //	{ VK_NULL,    IDM_ONLINESUPPORT,                            false, false, false, nullptr },
 //	{ VK_NULL,    IDM_PLUGINSHOME,                              false, false, false, nullptr },
@@ -595,91 +604,6 @@ int getKwClassFromName(const TCHAR *str)
 	return -1;
 }
 
-	
-size_t getAsciiLenFromBase64Len(size_t base64StrLen)
-{
-	return (base64StrLen % 4) ? 0 : (base64StrLen - base64StrLen / 4);
-}
-
-
-int base64ToAscii(char *dest, const char *base64Str)
-{
-	static const int base64IndexArray[123] =
-	{
-		-1, -1, -1, -1, -1, -1, -1, -1,
-		-1, -1, -1, -1, -1, -1, -1, -1,
-		-1, -1, -1, -1, -1, -1, -1, -1,
-		-1, -1, -1, -1, -1, -1, -1, -1,
-		-1, -1, -1, -1, -1, -1, -1, -1,
-		-1, -1, -1, 62, -1, -1, -1, 63,
-		52, 53, 54, 55 ,56, 57, 58, 59,
-		60, 61, -1, -1, -1, -1, -1, -1,
-		-1,  0,  1,  2,  3,  4,  5,  6,
-			7,  8,  9, 10, 11, 12, 13, 14,
-		15, 16, 17, 18, 19, 20, 21, 22,
-		23, 24, 25, -1, -1, -1, -1 ,-1,
-		-1, 26, 27, 28, 29, 30, 31, 32,
-		33, 34, 35, 36, 37, 38, 39, 40,
-		41, 42, 43, 44, 45, 46, 47, 48,
-		49, 50, 51
-	};
-
-	size_t b64StrLen = strlen(base64Str);
-	size_t nbLoop = b64StrLen / 4;
-
-	size_t i = 0;
-	int k = 0;
-
-	enum {b64_just, b64_1padded, b64_2padded} padd = b64_just;
-	for ( ; i < nbLoop ; i++)
-	{
-		size_t j = i * 4;
-		UCHAR uc0, uc1, uc2, uc3, p0, p1;
-
-		uc0 = (UCHAR)base64IndexArray[base64Str[j]];
-		uc1 = (UCHAR)base64IndexArray[base64Str[j+1]];
-		uc2 = (UCHAR)base64IndexArray[base64Str[j+2]];
-		uc3 = (UCHAR)base64IndexArray[base64Str[j+3]];
-
-		if ((static_cast<char>(uc0) == -1) || (static_cast<char>(uc1) == -1) || (static_cast<char>(uc2) == -1) || (static_cast<char>(uc3) == -1))
-			return -1;
-
-		if (base64Str[j+2] == '=') // && (uc3 == '=')
-		{
-			uc2 = uc3 = 0;
-			padd = b64_2padded;
-		}
-		else if (base64Str[j+3] == '=')
-		{
-			uc3 = 0;
-			padd = b64_1padded;
-		}
-
-		p0 = uc0 << 2;
-		p1 = uc1 << 2;
-		p1 >>= 6;
-		dest[k++] = p0 | p1;
-
-		p0 = uc1 << 4;
-		p1 = uc2 << 2;
-		p1 >>= 4;
-		dest[k++] = p0 | p1;
-
-		p0 = uc2 << 6;
-		p1 = uc3;
-		dest[k++] = p0 | p1;
-	}
-
-	//dest[k] = '\0';
-	if (padd == b64_1padded)
-	//	dest[k-1] = '\0';
-		return k-1;
-	else if (padd == b64_2padded)
-	//	dest[k-2] = '\0';
-		return k-2;
-
-	return k;
-}
 
 } // anonymous namespace
 
@@ -788,6 +712,137 @@ generic_string ThemeSwitcher::getThemeFromXmlFileName(const TCHAR *xmlFullPath) 
 	return fn;
 }
 
+int DynamicMenu::getTopLevelItemNumber() const
+{
+	int nb = 0;
+	generic_string previousFolderName;
+	for (const MenuItemUnit& i : _menuItems)
+	{
+		if (i._parentFolderName.empty())
+		{
+			++nb;
+		}
+		else
+		{
+			if (previousFolderName.empty())
+			{
+				++nb;
+				previousFolderName = i._parentFolderName;
+			}
+			else // previousFolderName is not empty
+			{
+				if (i._parentFolderName.empty())
+				{
+					++nb;
+					previousFolderName = i._parentFolderName;
+				}
+				else if (previousFolderName == i._parentFolderName)
+				{
+					// maintain the number and do nothinh
+				}
+				else
+				{
+					++nb;
+					previousFolderName = i._parentFolderName;
+				}
+			}
+		}
+	}
+
+	return nb;
+}
+
+bool DynamicMenu::attach(HMENU hMenu, unsigned int posBase, int lastCmd, const generic_string& lastCmdLabel)
+{
+	if (!hMenu) return false;
+
+	_hMenu = hMenu;
+	_posBase = posBase;
+	_lastCmd = lastCmd;
+	_lastCmdLabel = lastCmdLabel;
+
+	return createMenu();
+}
+
+bool DynamicMenu::clearMenu() const
+{
+	if (!_hMenu) return false;
+
+	int nbTopItem = getTopLevelItemNumber();
+	for (int i = nbTopItem + 1; i >= 0 ; --i)
+	{
+		::DeleteMenu(_hMenu, static_cast<int32_t>(_posBase) + i, MF_BYPOSITION);
+	}
+
+	return true;
+}
+
+bool DynamicMenu::createMenu() const
+{
+	if (!_hMenu) return false;
+
+	bool lastIsSep = false;
+	HMENU hParentFolder = NULL;
+	generic_string currentParentFolderStr;
+	int j = 0;
+
+	size_t nb = _menuItems.size();
+	size_t i = 0;
+	for (; i < nb; ++i)
+	{
+		const MenuItemUnit& item = _menuItems[i];
+		if (item._parentFolderName.empty())
+		{
+			currentParentFolderStr.clear();
+			hParentFolder = NULL;
+			j = 0;
+		}
+		else
+		{
+			if (item._parentFolderName != currentParentFolderStr)
+			{
+				currentParentFolderStr = item._parentFolderName;
+				hParentFolder = ::CreateMenu();
+				j = 0;
+
+				::InsertMenu(_hMenu, static_cast<UINT>(_posBase + i), MF_BYPOSITION | MF_POPUP, (UINT_PTR)hParentFolder, currentParentFolderStr.c_str());
+			}
+		}
+
+		unsigned int flag = MF_BYPOSITION | ((item._cmdID == 0) ? MF_SEPARATOR : 0);
+		if (hParentFolder)
+		{
+			::InsertMenu(hParentFolder, j++, flag, item._cmdID, item._itemName.c_str());
+			lastIsSep = false;
+		}
+		else if ((i == 0 || i == _menuItems.size() - 1) && item._cmdID == 0)
+		{
+			lastIsSep = true;
+		}
+		else if (item._cmdID != 0)
+		{
+			::InsertMenu(_hMenu, static_cast<UINT>(_posBase + i), flag, item._cmdID, item._itemName.c_str());
+			lastIsSep = false;
+		}
+		else if (item._cmdID == 0 && !lastIsSep)
+		{
+			::InsertMenu(_hMenu, static_cast<int32_t>(_posBase + i), flag, item._cmdID, item._itemName.c_str());
+			lastIsSep = true;
+		}
+		else // last item is separator and current item is separator
+		{
+			lastIsSep = true;
+		}
+	}
+
+	if (nb > 0)
+	{
+		::InsertMenu(_hMenu, static_cast<int32_t>(_posBase + i), MF_BYPOSITION | MF_SEPARATOR, 0, nullptr);
+		::InsertMenu(_hMenu, static_cast<UINT>(_posBase + i + 2), MF_BYCOMMAND, _lastCmd, _lastCmdLabel.c_str());
+	}
+
+	return true;
+}
 
 winVer NppParameters::getWindowsVersion()
 {
@@ -839,6 +894,9 @@ winVer NppParameters::getWindowsVersion()
    {
 		case VER_PLATFORM_WIN32_NT:
 		{
+			if (osvi.dwMajorVersion == 10 && osvi.dwMinorVersion == 0 && osvi.dwBuildNumber >= 22000)
+				return WV_WIN11;
+
 			if (osvi.dwMajorVersion == 10 && osvi.dwMinorVersion == 0)
 				return WV_WIN10;
 
@@ -1132,7 +1190,8 @@ bool NppParameters::load()
 	//
 	// the 2nd priority: cloud Choice Path
 	//
-	if (::PathFileExists(cloudChoicePath.c_str()))
+	_isCloud = (::PathFileExists(cloudChoicePath.c_str()) == TRUE);
+	if (_isCloud)
 	{
 		// Read cloud choice
 		std::string cloudChoiceStr = getFileContent(cloudChoicePath.c_str());
@@ -1144,6 +1203,10 @@ bool NppParameters::load()
 			_userPath = cloudChoiceStrW;
 			_nppGUI._cloudPath = cloudChoiceStrW;
 			_initialCloudChoice = _nppGUI._cloudPath;
+		}
+		else
+		{
+			_isCloud = false;
 		}
 	}
 
@@ -1178,7 +1241,7 @@ bool NppParameters::load()
 	//---------------------------------------------//
 	// Dlg theme texture function for xp and vista //
 	//---------------------------------------------//
-	_hUXTheme = ::LoadLibrary(TEXT("uxtheme.dll"));
+	_hUXTheme = ::LoadLibraryEx(TEXT("uxtheme.dll"), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
 	if (_hUXTheme)
 		_enableThemeDialogTextureFuncAddr = (WNDPROC)::GetProcAddress(_hUXTheme, "EnableThemeDialogTexture");
 
@@ -1191,7 +1254,7 @@ bool NppParameters::load()
 	BOOL doRecover = FALSE;
 	if (::PathFileExists(langs_xml_path.c_str()))
 	{
-		WIN32_FILE_ATTRIBUTE_DATA attributes;
+		WIN32_FILE_ATTRIBUTE_DATA attributes{};
 
 		if (GetFileAttributesEx(langs_xml_path.c_str(), GetFileExInfoStandard, &attributes) != 0)
 		{
@@ -1473,6 +1536,20 @@ bool NppParameters::load()
 		isAllLaoded = false;
 	}
 
+	//---------------------------------------------//
+	// tabContextMenu.xml : for per user, optional //
+	//---------------------------------------------//
+	_tabContextMenuPath = _userPath;
+	pathAppend(_tabContextMenuPath, TEXT("tabContextMenu.xml"));
+
+	_pXmlTabContextMenuDocA = new TiXmlDocumentA();
+	loadOkay = _pXmlTabContextMenuDocA->LoadUnicodeFilePath(_tabContextMenuPath.c_str());
+	if (!loadOkay)
+	{
+		delete _pXmlTabContextMenuDocA;
+		_pXmlTabContextMenuDocA = nullptr;
+	}
+
 	//----------------------------//
 	// session.xml : for per user //
 	//----------------------------//
@@ -1563,6 +1640,7 @@ void NppParameters::destroyInstance()
 	delete _pXmlToolIconsDoc;
 	delete _pXmlShortcutDoc;
 	delete _pXmlContextMenuDocA;
+	delete _pXmlTabContextMenuDocA;
 	delete _pXmlBlacklistDoc;
 	delete 	getInstancePointer();
 }
@@ -1726,7 +1804,7 @@ void NppParameters::setFontList(HWND hWnd)
 	//---------------//
 	// Sys font list //
 	//---------------//
-	LOGFONT lf;
+	LOGFONT lf{};
 	_fontlist.clear();
 	_fontlist.reserve(64); // arbitrary
 	_fontlist.push_back(generic_string());
@@ -1828,6 +1906,9 @@ bool NppParameters::getUserParametersFromXmlTree()
 
 	//Get File browser parameters
 	feedFileBrowserParameters(root);
+
+	//Get Column editor parameters
+	feedColumnEditorParameters(root);
 
 	return true;
 }
@@ -2061,18 +2142,22 @@ int NppParameters::getPluginCmdIdFromMenuEntryItemName(HMENU pluginsMenu, const 
 	return -1;
 }
 
-bool NppParameters::getContextMenuFromXmlTree(HMENU mainMenuHadle, HMENU pluginsMenu)
+bool NppParameters::getContextMenuFromXmlTree(HMENU mainMenuHadle, HMENU pluginsMenu, bool isEditCM)
 {
-	if (!_pXmlContextMenuDocA)
+	std::vector<MenuItemUnit>& contextMenuItems = isEditCM ? _contextMenuItems : _tabContextMenuItems;
+	TiXmlDocumentA* pXmlContextMenuDocA = isEditCM ? _pXmlContextMenuDocA : _pXmlTabContextMenuDocA;
+	std::string cmName = isEditCM ? "ScintillaContextMenu" : "TabContextMenu";
+
+	if (!pXmlContextMenuDocA)
 		return false;
-	TiXmlNodeA *root = _pXmlContextMenuDocA->FirstChild("NotepadPlus");
+	TiXmlNodeA *root = pXmlContextMenuDocA->FirstChild("NotepadPlus");
 	if (!root)
 		return false;
 
 	WcharMbcsConvertor& wmc = WcharMbcsConvertor::getInstance();
 	NativeLangSpeaker* pNativeSpeaker = (NppParameters::getInstance()).getNativeLangSpeaker();
 
-	TiXmlNodeA *contextMenuRoot = root->FirstChildElement("ScintillaContextMenu");
+	TiXmlNodeA *contextMenuRoot = root->FirstChildElement(cmName.c_str());
 	if (contextMenuRoot)
 	{
 		for (TiXmlNodeA *childNode = contextMenuRoot->FirstChildElement("Item");
@@ -2097,7 +2182,7 @@ bool NppParameters::getContextMenuFromXmlTree(HMENU mainMenuHadle, HMENU plugins
 			const char *idStr = (childNode->ToElement())->Attribute("id", &id);
 			if (idStr)
 			{
-				_contextMenuItems.push_back(MenuItemUnit(id, displayAs.c_str(), folderName.c_str()));
+				contextMenuItems.push_back(MenuItemUnit(id, displayAs.c_str(), folderName.c_str()));
 			}
 			else
 			{
@@ -2113,7 +2198,7 @@ bool NppParameters::getContextMenuFromXmlTree(HMENU mainMenuHadle, HMENU plugins
 				{
 					int cmd = getCmdIdFromMenuEntryItemName(mainMenuHadle, menuEntryName, menuItemName);
 					if (cmd != -1)
-						_contextMenuItems.push_back(MenuItemUnit(cmd, displayAs.c_str(), folderName.c_str()));
+						contextMenuItems.push_back(MenuItemUnit(cmd, displayAs.c_str(), folderName.c_str()));
 				}
 				else
 				{
@@ -2130,7 +2215,7 @@ bool NppParameters::getContextMenuFromXmlTree(HMENU mainMenuHadle, HMENU plugins
 					{
 						int pluginCmdId = getPluginCmdIdFromMenuEntryItemName(pluginsMenu, pluginName, pluginCmdName);
 						if (pluginCmdId != -1)
-							_contextMenuItems.push_back(MenuItemUnit(pluginCmdId, displayAs.c_str(), folderName.c_str()));
+							contextMenuItems.push_back(MenuItemUnit(pluginCmdId, displayAs.c_str(), folderName.c_str()));
 					}
 				}
 			}
@@ -2277,7 +2362,7 @@ bool NppParameters::getSessionFromXmlTree(TiXmlDocument *pSessionDoc, Session& s
 					const TCHAR *encStr = (childNode->ToElement())->Attribute(TEXT("encoding"), &encoding);
 					const TCHAR *backupFilePath = (childNode->ToElement())->Attribute(TEXT("backupFilePath"));
 
-					FILETIME fileModifiedTimestamp;
+					FILETIME fileModifiedTimestamp{};
 					(childNode->ToElement())->Attribute(TEXT("originalFileLastModifTimestamp"), reinterpret_cast<int32_t*>(&fileModifiedTimestamp.dwLowDateTime));
 					(childNode->ToElement())->Attribute(TEXT("originalFileLastModifTimestampHigh"), reinterpret_cast<int32_t*>(&fileModifiedTimestamp.dwHighDateTime));
 
@@ -2287,6 +2372,12 @@ bool NppParameters::getSessionFromXmlTree(TiXmlDocument *pSessionDoc, Session& s
 						isUserReadOnly = _wcsicmp(TEXT("yes"), boolStrReadOnly) == 0;
 
 					sessionFileInfo sfi(fileName, langName, encStr ? encoding : -1, isUserReadOnly, position, backupFilePath, fileModifiedTimestamp, mapPosition);
+
+					const TCHAR* intStrTabColour = (childNode->ToElement())->Attribute(TEXT("tabColourId"));
+					if (intStrTabColour)
+					{
+						sfi._individualTabColour = generic_atoi(intStrTabColour);
+					}
 
 					for (TiXmlNode *markNode = childNode->FirstChildElement(TEXT("Mark"));
 						markNode;
@@ -2421,6 +2512,63 @@ void NppParameters::feedProjectPanelsParameters(TiXmlNode *node)
 			}
 		}
 	}
+}
+
+void NppParameters::feedColumnEditorParameters(TiXmlNode *node)
+{
+	TiXmlNode * columnEditorRoot = node->FirstChildElement(TEXT("ColumnEditor"));
+	if (!columnEditorRoot) return;
+
+	const TCHAR* strVal = (columnEditorRoot->ToElement())->Attribute(TEXT("choice"));
+	if (strVal)
+	{
+		if (lstrcmp(strVal, TEXT("text")) == 0)
+			_columnEditParam._mainChoice = false;
+		else
+			_columnEditParam._mainChoice = true;
+	}
+	TiXmlNode *childNode = columnEditorRoot->FirstChildElement(TEXT("text"));
+	if (!childNode) return;
+
+	const TCHAR* content = (childNode->ToElement())->Attribute(TEXT("content"));
+	if (content)
+	{
+		_columnEditParam._insertedTextContent = content;
+	}
+
+	childNode = columnEditorRoot->FirstChildElement(TEXT("number"));
+	if (!childNode) return;
+
+	int val;
+	strVal = (childNode->ToElement())->Attribute(TEXT("initial"), &val);
+	if (strVal)
+		_columnEditParam._initialNum = val;
+
+	strVal = (childNode->ToElement())->Attribute(TEXT("increase"), &val);
+	if (strVal)
+		_columnEditParam._increaseNum = val;
+
+	strVal = (childNode->ToElement())->Attribute(TEXT("repeat"), &val);
+	if (strVal)
+		_columnEditParam._repeatNum = val;
+
+	strVal = (childNode->ToElement())->Attribute(TEXT("formatChoice"));
+
+	if (strVal)
+	{
+		if (lstrcmp(strVal, TEXT("hex")) == 0)
+			_columnEditParam._formatChoice = 1;
+		else if (lstrcmp(strVal, TEXT("oct")) == 0)
+			_columnEditParam._formatChoice = 2;
+		else if (lstrcmp(strVal, TEXT("bin")) == 0)
+			_columnEditParam._formatChoice = 3;
+		else // "bin"
+			_columnEditParam._formatChoice = 0;
+	}
+
+	const TCHAR* boolStr = (childNode->ToElement())->Attribute(TEXT("leadingZeros"));
+	if (boolStr)
+		_columnEditParam._isLeadingZeros = (lstrcmp(TEXT("yes"), boolStr) == 0);
 }
 
 void NppParameters::feedFindHistoryParameters(TiXmlNode *node)
@@ -2611,13 +2759,14 @@ void NppParameters::feedMacros(TiXmlNode *node)
 		childNode = childNode->NextSibling(TEXT("Macro")) )
 	{
 		Shortcut sc;
-		if (getShortcuts(childNode, sc))// && sc.isValid())
+		generic_string fdnm;
+		if (getShortcuts(childNode, sc, &fdnm))
 		{
 			Macro macro;
 			getActions(childNode, macro);
 			int cmdID = ID_MACRO + static_cast<int32_t>(_macros.size());
-			MacroShortcut ms(sc, macro, cmdID);
-			_macros.push_back(ms);
+			_macros.push_back(MacroShortcut(sc, macro, cmdID));
+			_macroMenuItems.push_back(MenuItemUnit(cmdID, sc.getName(), fdnm));
 		}
 	}
 }
@@ -2663,7 +2812,8 @@ void NppParameters::feedUserCmds(TiXmlNode *node)
 		childNode = childNode->NextSibling(TEXT("Command")) )
 	{
 		Shortcut sc;
-		if (getShortcuts(childNode, sc))
+		generic_string fdnm;
+		if (getShortcuts(childNode, sc, &fdnm))
 		{
 			TiXmlNode *aNode = childNode->FirstChild();
 			if (aNode)
@@ -2672,8 +2822,8 @@ void NppParameters::feedUserCmds(TiXmlNode *node)
 				if (cmdStr)
 				{
 					int cmdID = ID_USER_CMD + static_cast<int32_t>(_userCommands.size());
-					UserCommand uc(sc, cmdStr, cmdID);
-					_userCommands.push_back(uc);
+					_userCommands.push_back(UserCommand(sc, cmdStr, cmdID));
+					_runMenuItems.push_back(MenuItemUnit(cmdID, sc.getName(), fdnm));
 				}
 			}
 		}
@@ -2797,7 +2947,7 @@ bool NppParameters::feedBlacklist(TiXmlNode *node)
 	return true;
 }
 
-bool NppParameters::getShortcuts(TiXmlNode *node, Shortcut & sc)
+bool NppParameters::getShortcuts(TiXmlNode *node, Shortcut & sc, generic_string* folderName)
 {
 	if (!node) return false;
 
@@ -2824,6 +2974,12 @@ bool NppParameters::getShortcuts(TiXmlNode *node, Shortcut & sc)
 	const TCHAR *keyStr = (node->ToElement())->Attribute(TEXT("Key"), &key);
 	if (!keyStr)
 		return false;
+
+	if (folderName)
+	{
+		const TCHAR* fn = (node->ToElement())->Attribute(TEXT("FolderName"));
+		*folderName = fn ? fn : L"";
+	}
 
 	sc = Shortcut(name, isCtrl, isAlt, isShift, static_cast<unsigned char>(key));
 	return true;
@@ -3221,7 +3377,7 @@ void NppParameters::insertCmd(TiXmlNode *shortcutsRoot, const CommandShortcut & 
 }
 
 
-void NppParameters::insertMacro(TiXmlNode *macrosRoot, const MacroShortcut & macro)
+void NppParameters::insertMacro(TiXmlNode *macrosRoot, const MacroShortcut & macro, const generic_string& folderName)
 {
 	const KeyCombo & key = macro.getKeyCombo();
 	TiXmlNode *macroRoot = macrosRoot->InsertEndChild(TiXmlElement(TEXT("Macro")));
@@ -3230,6 +3386,8 @@ void NppParameters::insertMacro(TiXmlNode *macrosRoot, const MacroShortcut & mac
 	macroRoot->ToElement()->SetAttribute(TEXT("Alt"), key._isAlt?TEXT("yes"):TEXT("no"));
 	macroRoot->ToElement()->SetAttribute(TEXT("Shift"), key._isShift?TEXT("yes"):TEXT("no"));
 	macroRoot->ToElement()->SetAttribute(TEXT("Key"), key._key);
+	if (!folderName.empty())
+		macroRoot->ToElement()->SetAttribute(TEXT("FolderName"), folderName);
 
 	for (size_t i = 0, len = macro._macro.size(); i < len ; ++i)
 	{
@@ -3244,7 +3402,7 @@ void NppParameters::insertMacro(TiXmlNode *macrosRoot, const MacroShortcut & mac
 }
 
 
-void NppParameters::insertUserCmd(TiXmlNode *userCmdRoot, const UserCommand & userCmd)
+void NppParameters::insertUserCmd(TiXmlNode *userCmdRoot, const UserCommand & userCmd, const generic_string& folderName)
 {
 	const KeyCombo & key = userCmd.getKeyCombo();
 	TiXmlNode *cmdRoot = userCmdRoot->InsertEndChild(TiXmlElement(TEXT("Command")));
@@ -3254,6 +3412,8 @@ void NppParameters::insertUserCmd(TiXmlNode *userCmdRoot, const UserCommand & us
 	cmdRoot->ToElement()->SetAttribute(TEXT("Shift"), key._isShift?TEXT("yes"):TEXT("no"));
 	cmdRoot->ToElement()->SetAttribute(TEXT("Key"), key._key);
 	cmdRoot->InsertEndChild(TiXmlText(userCmd._cmd.c_str()));
+	if (!folderName.empty())
+		cmdRoot->ToElement()->SetAttribute(TEXT("FolderName"), folderName);
 }
 
 
@@ -3356,6 +3516,7 @@ void NppParameters::writeSession(const Session & session, const TCHAR *fileName)
 				(fileNameNode->ToElement())->SetAttribute(TEXT("backupFilePath"), viewSessionFiles[i]._backupFilePath.c_str());
 				(fileNameNode->ToElement())->SetAttribute(TEXT("originalFileLastModifTimestamp"), static_cast<int32_t>(viewSessionFiles[i]._originalFileLastModifTimestamp.dwLowDateTime));
 				(fileNameNode->ToElement())->SetAttribute(TEXT("originalFileLastModifTimestampHigh"), static_cast<int32_t>(viewSessionFiles[i]._originalFileLastModifTimestamp.dwHighDateTime));
+				(fileNameNode->ToElement())->SetAttribute(TEXT("tabColourId"), static_cast<int32_t>(viewSessionFiles[i]._individualTabColour));
 
 				// docMap 
 				(fileNameNode->ToElement())->SetAttribute(TEXT("mapFirstVisibleDisplayLine"), _i64tot(static_cast<LONGLONG>(viewSessionFiles[i]._mapPos._firstVisibleDisplayLine), szInt64, 10));
@@ -3441,7 +3602,7 @@ void NppParameters::writeShortcuts()
 
 	for (size_t i = 0, len = _macros.size(); i < len ; ++i)
 	{
-		insertMacro(macrosRoot, _macros[i]);
+		insertMacro(macrosRoot, _macros[i], _macroMenuItems.getItemFromIndex(i)._parentFolderName);
 	}
 
 	TiXmlNode *userCmdRoot = root->FirstChild(TEXT("UserDefinedCommands"));
@@ -3452,7 +3613,7 @@ void NppParameters::writeShortcuts()
 
 	for (size_t i = 0, len = _userCommands.size(); i < len ; ++i)
 	{
-		insertUserCmd(userCmdRoot, _userCommands[i]);
+		insertUserCmd(userCmdRoot, _userCommands[i], _runMenuItems.getItemFromIndex(i)._parentFolderName);
 	}
 
 	TiXmlNode *pluginCmdRoot = root->FirstChild(TEXT("PluginCommands"));
@@ -3710,6 +3871,18 @@ bool NppParameters::feedStylerArray(TiXmlNode *node)
 			_widgetStyleArray.addStyler(styleID, childNode);
 		}
 	}
+
+	const Style* pStyle = _widgetStyleArray.findByName(TEXT("EOL custom color"));
+	if (!pStyle)
+	{
+		TiXmlNode* eolColorkNode = globalStyleRoot->InsertEndChild(TiXmlElement(TEXT("WidgetStyle")));
+		eolColorkNode->ToElement()->SetAttribute(TEXT("name"), TEXT("EOL custom color"));
+		eolColorkNode->ToElement()->SetAttribute(TEXT("styleID"), TEXT("0"));
+		eolColorkNode->ToElement()->SetAttribute(TEXT("fgColor"), TEXT("DADADA"));
+
+		_widgetStyleArray.addStyler(0, eolColorkNode);
+	}
+
 	return true;
 }
 
@@ -3798,6 +3971,7 @@ void StyleArray::addStyler(int styleID, TiXmlNode *styleNode)
 		if (str)
 		{
 			s._fontName = str;
+			s._isFontEnabled = true;
 		}
 
 		str = element->Attribute(TEXT("fontStyle"));
@@ -3851,6 +4025,54 @@ bool NppParameters::writeRecentFileHistorySettings(int nbMaxFile) const
 	(historyNode->ToElement())->SetAttribute(TEXT("nbMaxFile"), nbMaxFile!=-1?nbMaxFile:_nbMaxRecentFile);
 	(historyNode->ToElement())->SetAttribute(TEXT("inSubMenu"), _putRecentFileInSubMenu?TEXT("yes"):TEXT("no"));
 	(historyNode->ToElement())->SetAttribute(TEXT("customLength"), _recentFileCustomLength);
+	return true;
+}
+
+bool NppParameters::writeColumnEditorSettings() const
+{
+	if (!_pXmlUserDoc) return false;
+
+	TiXmlNode *nppRoot = _pXmlUserDoc->FirstChild(TEXT("NotepadPlus"));
+	if (!nppRoot)
+	{
+		nppRoot = _pXmlUserDoc->InsertEndChild(TiXmlElement(TEXT("NotepadPlus")));
+	}
+
+	TiXmlNode *oldColumnEditorNode = nppRoot->FirstChildElement(TEXT("ColumnEditor"));
+	if (oldColumnEditorNode)
+	{
+		// Erase the Project Panel root
+		nppRoot->RemoveChild(oldColumnEditorNode);
+	}
+
+	// Create the new ColumnEditor root
+	TiXmlElement columnEditorRootNode{TEXT("ColumnEditor")};
+	(columnEditorRootNode.ToElement())->SetAttribute(TEXT("choice"), _columnEditParam._mainChoice ? L"number" : L"text");
+
+	TiXmlElement textNode{ TEXT("text") };
+	(textNode.ToElement())->SetAttribute(TEXT("content"), _columnEditParam._insertedTextContent.c_str());
+	(columnEditorRootNode.ToElement())->InsertEndChild(textNode);
+
+	TiXmlElement numberNode{ TEXT("number") };
+	(numberNode.ToElement())->SetAttribute(TEXT("initial"), _columnEditParam._initialNum);
+	(numberNode.ToElement())->SetAttribute(TEXT("increase"), _columnEditParam._increaseNum);
+	(numberNode.ToElement())->SetAttribute(TEXT("repeat"), _columnEditParam._repeatNum);
+	(numberNode.ToElement())->SetAttribute(TEXT("leadingZeros"), _columnEditParam._isLeadingZeros ? L"yes" : L"no");
+
+	wstring format = TEXT("dec");
+	if (_columnEditParam._formatChoice == 1)
+		format = TEXT("hex");
+	else if (_columnEditParam._formatChoice == 2)
+		format = TEXT("oct");
+	else if (_columnEditParam._formatChoice == 3)
+		format = TEXT("bin");
+	(numberNode.ToElement())->SetAttribute(TEXT("formatChoice"), format);
+	(columnEditorRootNode.ToElement())->InsertEndChild(numberNode);
+
+
+
+	// (Re)Insert the Project Panel root
+	(nppRoot->ToElement())->InsertEndChild(columnEditorRootNode);
 	return true;
 }
 
@@ -4849,6 +5071,10 @@ void NppParameters::feedGUIParameters(TiXmlNode *node)
 			{
 				_nppGUI._findWindowPos = oldRect;
 			}
+
+			const TCHAR* val = element->Attribute(TEXT("isLessModeOn"));
+			if (val)
+				_nppGUI._findWindowLessMode = (lstrcmp(val, TEXT("yes")) == 0);
 		}
 
 		else if (!lstrcmp(nm, TEXT("FinderConfig")))
@@ -4858,10 +5084,17 @@ void NppParameters::feedGUIParameters(TiXmlNode *node)
 			{
 				_nppGUI._finderLinesAreCurrentlyWrapped = (!lstrcmp(val, TEXT("yes")));
 			}
+
 			val = element->Attribute(TEXT("purgeBeforeEverySearch"));
 			if (val)
 			{
 				_nppGUI._finderPurgeBeforeEverySearch = (!lstrcmp(val, TEXT("yes")));
+			}
+
+			val = element->Attribute(TEXT("showOnlyOneEntryPerFoundLine"));
+			if (val)
+			{
+				_nppGUI._finderShowOnlyOneEntryPerFoundLine = (!lstrcmp(val, TEXT("yes")));
 			}
 		}
 
@@ -5382,13 +5615,6 @@ void NppParameters::feedGUIParameters(TiXmlNode *node)
 			}
 		}
 
-		else if (!lstrcmp(nm, TEXT("stylerTheme")))
-		{
-			const TCHAR *themePath = element->Attribute(TEXT("path"));
-			if (themePath != NULL && themePath[0])
-				_nppGUI._themeName.assign(themePath);
-		}
-
 		else if (!lstrcmp(nm, TEXT("insertDateTime")))
 		{
 			const TCHAR* customFormat = element->Attribute(TEXT("customizedFormat"));
@@ -5441,6 +5667,49 @@ void NppParameters::feedGUIParameters(TiXmlNode *node)
 			else
 				_nppGUI._delimiterSelectionOnEntireDocument = false;
 		}
+		else if (!lstrcmp(nm, TEXT("largeFileRestriction")))
+		{
+			int fileSizeLimit4StylingMB = 0;
+			element->Attribute(TEXT("fileSizeMB"), &fileSizeLimit4StylingMB);
+			if (fileSizeLimit4StylingMB > 0 && fileSizeLimit4StylingMB < 4096)
+				_nppGUI._largeFileRestriction._largeFileSizeDefInByte = (fileSizeLimit4StylingMB * 1024 * 1024);
+
+			const TCHAR* boolVal = element->Attribute(TEXT("isEnabled"));
+			if (boolVal != NULL && !lstrcmp(boolVal, TEXT("no")))
+				_nppGUI._largeFileRestriction._isEnabled = false;
+			else
+				_nppGUI._largeFileRestriction._isEnabled = true;
+
+			boolVal = element->Attribute(TEXT("allowAutoCompletion"));
+			if (boolVal != NULL && !lstrcmp(boolVal, TEXT("yes")))
+				_nppGUI._largeFileRestriction._allowAutoCompletion = true;
+			else
+				_nppGUI._largeFileRestriction._allowAutoCompletion = false;
+
+			boolVal = element->Attribute(TEXT("allowBraceMatch"));
+			if (boolVal != NULL && !lstrcmp(boolVal, TEXT("yes")))
+				_nppGUI._largeFileRestriction._allowBraceMatch = true;
+			else
+				_nppGUI._largeFileRestriction._allowBraceMatch = false;
+
+			boolVal = element->Attribute(TEXT("allowSmartHilite"));
+			if (boolVal != NULL && !lstrcmp(boolVal, TEXT("yes")))
+				_nppGUI._largeFileRestriction._allowSmartHilite = true;
+			else
+				_nppGUI._largeFileRestriction._allowSmartHilite = false;
+
+			boolVal = element->Attribute(TEXT("allowClickableLink"));
+			if (boolVal != NULL && !lstrcmp(boolVal, TEXT("yes")))
+				_nppGUI._largeFileRestriction._allowClickableLink = true;
+			else
+				_nppGUI._largeFileRestriction._allowClickableLink = false;
+
+			boolVal = element->Attribute(TEXT("deactivateWordWrap"));
+			if (boolVal != NULL && !lstrcmp(boolVal, TEXT("no")))
+				_nppGUI._largeFileRestriction._deactivateWordWrap = false;
+			else
+				_nppGUI._largeFileRestriction._deactivateWordWrap = true;
+		}
 		else if (!lstrcmp(nm, TEXT("multiInst")))
 		{
 			int val = 0;
@@ -5465,9 +5734,21 @@ void NppParameters::feedGUIParameters(TiXmlNode *node)
 			if (optNameMonoFont)
 				_nppGUI._monospacedFontFindDlg = (lstrcmp(optNameMonoFont, TEXT("yes")) == 0);
 
+			//This is an option from previous versions of notepad++.  It is handled for compatibility with older settings.
 			const TCHAR* optStopFillingFindField = element->Attribute(TEXT("stopFillingFindField"));
-			if (optStopFillingFindField)
-				_nppGUI._stopFillingFindField = (lstrcmp(optStopFillingFindField, TEXT("yes")) == 0);
+			if (optStopFillingFindField) 
+			{
+				_nppGUI._fillFindFieldWithSelected = (lstrcmp(optStopFillingFindField, TEXT("no")) == 0);
+				_nppGUI._fillFindFieldSelectCaret = _nppGUI._fillFindFieldWithSelected;
+			}
+
+			const TCHAR* optFillFindFieldWithSelected = element->Attribute(TEXT("fillFindFieldWithSelected"));
+			if (optFillFindFieldWithSelected)
+				_nppGUI._fillFindFieldWithSelected = (lstrcmp(optFillFindFieldWithSelected, TEXT("yes")) == 0);
+
+			const TCHAR* optFillFindFieldSelectCaret = element->Attribute(TEXT("fillFindFieldSelectCaret"));
+			if (optFillFindFieldSelectCaret)
+				_nppGUI._fillFindFieldSelectCaret = (lstrcmp(optFillFindFieldSelectCaret, TEXT("yes")) == 0);
 
 			const TCHAR* optFindDlgAlwaysVisible = element->Attribute(TEXT("findDlgAlwaysVisible"));
 			if (optFindDlgAlwaysVisible)
@@ -5533,6 +5814,10 @@ void NppParameters::feedGUIParameters(TiXmlNode *node)
 			const TCHAR * optEnableFoldCmdToggable = element->Attribute(TEXT("enableFoldCmdToggable"));
 			if (optEnableFoldCmdToggable)
 				_nppGUI._enableFoldCmdToggable = lstrcmp(optEnableFoldCmdToggable, TEXT("yes")) == 0;
+
+			const TCHAR * hideMenuRightShortcuts = element->Attribute(TEXT("hideMenuRightShortcuts"));
+			if (hideMenuRightShortcuts)
+				_nppGUI._hideMenuRightShortcuts = lstrcmp(hideMenuRightShortcuts, TEXT("yes")) == 0;
 		}
 		else if (!lstrcmp(nm, TEXT("commandLineInterpreter")))
 		{
@@ -5559,6 +5844,8 @@ void NppParameters::feedGUIParameters(TiXmlNode *node)
 			};
 
 			_nppGUI._darkmode._isEnabled = parseYesNoBoolAttribute(TEXT("enable"));
+
+			//_nppGUI._darkmode._isEnabledPlugin = parseYesNoBoolAttribute(TEXT("enablePlugin", true));
 
 			int i;
 			const TCHAR* val;
@@ -5610,6 +5897,95 @@ void NppParameters::feedGUIParameters(TiXmlNode *node)
 			val = element->Attribute(TEXT("customColorHotEdge"), &i);
 			if (val)
 				_nppGUI._darkmode._customColors.hotEdge = i;
+
+			val = element->Attribute(TEXT("customColorDisabledEdge"), &i);
+			if (val)
+				_nppGUI._darkmode._customColors.disabledEdge = i;
+
+			// advanced options section
+			auto parseStringAttribute = [&element](const TCHAR* name, const TCHAR* defaultName = TEXT("")) -> const TCHAR* {
+				const TCHAR* val = element->Attribute(name);
+				if (val != nullptr && val[0])
+				{
+					return element->Attribute(name);
+				}
+				return defaultName;
+			};
+
+			auto parseToolBarIconsAttribute = [&element](const TCHAR* name, int defaultValue = -1) -> int {
+				int val;
+				const TCHAR* valStr = element->Attribute(name, &val);
+				if (valStr != nullptr && (val >= 0 && val <= 4))
+				{
+					return val;
+				}
+				return defaultValue;
+			};
+
+			auto parseTabIconsAttribute = [&element](const TCHAR* name, int defaultValue = -1) -> int {
+				int val;
+				const TCHAR* valStr = element->Attribute(name, &val);
+				if (valStr != nullptr && (val >= 0 && val <= 2))
+				{
+					return val;
+				}
+				return defaultValue;
+			};
+
+			auto& windowsMode = _nppGUI._darkmode._advOptions._enableWindowsMode;
+			windowsMode = parseYesNoBoolAttribute(TEXT("enableWindowsMode"));
+
+			auto& darkDefaults = _nppGUI._darkmode._advOptions._darkDefaults;
+			auto& darkThemeName = darkDefaults._xmlFileName;
+			darkThemeName = parseStringAttribute(TEXT("darkThemeName"), TEXT("DarkModeDefault.xml"));
+			darkDefaults._toolBarIconSet = parseToolBarIconsAttribute(TEXT("darkToolBarIconSet"), 0);
+			darkDefaults._tabIconSet = parseTabIconsAttribute(TEXT("darkTabIconSet"), 2);
+			darkDefaults._tabUseTheme = parseYesNoBoolAttribute(TEXT("darkTabUseTheme"));
+
+			auto& lightDefaults = _nppGUI._darkmode._advOptions._lightDefaults;
+			auto& lightThemeName = lightDefaults._xmlFileName;
+			lightThemeName = parseStringAttribute(TEXT("lightThemeName"));
+			lightDefaults._toolBarIconSet = parseToolBarIconsAttribute(TEXT("lightToolBarIconSet"), 4);
+			lightDefaults._tabIconSet = parseTabIconsAttribute(TEXT("lightTabIconSet"), 0);
+			lightDefaults._tabUseTheme = parseYesNoBoolAttribute(TEXT("lightTabUseTheme"), true);
+
+			// Windows mode is handled later in Notepad_plus_Window::init from Notepad_plus_Window.cpp
+			if (!windowsMode)
+			{
+				generic_string themePath;
+				generic_string xmlFileName = _nppGUI._darkmode._isEnabled ? darkThemeName : lightThemeName;
+				const bool isLocalOnly = _isLocal && !_isCloud;
+
+				if (!xmlFileName.empty() && lstrcmp(xmlFileName.c_str(), TEXT("stylers.xml")) != 0)
+				{
+					themePath = isLocalOnly ? _nppPath : _userPath;
+					pathAppend(themePath, TEXT("themes\\"));
+					pathAppend(themePath, xmlFileName);
+
+					if (!isLocalOnly && ::PathFileExists(themePath.c_str()) == FALSE)
+					{
+						themePath = _nppPath;
+						pathAppend(themePath, TEXT("themes\\"));
+						pathAppend(themePath, xmlFileName);
+					}
+				}
+				else
+				{
+					themePath = isLocalOnly ? _nppPath : _userPath;
+					pathAppend(themePath, TEXT("stylers.xml"));
+
+					if (!isLocalOnly && ::PathFileExists(themePath.c_str()) == FALSE)
+					{
+						themePath = _nppPath;
+						pathAppend(themePath, TEXT("stylers.xml"));
+					}
+				}
+
+				if (::PathFileExists(themePath.c_str()) == TRUE)
+				{
+					_nppGUI._themeName.assign(themePath);
+				}
+			}
 		}
 	}
 }
@@ -5642,11 +6018,26 @@ void NppParameters::feedScintillaParam(TiXmlNode *node)
 	nm = element->Attribute(TEXT("bookMarkMargin"));
 	if (nm)
 	{
-
 		if (!lstrcmp(nm, TEXT("show")))
 			_svp._bookMarkMarginShow = true;
 		else if (!lstrcmp(nm, TEXT("hide")))
 			_svp._bookMarkMarginShow = false;
+	}
+
+	// Bookmark Margin
+	nm = element->Attribute(TEXT("isChangeHistoryEnabled"));
+	if (nm)
+	{
+		if (!lstrcmp(nm, TEXT("yes")))
+		{
+			_svp._isChangeHistoryEnabled = true;
+			_svp._isChangeHistoryEnabled4NextSession = true;
+		}
+		else if (!lstrcmp(nm, TEXT("no")))
+		{
+			_svp._isChangeHistoryEnabled = false;
+			_svp._isChangeHistoryEnabled4NextSession = false;
+		}
 	}
 
 	// Indent GuideLine
@@ -5843,6 +6234,13 @@ void NppParameters::feedScintillaParam(TiXmlNode *node)
 			_svp._eolShow = true;
 		else if (!lstrcmp(nm, TEXT("hide")))
 			_svp._eolShow = false;
+	}
+
+	nm = element->Attribute(TEXT("eolMode"), &val);
+	if (nm)
+	{
+		if (val >= 0 && val <= 3)
+			_svp._eolMode = static_cast<ScintillaViewParams::crlfMode>(val);
 	}
 
 	nm = element->Attribute(TEXT("borderWidth"), &val);
@@ -6107,7 +6505,7 @@ bool NppParameters::writeScintillaParams()
 										(_svp._folderStyle == FOLDER_STYLE_CIRCLE)?TEXT("circle"):
 										(_svp._folderStyle == FOLDER_STYLE_NONE)?TEXT("none"):TEXT("box");
 	(scintNode->ToElement())->SetAttribute(TEXT("folderMarkStyle"), pFolderStyleStr);
-
+	(scintNode->ToElement())->SetAttribute(TEXT("isChangeHistoryEnabled"), _svp._isChangeHistoryEnabled4NextSession ? TEXT("yes") : TEXT("no"));
 	const TCHAR *pWrapMethodStr = (_svp._lineWrapMethod == LINEWRAP_ALIGNED)?TEXT("aligned"):
 								(_svp._lineWrapMethod == LINEWRAP_INDENT)?TEXT("indent"):TEXT("default");
 	(scintNode->ToElement())->SetAttribute(TEXT("lineWrapMethod"), pWrapMethodStr);
@@ -6136,6 +6534,7 @@ bool NppParameters::writeScintillaParams()
 	(scintNode->ToElement())->SetAttribute(TEXT("zoom2"), static_cast<int>(_svp._zoom2));
 	(scintNode->ToElement())->SetAttribute(TEXT("whiteSpaceShow"), _svp._whiteSpaceShow?TEXT("show"):TEXT("hide"));
 	(scintNode->ToElement())->SetAttribute(TEXT("eolShow"), _svp._eolShow?TEXT("show"):TEXT("hide"));
+	(scintNode->ToElement())->SetAttribute(TEXT("eolMode"), _svp._eolMode);
 	(scintNode->ToElement())->SetAttribute(TEXT("borderWidth"), _svp._borderWidth);
 	(scintNode->ToElement())->SetAttribute(TEXT("smoothFont"), _svp._doSmoothFont ? TEXT("yes") : TEXT("no"));
 	(scintNode->ToElement())->SetAttribute(TEXT("paddingLeft"), _svp._paddingLeft);
@@ -6304,9 +6703,10 @@ void NppParameters::createXmlTreeFromGUIParams()
 		GUIConfigElement->SetAttribute(TEXT("top"), _nppGUI._findWindowPos.top);
 		GUIConfigElement->SetAttribute(TEXT("right"), _nppGUI._findWindowPos.right);
 		GUIConfigElement->SetAttribute(TEXT("bottom"), _nppGUI._findWindowPos.bottom);
+		GUIConfigElement->SetAttribute(TEXT("isLessModeOn"), _nppGUI._findWindowLessMode ? TEXT("yes") : TEXT("no"));
 	}
 
-	// <GUIConfig name="FinderConfig" wrappedLines="no" purgeBeforeEverySearch="no"/>
+	// <GUIConfig name="FinderConfig" wrappedLines="no" purgeBeforeEverySearch="no" showOnlyOneEntryPerFoundLine="yes"/>
 	{
 		TiXmlElement* GUIConfigElement = (newGUIRoot->InsertEndChild(TiXmlElement(TEXT("GUIConfig"))))->ToElement();
 		GUIConfigElement->SetAttribute(TEXT("name"), TEXT("FinderConfig"));
@@ -6314,6 +6714,9 @@ void NppParameters::createXmlTreeFromGUIParams()
 		GUIConfigElement->SetAttribute(TEXT("wrappedLines"), pStr);
 		pStr = _nppGUI._finderPurgeBeforeEverySearch ? TEXT("yes") : TEXT("no");
 		GUIConfigElement->SetAttribute(TEXT("purgeBeforeEverySearch"), pStr);
+		pStr = _nppGUI._finderShowOnlyOneEntryPerFoundLine ? TEXT("yes") : TEXT("no");
+		GUIConfigElement->SetAttribute(TEXT("showOnlyOneEntryPerFoundLine"), pStr);
+
 	}
 
 	// <GUIConfig name="noUpdate" intervalDays="15" nextUpdateDate="20161022">no</GUIConfig>
@@ -6577,13 +6980,6 @@ void NppParameters::createXmlTreeFromGUIParams()
 		GUIConfigElement->SetAttribute(TEXT("short"), pStr);
 	}
 
-	// <GUIConfig name="stylerTheme" path="C:\sources\notepad-plus-plus\PowerEditor\visual.net\..\bin\stylers.xml" />
-	{
-		TiXmlElement *GUIConfigElement = (newGUIRoot->InsertEndChild(TiXmlElement(TEXT("GUIConfig"))))->ToElement();
-		GUIConfigElement->SetAttribute(TEXT("name"), TEXT("stylerTheme"));
-		GUIConfigElement->SetAttribute(TEXT("path"), _nppGUI._themeName.c_str());
-	}
-
 	// <GUIConfig name="insertDateTime" path="C:\sources\notepad-plus-plus\PowerEditor\visual.net\..\bin\stylers.xml" />
 	{
 		TiXmlElement* GUIConfigElement = (newGUIRoot->InsertEndChild(TiXmlElement(TEXT("GUIConfig"))))->ToElement();
@@ -6612,6 +7008,19 @@ void NppParameters::createXmlTreeFromGUIParams()
 		GUIConfigElement->SetAttribute(TEXT("delimiterSelectionOnEntireDocument"), _nppGUI._delimiterSelectionOnEntireDocument ? TEXT("yes") : TEXT("no"));
 	}
 
+	// <GUIConfig name="largeFileRestriction" fileSizeMB="200" isEnabled="yes" allowAutoCompletion="no" allowBraceMatch="no" deactivateWordWrap="yes" allowClickableLink="no" />
+	{
+		TiXmlElement *GUIConfigElement = (newGUIRoot->InsertEndChild(TiXmlElement(TEXT("GUIConfig"))))->ToElement();
+		GUIConfigElement->SetAttribute(TEXT("name"), TEXT("largeFileRestriction"));
+		GUIConfigElement->SetAttribute(TEXT("fileSizeMB"), static_cast<int>((_nppGUI._largeFileRestriction._largeFileSizeDefInByte / 1024) / 1024));
+		GUIConfigElement->SetAttribute(TEXT("isEnabled"), _nppGUI._largeFileRestriction._isEnabled ? TEXT("yes") : TEXT("no"));
+		GUIConfigElement->SetAttribute(TEXT("allowAutoCompletion"), _nppGUI._largeFileRestriction._allowAutoCompletion ? TEXT("yes") : TEXT("no"));
+		GUIConfigElement->SetAttribute(TEXT("allowBraceMatch"), _nppGUI._largeFileRestriction._allowBraceMatch ? TEXT("yes") : TEXT("no"));
+		GUIConfigElement->SetAttribute(TEXT("allowSmartHilite"), _nppGUI._largeFileRestriction._allowSmartHilite ? TEXT("yes") : TEXT("no"));
+		GUIConfigElement->SetAttribute(TEXT("allowClickableLink"), _nppGUI._largeFileRestriction._allowClickableLink ? TEXT("yes") : TEXT("no"));
+		GUIConfigElement->SetAttribute(TEXT("deactivateWordWrap"), _nppGUI._largeFileRestriction._deactivateWordWrap ? TEXT("yes") : TEXT("no"));
+	}
+
 	// <GUIConfig name="multiInst" setting="0" />
 	{
 		TiXmlElement *GUIConfigElement = (newGUIRoot->InsertEndChild(TiXmlElement(TEXT("GUIConfig"))))->ToElement();
@@ -6637,6 +7046,7 @@ void NppParameters::createXmlTreeFromGUIParams()
 		GUIConfigElement->SetAttribute(TEXT("saveDlgExtFilterToAllTypes"), _nppGUI._setSaveDlgExtFiltToAllTypes ? TEXT("yes") : TEXT("no"));
 		GUIConfigElement->SetAttribute(TEXT("muteSounds"), _nppGUI._muteSounds ? TEXT("yes") : TEXT("no"));
 		GUIConfigElement->SetAttribute(TEXT("enableFoldCmdToggable"), _nppGUI._enableFoldCmdToggable ? TEXT("yes") : TEXT("no"));
+		GUIConfigElement->SetAttribute(TEXT("hideMenuRightShortcuts"), _nppGUI._hideMenuRightShortcuts ? TEXT("yes") : TEXT("no"));
 	}
 
 	// <GUIConfig name="Searching" "monospacedFontFindDlg"="no" stopFillingFindField="no" findDlgAlwaysVisible="no" confirmReplaceOpenDocs="yes" confirmMacroReplaceOpenDocs="yes" confirmReplaceInFiles="yes" confirmMacroReplaceInFiles="yes" replaceStopsWithoutFindingNext="no"/>
@@ -6645,7 +7055,8 @@ void NppParameters::createXmlTreeFromGUIParams()
 		GUIConfigElement->SetAttribute(TEXT("name"), TEXT("Searching"));
 
 		GUIConfigElement->SetAttribute(TEXT("monospacedFontFindDlg"), _nppGUI._monospacedFontFindDlg ? TEXT("yes") : TEXT("no"));
-		GUIConfigElement->SetAttribute(TEXT("stopFillingFindField"), _nppGUI._stopFillingFindField ? TEXT("yes") : TEXT("no"));
+		GUIConfigElement->SetAttribute(TEXT("fillFindFieldWithSelected"), _nppGUI._fillFindFieldWithSelected ? TEXT("yes") : TEXT("no"));
+		GUIConfigElement->SetAttribute(TEXT("fillFindFieldSelectCaret"), _nppGUI._fillFindFieldSelectCaret ? TEXT("yes") : TEXT("no"));
 		GUIConfigElement->SetAttribute(TEXT("findDlgAlwaysVisible"), _nppGUI._findDlgAlwaysVisible ? TEXT("yes") : TEXT("no"));
 		GUIConfigElement->SetAttribute(TEXT("confirmReplaceInAllOpenDocs"), _nppGUI._confirmReplaceInAllOpenDocs ? TEXT("yes") : TEXT("no"));
 		GUIConfigElement->SetAttribute(TEXT("replaceStopsWithoutFindingNext"), _nppGUI._replaceStopsWithoutFindingNext ? TEXT("yes") : TEXT("no"));
@@ -6677,7 +7088,7 @@ void NppParameters::createXmlTreeFromGUIParams()
 	}
 
 	// <GUIConfig name="commandLineInterpreter">powershell</GUIConfig>
-	if (_nppGUI._commandLineInterpreter.compare(TEXT("cmd")))
+	if (_nppGUI._commandLineInterpreter.compare(CMD_INTERPRETER))
 	{
 		TiXmlElement *GUIConfigElement = (newGUIRoot->InsertEndChild(TiXmlElement(TEXT("GUIConfig"))))->ToElement();
 		GUIConfigElement->SetAttribute(TEXT("name"), TEXT("commandLineInterpreter"));
@@ -6688,6 +7099,8 @@ void NppParameters::createXmlTreeFromGUIParams()
 	{
 		TiXmlElement* GUIConfigElement = (newGUIRoot->InsertEndChild(TiXmlElement(TEXT("GUIConfig"))))->ToElement();
 		GUIConfigElement->SetAttribute(TEXT("name"), TEXT("DarkMode"));
+
+		NppDarkMode::setAdvancedOptions();
 
 		auto setYesNoBoolAttribute = [&GUIConfigElement](const TCHAR* name, bool value) {
 			const TCHAR* pStr = value ? TEXT("yes") : TEXT("no");
@@ -6708,6 +7121,20 @@ void NppParameters::createXmlTreeFromGUIParams()
 		GUIConfigElement->SetAttribute(TEXT("customColorLinkText"), _nppGUI._darkmode._customColors.linkText);
 		GUIConfigElement->SetAttribute(TEXT("customColorEdge"), _nppGUI._darkmode._customColors.edge);
 		GUIConfigElement->SetAttribute(TEXT("customColorHotEdge"), _nppGUI._darkmode._customColors.hotEdge);
+		GUIConfigElement->SetAttribute(TEXT("customColorDisabledEdge"), _nppGUI._darkmode._customColors.disabledEdge);
+
+		// advanced options section
+		setYesNoBoolAttribute(TEXT("enableWindowsMode"), _nppGUI._darkmode._advOptions._enableWindowsMode);
+
+		GUIConfigElement->SetAttribute(TEXT("darkThemeName"), _nppGUI._darkmode._advOptions._darkDefaults._xmlFileName.c_str());
+		GUIConfigElement->SetAttribute(TEXT("darkToolBarIconSet"), _nppGUI._darkmode._advOptions._darkDefaults._toolBarIconSet);
+		GUIConfigElement->SetAttribute(TEXT("darkTabIconSet"), _nppGUI._darkmode._advOptions._darkDefaults._tabIconSet);
+		setYesNoBoolAttribute(TEXT("darkTabUseTheme"), _nppGUI._darkmode._advOptions._darkDefaults._tabUseTheme);
+
+		GUIConfigElement->SetAttribute(TEXT("lightThemeName"), _nppGUI._darkmode._advOptions._lightDefaults._xmlFileName.c_str());
+		GUIConfigElement->SetAttribute(TEXT("lightToolBarIconSet"), _nppGUI._darkmode._advOptions._lightDefaults._toolBarIconSet);
+		GUIConfigElement->SetAttribute(TEXT("lightTabIconSet"), _nppGUI._darkmode._advOptions._lightDefaults._tabIconSet);
+		setYesNoBoolAttribute(TEXT("lightTabUseTheme"), _nppGUI._darkmode._advOptions._lightDefaults._tabUseTheme);
 	}
 
 	// <GUIConfig name="ScintillaPrimaryView" lineNumberMargin="show" bookMarkMargin="show" indentGuideLine="show" folderMarkStyle="box" lineWrapMethod="aligned" currentLineHilitingShow="show" scrollBeyondLastLine="no" rightClickKeepsSelection="no" disableAdvancedScrolling="no" wrapSymbolShow="hide" Wrap="no" borderEdge="yes" edge="no" edgeNbColumn="80" zoom="0" zoom2="0" whiteSpaceShow="hide" eolShow="hide" borderWidth="2" smoothFont="no" />

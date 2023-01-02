@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2021 Don HO <don.h@free.fr>
+// Copyright (C) 2022 Don HO <don.h@free.fr>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -77,7 +77,7 @@ bool isInListA(const char *token, const char *list)
 	if ((!token) || (!list))
 		return false;
 
-	char word[64];
+	char word[64] = { '\0' };
 	size_t i = 0;
 	size_t j = 0;
 	for (size_t len = strlen(list); i <= len; ++i)
@@ -100,7 +100,7 @@ bool isInListA(const char *token, const char *list)
 		}
 	}
 	return false;
-};
+}
 
 int EncodingMapper::getEncodingFromIndex(int index) const
 {
@@ -130,8 +130,8 @@ int EncodingMapper::getIndexFromEncoding(int encoding) const
 
 int EncodingMapper::getEncodingFromString(const char *encodingAlias) const
 {
-    if (isInListA(encodingAlias, "utf-8 utf8"))
-        return SC_CP_UTF8;
+	if (isInListA(encodingAlias, "utf-8 utf8"))
+		return SC_CP_UTF8;
 
 	size_t nbItem = sizeof(encodings)/sizeof(EncodingUnit);
 	int enc = -1;

@@ -33,7 +33,7 @@ DWORD WINAPI AsyncPleaseWaitFunc(LPVOID phWnd) {
    TaskDialog(NULL, NULL,
       TEXT("Analyse Plugin"),
       TEXT("Finding patterns ..."),
-      TEXT("Press [cancel] to stopp search."),
+      TEXT("Press [cancel] to stop search at next pattern."),
       TDCBF_CANCEL_BUTTON,
       TD_INFORMATION_ICON,
       &nButtonPressed);

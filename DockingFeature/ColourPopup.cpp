@@ -109,9 +109,6 @@ INT_PTR CALLBACK ColourPopup::run_dlgProc(UINT message, WPARAM wParam, LPARAM lP
          return TRUE;
       }
 
-   case WM_CTLCOLORLISTBOX:
-      return (LRESULT) CreateSolidBrush(GetSysColor(COLOR_3DFACE));
-
    case WM_DRAWITEM:
       {
          HDC hdc;

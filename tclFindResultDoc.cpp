@@ -116,7 +116,7 @@ const tlpLinePosInfo& tclFindResultDoc::getLineAtRes(tiLine resultWinLine) const
          // special case click in CR from last line
          --resultWinLine;
       } else {
-         assert(resultWinLine < size()); // index out of range
+         assert(resultWinLine == 0 || resultWinLine < size()); // index out of range
          return mDefLineInfo;
       }
    }

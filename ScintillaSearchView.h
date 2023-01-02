@@ -32,8 +32,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #define RTF_COL_G(g) ((BYTE)(g>>8)) // mask short
 #define RTF_COL_B(b) ((BYTE)(b>>16)) // mask third byte
 
-#define MY_STYLE_MASK 0x7f  // 7 bits //TODO scintilla now always 8 style bits
-#define MY_STYLE_BITS 7    
+#define MY_STYLE_MASK 0xff  // 8 bits https://www.scintilla.org/ScintillaDoc.html#StyleDefinition
+#define MY_STYLE_BITS 8    
 
 // see ~\scintilla\src\ScintillaBase.h
 #define FNDRESDLG_SCINTILLAFINFER_COPY (13) 
@@ -54,27 +54,22 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 class ScintillaSearchView : public ScintillaEditView
 {
-    friend class Notepad_plus;
+   friend class Notepad_plus;
 
 public:
-    ScintillaSearchView()
+   ScintillaSearchView()
         : ScintillaEditView()
-    {
-    };
+   {
+   }
 
-    virtual ~ScintillaSearchView()
-    {
-    };
+   virtual ~ScintillaSearchView()
+   {
+   }
 
-    virtual void init(HINSTANCE hInst, HWND hPere);
-
-    
-
-    
-
-
-
-   void setRtfColorTable(const char* pColortbl);
+   virtual void init(HINSTANCE hInst, HWND hPere);
+   void startRtfColorTable(unsigned defColor);
+   void addRtfColor2Table(unsigned color);
+   void finalizeRtfColorTable();
    bool doRichTextCopy(const TCHAR* filename=NULL);
    void setWrapMode(bool bOn);
    bool getWrapMode() const;
@@ -88,8 +83,8 @@ public:
    }
    void doSaveRichtext();
 protected:
-   static const int transStylePos[MY_STYLE_MASK+1];
-
+   static const int transStylePosTab[MY_STYLE_MASK+1];
+   int transStylePos(unsigned char stid) const;
    int countColorChanges(const Sci_TextRange& rtr);
    int countLinefeeds(const Sci_TextRange& rtr);
    int countEscapeChars(const Sci_TextRange& rtr);
@@ -97,6 +92,7 @@ protected:
 
    std::string _RtfHeader;
    std::string _RtfFooter;
+   std::string _RtfColTbl; // intermediate build up of color table
 
    // override to do specialised things and finally call parent directly 
    virtual LRESULT scintillaNew_Proc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam);

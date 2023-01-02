@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2021 Don HO <don.h@free.fr>
+// Copyright (C) 2022 Don HO <don.h@free.fr>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -35,8 +35,9 @@ int ScintillaEditView::_refCount = 0;
 // Mattes: not in AP: UserDefineDialog ScintillaEditView::_userDefineDlg;
 
 const int ScintillaEditView::_SC_MARGE_LINENUMBER = 0;
-const int ScintillaEditView::_SC_MARGE_SYBOLE = 1;
-const int ScintillaEditView::_SC_MARGE_FOLDER = 2;
+const int ScintillaEditView::_SC_MARGE_SYMBOL = 1;
+const int ScintillaEditView::_SC_MARGE_CHANGEHISTORY = 2;
+const int ScintillaEditView::_SC_MARGE_FOLDER = 3;
 
 WNDPROC ScintillaEditView::_scintillaDefaultProc = NULL;
 string ScintillaEditView::_defaultCharList = "";
@@ -156,10 +157,6 @@ LanguageNameInfo ScintillaEditView::_langNameInfoArray[L_EXTERNAL + 1] = {
 	{TEXT("ext"),			TEXT("External"),			TEXT("External"),										L_EXTERNAL,		"null"}
 };
 
-//const int MASK_RED   = 0xFF0000;
-//const int MASK_GREEN = 0x00FF00;
-//const int MASK_BLUE  = 0x0000FF;
-
 
 int getNbDigits(int aNum, int base)
 {
@@ -232,7 +229,17 @@ void ScintillaEditView::init(HINSTANCE hInst, HWND hPere)
 	execute(SCI_SETMARGINMASKN, _SC_MARGE_FOLDER, SC_MASK_FOLDERS);
 	showMargin(_SC_MARGE_FOLDER, true);
 
-	execute(SCI_SETMARGINMASKN, _SC_MARGE_SYBOLE, (1<<MARK_BOOKMARK) | (1<<MARK_HIDELINESBEGIN) | (1<<MARK_HIDELINESEND) | (1<<MARK_HIDELINESUNDERLINE));
+	execute(SCI_SETMARGINMASKN, _SC_MARGE_SYMBOL, (1 << MARK_BOOKMARK) | (1 << MARK_HIDELINESBEGIN) | (1 << MARK_HIDELINESEND) | (1 << MARK_HIDELINESUNDERLINE));
+
+	execute(SCI_SETMARGINMASKN, _SC_MARGE_CHANGEHISTORY, (1 << SC_MARKNUM_HISTORY_REVERTED_TO_ORIGIN) | (1 << SC_MARKNUM_HISTORY_SAVED) | (1 << SC_MARKNUM_HISTORY_MODIFIED) | (1 << SC_MARKNUM_HISTORY_REVERTED_TO_MODIFIED));
+	COLORREF modifiedColor = RGB(255, 128, 0);
+	//COLORREF savedColor = RGB(0, 255, 0);
+	//COLORREF revertedToModifiedColor = RGB(255, 255, 0);
+	//COLORREF revertedToOriginColor = RGB(0, 0, 255);
+	execute(SCI_MARKERSETBACK, SC_MARKNUM_HISTORY_MODIFIED, modifiedColor);
+	//execute(SCI_MARKERSETBACK, SC_MARKNUM_HISTORY_SAVED, savedColor);
+	//execute(SCI_MARKERSETBACK, SC_MARKNUM_HISTORY_REVERTED_TO_MODIFIED, revertedToModifiedColor);
+	//execute(SCI_MARKERSETBACK, SC_MARKNUM_HISTORY_REVERTED_TO_ORIGIN, revertedToOriginColor);
 
 	execute(SCI_MARKERSETALPHA, MARK_BOOKMARK, 70);
 
@@ -256,10 +263,10 @@ void ScintillaEditView::init(HINSTANCE hInst, HWND hPere)
 		execute(SCI_MARKERDEFINERGBAIMAGE, MARK_HIDELINESEND, reinterpret_cast<LPARAM>(hidelines_end14));
 	}
 
-    execute(SCI_SETMARGINSENSITIVEN, _SC_MARGE_FOLDER, true);
-    execute(SCI_SETMARGINSENSITIVEN, _SC_MARGE_SYBOLE, true);
+    execute(SCI_SETMARGINSENSITIVEN, _SC_MARGE_FOLDER, true); // Make margin sensitive for getting notification on mouse click
+    execute(SCI_SETMARGINSENSITIVEN, _SC_MARGE_SYMBOL, true); // Make margin sensitive for getting notification on mouse click
 
-    execute(SCI_SETFOLDFLAGS, 16);
+    execute(SCI_SETFOLDFLAGS, SC_FOLDFLAG_LINEAFTER_CONTRACTED);
 	execute(SCI_SETSCROLLWIDTHTRACKING, true);
 	execute(SCI_SETSCROLLWIDTH, 1);	//default empty document: override default width of 2000
 
@@ -413,7 +420,7 @@ LRESULT ScintillaEditView::scintillaNew_Proc(HWND hwnd, UINT Message, WPARAM wPa
 
 				// get the current text selection
 
-				Sci_CharacterRange range = getSelection();
+				Sci_CharacterRangeFull range = getSelection();
 				if (range.cpMax == range.cpMin)
 				{
 					// no selection: select the current word instead
@@ -1375,6 +1382,53 @@ void ScintillaEditView::setWordChars()
 		addCustomWordChars();
 #endif // Mattes
 }
+void ScintillaEditView::setCRLF(long color)
+{
+	NppParameters& nppParams = NppParameters::getInstance();
+	const ScintillaViewParams& svp = nppParams.getSVP();
+	
+	COLORREF eolCustomColor = liteGrey;
+
+	if (color == -1)
+	{
+		StyleArray& stylers = nppParams.getMiscStylerArray();
+		Style* pStyle = stylers.findByName(TEXT("EOL custom color"));
+		if (pStyle)
+		{
+			eolCustomColor = pStyle->_fgColor;
+		}
+	}
+	else
+	{
+		eolCustomColor = color;
+	}
+
+	ScintillaViewParams::crlfMode eolMode = svp._eolMode;
+	long appearance = SC_REPRESENTATION_BLOB;
+
+	if (eolMode == ScintillaViewParams::crlfMode::plainText)
+		appearance = SC_REPRESENTATION_PLAIN;
+	else if (eolMode == ScintillaViewParams::crlfMode::plainTextCustomColor)
+		appearance = SC_REPRESENTATION_PLAIN | SC_REPRESENTATION_COLOUR;
+	else if (eolMode == ScintillaViewParams::crlfMode::roundedRectangleText)
+		appearance = SC_REPRESENTATION_BLOB;
+	else if (eolMode == ScintillaViewParams::crlfMode::roundedRectangleTextCustomColor)
+		appearance = SC_REPRESENTATION_BLOB | SC_REPRESENTATION_COLOUR;
+
+	const wchar_t* cr = L"\x0d";
+	const wchar_t* lf = L"\x0a";
+	
+	long alphaEolCustomColor = eolCustomColor;
+	alphaEolCustomColor |= 0xFF000000; // add alpha color to make DirectWrite mode work
+
+	execute(SCI_SETREPRESENTATIONCOLOUR, reinterpret_cast<WPARAM>(cr), alphaEolCustomColor);
+	execute(SCI_SETREPRESENTATIONCOLOUR, reinterpret_cast<WPARAM>(lf), alphaEolCustomColor);
+
+	execute(SCI_SETREPRESENTATIONAPPEARANCE, reinterpret_cast<WPARAM>(cr), appearance);
+	execute(SCI_SETREPRESENTATIONAPPEARANCE, reinterpret_cast<WPARAM>(lf), appearance);
+
+	redraw();
+}
 
 #if 0 // Mattes	
 void ScintillaEditView::defineDocType(LangType typeDoc)
@@ -1502,7 +1556,7 @@ void ScintillaEditView::defineDocType(LangType typeDoc)
 			setMakefileLexer(); break;
 
 		case L_INI :
-			setIniLexer(); break;
+			setPropsLexer(false); break;
 
 		case L_USER : {
 			const TCHAR * langExt = _currentBuffer->getUserDefineLangName();
@@ -1983,6 +2037,14 @@ void ScintillaEditView::activateBuffer(BufferID buffer, bool force)
 	restoreCurrentPosPreStep();
 
 	runMarkers(true, 0, true, false);
+
+	setCRLF();
+
+	NppParameters& nppParam = NppParameters::getInstance();
+	const ScintillaViewParams& svp = nppParam.getSVP();
+	int enabledCH = svp._isChangeHistoryEnabled ? (SC_CHANGE_HISTORY_ENABLED | SC_CHANGE_HISTORY_MARKERS) : SC_CHANGE_HISTORY_DISABLED;
+	execute(SCI_SETCHANGEHISTORY, enabledCH);
+
     return;	//all done
 #endif // Mattes
 }
@@ -2162,13 +2224,13 @@ void ScintillaEditView::collapse(int level2Collapse, bool mode)
 
 void ScintillaEditView::foldCurrentPos(bool mode)
 {
-	auto currentLine = this->getCurrentLineNumber();
+	auto currentLine = getCurrentLineNumber();
 	fold(currentLine, mode);
 }
 
 bool ScintillaEditView::isCurrentLineFolded() const
 {
-	auto currentLine = this->getCurrentLineNumber();
+	auto currentLine = getCurrentLineNumber();
 
 	intptr_t headerLine;
 	auto level = execute(SCI_GETFOLDLEVEL, currentLine);
@@ -2188,11 +2250,11 @@ bool ScintillaEditView::isCurrentLineFolded() const
 
 void ScintillaEditView::fold(size_t line, bool mode)
 {
-    auto endStyled = execute(SCI_GETENDSTYLED);
-    auto len = execute(SCI_GETTEXTLENGTH);
+	auto endStyled = execute(SCI_GETENDSTYLED);
+	auto len = execute(SCI_GETTEXTLENGTH);
 
-    if (endStyled < len)
-        execute(SCI_COLOURISE, 0, -1);
+	if (endStyled < len)
+		execute(SCI_COLOURISE, 0, -1);
 
 	intptr_t headerLine;
 	auto level = execute(SCI_GETFOLDLEVEL, line);
@@ -2210,7 +2272,7 @@ void ScintillaEditView::fold(size_t line, bool mode)
 	{
 		execute(SCI_TOGGLEFOLD, headerLine);
 
-		SCNotification scnN;
+		SCNotification scnN{};
 		scnN.nmhdr.code = SCN_FOLDINGSTATECHANGED;
 		scnN.nmhdr.hwndFrom = _hSelf;
 		scnN.nmhdr.idFrom = 0;
@@ -2236,11 +2298,11 @@ void ScintillaEditView::foldAll(bool mode)
 
 void ScintillaEditView::getText(char *dest, size_t start, size_t end) const
 {
-	Sci_TextRange tr;
-	tr.chrg.cpMin = static_cast<Sci_PositionCR>(start);
-	tr.chrg.cpMax = static_cast<Sci_PositionCR>(end);
+	Sci_TextRangeFull tr{};
+	tr.chrg.cpMin = static_cast<Sci_Position>(start);
+	tr.chrg.cpMax = static_cast<Sci_Position>(end);
 	tr.lpstrText = dest;
-	execute(SCI_GETTEXTRANGE, 0, reinterpret_cast<LPARAM>(&tr));
+	execute(SCI_GETTEXTRANGEFULL, 0, reinterpret_cast<LPARAM>(&tr));
 }
 
 generic_string ScintillaEditView::getGenericTextAsString(size_t start, size_t end) const
@@ -2350,15 +2412,15 @@ char * ScintillaEditView::getSelectedText(char * txt, size_t size, bool expand)
 {
 	if (!size)
 		return NULL;
-	Sci_CharacterRange range = getSelection();
+	Sci_CharacterRangeFull range = getSelection();
 	if (range.cpMax == range.cpMin && expand)
 	{
 		expandWordSelection();
 		range = getSelection();
 	}
-	if (!(static_cast<Sci_PositionCR>(size) > (range.cpMax - range.cpMin)))	//there must be atleast 1 byte left for zero terminator
+	if (!(static_cast<Sci_Position>(size) > (range.cpMax - range.cpMin)))	//there must be atleast 1 byte left for zero terminator
 	{
-		range.cpMax = range.cpMin + (Sci_PositionCR)size -1;	//keep room for zero terminator
+		range.cpMax = range.cpMin + size -1;	//keep room for zero terminator
 	}
 	//getText(txt, range.cpMin, range.cpMax);
 	return getWordFromRange(txt, size, range.cpMin, range.cpMax);
@@ -2511,12 +2573,19 @@ void ScintillaEditView::showMargin(int whichMarge, bool willBeShowed)
 	{
 		//Mattes DPIManager& dpiManager = NppParameters::getInstance()._dpiManager;
 		int width = 3; //Mattes dpiManager.scaleX(3);
-		if (whichMarge == _SC_MARGE_SYBOLE)
+		if (whichMarge == _SC_MARGE_SYMBOL)
 			width = 16; //Mattes dpiManager.scaleX(16);
 		else if (whichMarge == _SC_MARGE_FOLDER)
 			width = 14; //Mattes dpiManager.scaleX(14);
 		execute(SCI_SETMARGINWIDTHN, whichMarge, willBeShowed ? width : 0);
 	}
+}
+
+void ScintillaEditView::showChangeHistoryMargin(bool willBeShowed)
+{
+	DPIManager& dpiManager = NppParameters::getInstance()._dpiManager;
+	int	width = dpiManager.scaleX(9);
+	execute(SCI_SETMARGINWIDTHN, _SC_MARGE_CHANGEHISTORY, willBeShowed ? width : 0);
 }
 
 void ScintillaEditView::updateBeginEndSelectPosition(bool is_insert, size_t position, size_t length)
@@ -2651,7 +2720,13 @@ void ScintillaEditView::performGlobalStyles()
 	execute(SCI_SETELEMENTCOLOUR, SC_ELEMENT_SELECTION_INACTIVE_BACK, selectColorBack);
 
 	if (nppParams.isSelectFgColorEnabled())
+	{
 		execute(SCI_SETSELFORE, 1, selectColorFore);
+
+		long alphaSelectColorFore = selectColorFore;
+		alphaSelectColorFore |= 0xFF000000; // add alpha color to make DirectWrite mode work
+		execute(SCI_SETELEMENTCOLOUR, SC_ELEMENT_SELECTION_INACTIVE_TEXT, alphaSelectColorFore);
+	}
 
 	COLORREF caretColor = black;
 	pStyle = stylers.findByID(SCI_SETCARETFORE);
@@ -2685,8 +2760,8 @@ void ScintillaEditView::performGlobalStyles()
 	pStyle = stylers.findByName(TEXT("Bookmark margin"));
 	if (!pStyle)
 	{
-		pStyle = stylers.findByName(TEXT("Line number margin"));
-		if (pStyle)
+		pStyle = stylers.findByName(TEXT("Line number margin")); // "Line number margin" is used only for getting the bg color for _SC_MARGE_SYMBOL.
+		if (pStyle)                                              // "Line number margin" has its own style (styleID="33") for setting its bg & fg color
 		{
 			bookmarkMarginColor = pStyle->_bgColor;
 		}
@@ -2695,8 +2770,15 @@ void ScintillaEditView::performGlobalStyles()
 	{
 		bookmarkMarginColor = pStyle->_bgColor;
 	}
-	execute(SCI_SETMARGINTYPEN, _SC_MARGE_SYBOLE, SC_MARGIN_COLOUR);
-	execute(SCI_SETMARGINBACKN, _SC_MARGE_SYBOLE, bookmarkMarginColor);
+	execute(SCI_SETMARGINTYPEN, _SC_MARGE_SYMBOL, SC_MARGIN_COLOUR);
+	execute(SCI_SETMARGINBACKN, _SC_MARGE_SYMBOL, bookmarkMarginColor);
+
+	pStyle = stylers.findByName(TEXT("Change History margin"));
+	if (pStyle)
+	{
+		execute(SCI_SETMARGINTYPEN, _SC_MARGE_CHANGEHISTORY, SC_MARGIN_COLOUR);
+		execute(SCI_SETMARGINBACKN, _SC_MARGE_CHANGEHISTORY, pStyle->_bgColor);
+	}
 
 	COLORREF urlHoveredFG = grey;
 	pStyle = stylers.findByName(TEXT("URL hovered"));
@@ -2721,6 +2803,14 @@ void ScintillaEditView::performGlobalStyles()
 		wsSymbolFgColor = pStyle->_fgColor;
 	}
 	execute(SCI_SETWHITESPACEFORE, true, wsSymbolFgColor);
+
+	COLORREF eolCustomColor = liteGrey;
+	pStyle = stylers.findByName(TEXT("EOL custom color"));
+	if (pStyle)
+	{
+		eolCustomColor = pStyle->_fgColor;
+	}
+	setCRLF(eolCustomColor);
 }
 
 void ScintillaEditView::showIndentGuideLine(bool willBeShowed)
@@ -2732,40 +2822,40 @@ void ScintillaEditView::showIndentGuideLine(bool willBeShowed)
 
 void ScintillaEditView::setLineIndent(size_t line, size_t indent) const
 {
-	Sci_CharacterRange crange = getSelection();
-	size_t posBefore = execute(SCI_GETLINEINDENTPOSITION, line);
+	Sci_CharacterRangeFull crange = getSelection();
+	int64_t posBefore = execute(SCI_GETLINEINDENTPOSITION, line);
 	execute(SCI_SETLINEINDENTATION, line, indent);
-	size_t posAfter = execute(SCI_GETLINEINDENTPOSITION, line);
+	int64_t posAfter = execute(SCI_GETLINEINDENTPOSITION, line);
 	long long posDifference = posAfter - posBefore;
 	if (posAfter > posBefore)
 	{
 		// Move selection on
-		if (crange.cpMin >= static_cast<Sci_PositionCR>(posBefore))
+		if (crange.cpMin >= posBefore)
 		{
-			crange.cpMin += static_cast<Sci_PositionCR>(posDifference);
+			crange.cpMin += static_cast<Sci_Position>(posDifference);
 		}
-		if (crange.cpMax >= static_cast<Sci_PositionCR>(posBefore))
+		if (crange.cpMax >= posBefore)
 		{
-			crange.cpMax += static_cast<Sci_PositionCR>(posDifference);
+			crange.cpMax += static_cast<Sci_Position>(posDifference);
 		}
 	}
 	else if (posAfter < posBefore)
 	{
 		// Move selection back
-		if (crange.cpMin >= static_cast<Sci_PositionCR>(posAfter))
+		if (crange.cpMin >= posAfter)
 		{
-			if (crange.cpMin >= static_cast<Sci_PositionCR>(posBefore))
-				crange.cpMin += static_cast<Sci_PositionCR>(posDifference);
+			if (crange.cpMin >= posBefore)
+				crange.cpMin += static_cast<Sci_Position>(posDifference);
 			else
-				crange.cpMin = static_cast<Sci_PositionCR>(posAfter);
+				crange.cpMin = static_cast<Sci_Position>(posAfter);
 		}
 
-		if (crange.cpMax >= static_cast<Sci_PositionCR>(posAfter))
+		if (crange.cpMax >= posAfter)
 		{
-			if (crange.cpMax >= static_cast<Sci_PositionCR>(posBefore))
-				crange.cpMax += static_cast<Sci_PositionCR>(posDifference);
+			if (crange.cpMax >= posBefore)
+				crange.cpMax += static_cast<Sci_Position>(posDifference);
 			else
-				crange.cpMax = static_cast<Sci_PositionCR>(posAfter);
+				crange.cpMax = static_cast<Sci_Position>(posAfter);
 		}
 	}
 	execute(SCI_SETSEL, crange.cpMin, crange.cpMax);
@@ -3342,38 +3432,6 @@ void ScintillaEditView::columnReplace(ColumnModeInfos & cmi, int initial, int in
 	}
 }
 
-
-void ScintillaEditView::foldChanged(size_t line, int levelNow, int levelPrev)
-{
-	if (levelNow & SC_FOLDLEVELHEADERFLAG)		//line can be folded
-	{
-		if (!(levelPrev & SC_FOLDLEVELHEADERFLAG))	//but previously couldnt
-		{
-			// Adding a fold point.
-			execute(SCI_SETFOLDEXPANDED, line, 1);
-			expand(line, true, false, 0, levelPrev);
-		}
-	}
-	else if (levelPrev & SC_FOLDLEVELHEADERFLAG)
-	{
-		if (isFolded(line))
-		{
-			// Removing the fold from one that has been contracted so should expand
-			// otherwise lines are left invisible with no way to make them visible
-			execute(SCI_SETFOLDEXPANDED, line, 1);
-			expand(line, true, false, 0, levelPrev);
-		}
-	}
-	else if (!(levelNow & SC_FOLDLEVELWHITEFLAG) &&
-	        ((levelPrev & SC_FOLDLEVELNUMBERMASK) > (levelNow & SC_FOLDLEVELNUMBERMASK)))
-	{
-		// See if should still be hidden
-		intptr_t parentLine = execute(SCI_GETFOLDPARENT, line);
-		if ((parentLine < 0) || !isFolded(parentLine && execute(SCI_GETLINEVISIBLE, parentLine)))
-			execute(SCI_SHOWLINES, line, line);
-	}
-}
-
 bool ScintillaEditView::getIndicatorRange(size_t indicatorNumber, size_t* from, size_t* to, size_t* cur)
 {
 	size_t curPos = execute(SCI_GETCURRENTPOS);
@@ -3388,7 +3446,7 @@ bool ScintillaEditView::getIndicatorRange(size_t indicatorNumber, size_t* from, 
 	if (to) *to = endPos;
 	if (cur) *cur = curPos;
 	return true;
-};
+}
 
 
 void ScintillaEditView::scrollPosToCenter(size_t pos)
@@ -3434,45 +3492,73 @@ void ScintillaEditView::hideLines()
 	if (startLine > endLine)
 		return;	//tried to hide line at edge
 
-	//Hide the lines. We add marks on the outside of the hidden section and hide the lines
-	//execute(SCI_HIDELINES, startLine, endLine);
-	//Add markers
-	execute(SCI_MARKERADD, startLine-1, MARK_HIDELINESBEGIN);
-	execute(SCI_MARKERADD, startLine-1, MARK_HIDELINESUNDERLINE);
-	execute(SCI_MARKERADD, endLine+1, MARK_HIDELINESEND);
-
-	//remove any markers in between
 	int scope = 0;
-	for (size_t i = startLine; i <= endLine; ++i)
+	bool recentMarkerWasOpen = false;
+
+	auto removeMarker = [this, &scope, &recentMarkerWasOpen](size_t line)
 	{
-		auto state = execute(SCI_MARKERGET, i);
-		bool closePresent = ((state & (1 << MARK_HIDELINESEND)) != 0);	//check close first, then open, since close closes scope
+		auto state = execute(SCI_MARKERGET, line);
+		bool closePresent = ((state & (1 << MARK_HIDELINESEND)) != 0);
 		bool openPresent = ((state & (1 << MARK_HIDELINESBEGIN | 1 << MARK_HIDELINESUNDERLINE)) != 0);
 		if (closePresent)
 		{
-			execute(SCI_MARKERDELETE, i, MARK_HIDELINESEND);
-			if (scope > 0) scope--;
+			execute(SCI_MARKERDELETE, line, MARK_HIDELINESEND);
+			recentMarkerWasOpen = false;
+			--scope;
 		}
 
 		if (openPresent)
 		{
-			execute(SCI_MARKERDELETE, i, MARK_HIDELINESBEGIN);
-			execute(SCI_MARKERDELETE, i, MARK_HIDELINESUNDERLINE);
+			execute(SCI_MARKERDELETE, line, MARK_HIDELINESBEGIN);
+			execute(SCI_MARKERDELETE, line, MARK_HIDELINESUNDERLINE);
+			recentMarkerWasOpen = true;
 			++scope;
 		}
+	};
+
+	size_t startMarker = startLine - 1;
+	size_t endMarker = endLine + 1;
+
+	// Remove all previous markers in between new ones
+	for (size_t i = startMarker; i <= endMarker; ++i)
+		removeMarker(i);
+
+	// When hiding lines just below/above other hidden lines,
+	// merge them into one hidden section:
+
+	if (scope == 0 && recentMarkerWasOpen)
+	{
+		// Special case: user wants to hide every line in between other hidden sections.
+		// Both "while" loops are executed (merge with above AND below hidden section):
+
+		while (scope == 0)
+			removeMarker(--startMarker);
+
+		while (scope != 0)
+			removeMarker(++endMarker);
 	}
-	if (scope != 0)
-	{	//something went wrong
-		//Someone managed to make overlapping hidelines sections.
-		//We cant do anything since this isnt supposed to happen
+	else
+	{
+		// User wants to hide some lines below/above other hidden section.
+		// If true, only one "while" loop is executed (merge with adjacent hidden section):
+
+		while (scope < 0)
+			removeMarker(--startMarker);
+
+		while (scope > 0)
+			removeMarker(++endMarker);
 	}
 
+	execute(SCI_MARKERADD, startMarker, MARK_HIDELINESBEGIN);
+	execute(SCI_MARKERADD, startMarker, MARK_HIDELINESUNDERLINE);
+	execute(SCI_MARKERADD, endMarker, MARK_HIDELINESEND);
+
 #if 0 // Mattes
-	_currentBuffer->setHideLineChanged(true, startLine-1);
+	_currentBuffer->setHideLineChanged(true, startMarker);
 #endif // Mattes
 }
 
-bool ScintillaEditView::markerMarginClick(size_t lineNumber)
+bool ScintillaEditView::markerMarginClick(intptr_t lineNumber)
 {
 	auto state = execute(SCI_MARKERGET, lineNumber);
 	bool openPresent = ((state & (1 << MARK_HIDELINESBEGIN | 1 << MARK_HIDELINESUNDERLINE)) != 0);
@@ -3498,7 +3584,7 @@ bool ScintillaEditView::markerMarginClick(size_t lineNumber)
 
 		if (openPresent)
 		{
-			_currentBuffer->setHideLineChanged(false, lineNumber);
+			_currentBuffer->setHideLineChanged(false, lineNumber + 1);
 		}
 	}
 #endif // Mattes
@@ -3897,7 +3983,7 @@ pair<size_t, size_t> ScintillaEditView::getSelectedCharsAndLinesCount(long long 
 	}
 
 	return selectedCharsAndLines;
-};
+}
 
 size_t ScintillaEditView::getUnicodeSelectedLength() const
 {
@@ -3912,7 +3998,7 @@ size_t ScintillaEditView::getUnicodeSelectedLength() const
 	}
 
 	return length;
-};
+}
 
 
 void ScintillaEditView::markedTextToClipboard(int indiStyle, bool doAll /*= false*/)

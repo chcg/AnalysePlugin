@@ -39,7 +39,7 @@ search result string cache
 #define FNDRESDLG_LINE_HEAD ""
 #define FNDRESDLG_LINE_COLON ": "
 #define FNDRESDLG_LINE_HYPHEN "| "
-#define FNDRESDLG_DEFAULT_STYLE 0 // style number for the default styling
+#define FNDRESDLG_DEFAULT_STYLE STYLE_DEFAULT // style number for the default styling
 #define FNDRESDLG_ACTIVATE_SEARCH 0x06
 
 #ifdef UNICODE
@@ -48,9 +48,9 @@ search result string cache
 #define filestat _stat
 #endif
 // available style id -> sub sequent 0-based index
-// counter definition is ScintillaSearchView::transStylePos
-const int tclFindResultDlg::transStyleId[MY_STYLE_COUNT] = {
-        1,  2,  3,  4,  5,  6,  7,  8,  9, // 0 is for default color
+// counter definition is ScintillaSearchView::transStylePos for clipboard colors
+const int tclFindResultDlg::transStyleIdTab[MY_STYLE_COUNT] = {
+        1,  2,  3,  4,  5,  6,  7,  8,  9, // STYLE_DEFAULT is for default color
    10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
    20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
    30, 31,                                 // scintilla defined numbers
@@ -62,13 +62,36 @@ const int tclFindResultDlg::transStyleId[MY_STYLE_COUNT] = {
    90, 91, 92, 93, 94, 95, 96, 97, 98, 99,
   100,101,102,103,104,105,106,107,108,109,
   110,111,112,113,114,115,116,117,118,119,
-  120,121,122,123,124,125,126,127
+  120,121,122,123,124,125,126,127,128,129,
+  130,131,132,133,134,135,136,137,138,139,
+  140,141,142,143,144,145,146,147,148,149,
+  150,151,152,153,154,155,156,157,158,159,
+  160,161,162,163,164,165,166,167,168,169,
+  170,171,172,173,174,175,176,177,178,179,
+  180,181,182,183,184,185,186,187,188,189,
+  190,191,192,193,194,195,196,197,198,199,
+  200,201,202,203,204,205,206,207,208,209,
+  210,211,212,213,214,215,216,217,218,219,
+  220,221,222,223,224,225,226,227,228,229,
+  230,231,232,233,234,235,236,237,238,239,
+  240,241,242,243,244,245,246,247,248,249,
+  250,251,252,253,254,255
 };
-   
+
+int tclFindResultDlg::transStyleId(unsigned int id) const {
+   if (id < MY_STYLE_COUNT) {
+      return transStyleIdTab[id];
+   }
+   else {
+      //return transStyleIdTab[MY_STYLE_COUNT-1]; // last style repeated
+      return STYLE_DEFAULT;
+   }
+}
 tlpLinePosInfo tclFindResultDoc::mDefLineInfo = tlpLinePosInfo();
 
 tclFindResultDlg::tclFindResultDlg() 
    : DockingDlgInterface(IDD_FIND_DLG_RESULT)
+   , _pParent(0)
    , _markedLine(-1)
    , _lineCounter(0) 
    , miLineNumColSize(0)
@@ -140,7 +163,7 @@ void tclFindResultDlg::removeUnusedResultLines(tPatId pattId, const tclResult& o
             tiLine resultLine = mFindResults.getLineNoAtRes(thisLine);
             if(resultLine >= 0) {
                if(mUseBookmark){
-                  _pParent->execute(teNppWindows::scnActiveHandle, SCI_MARKERDELETE, thisLine, MARK_BOOKMARK);
+                  _pParent->execute(teNppWindows::scnActiveHandle, SCI_MARKERDELETE, thisLine, _pParent->getBookmarkId());
                }
                tiLine startL = (tiLine)_scintView.execute(SCI_POSITIONFROMLINE, resultLine);
                tiLine endL = (tiLine)_scintView.execute(SCI_GETLINEENDPOSITION, resultLine);
@@ -161,7 +184,7 @@ void tclFindResultDlg::removeUnusedResultLines(tPatId pattId, const tclResult& o
                }
             } else {
                TCHAR num[20];
-               ::MessageBox(0, TEXT("The line was not in ?"),generic_itoa(resultLine, num, 10), MB_OK);
+               ::MessageBox(0, TEXT("The line was not in ?"), generic_i64toa(resultLine, num, 10), MB_OK);
             }
             mFindResults.erase(thisLine);
          } else {
@@ -264,7 +287,7 @@ void tclFindResultDlg::setLineText(tiLine iFoundLine, const std::string& text, c
       if(bNewLine) {
          // adding a newline into result -> set bookmark in main window
          if(mUseBookmark) {
-            _pParent->execute(teNppWindows::scnActiveHandle, SCI_MARKERADD, iFoundLine, MARK_BOOKMARK);
+            _pParent->execute(teNppWindows::scnActiveHandle, SCI_MARKERADD, iFoundLine, _pParent->getBookmarkId());
          }
          _scintView.execute(SCI_INSERTTEXT, startPos, (LPARAM)s.c_str());
          ++_lineCounter;
@@ -318,8 +341,8 @@ void tclFindResultDlg::setPatternFonts() {
    for(unsigned iPat = 0; iPat < mPatStyleList.size(); ++iPat) 
    {
       //const tclPattern& rPat = mPatStyleList.getPattern(mPatStyleList.getPatternId(iPat));
-      _scintView.execute(SCI_STYLESETFONT, transStyleId[iPat], (LPARAM)fontName);
-      _scintView.execute(SCI_STYLESETSIZE, transStyleId[iPat], (LPARAM)mFontSize);
+      _scintView.execute(SCI_STYLESETFONT, transStyleId(iPat), (LPARAM)fontName);
+      _scintView.execute(SCI_STYLESETSIZE, transStyleId(iPat), (LPARAM)mFontSize);
    } // for 
 }
 
@@ -345,7 +368,7 @@ void tclFindResultDlg::clear(bool initial)
    //_foundInfos.clear(); 
    mFindResults.clear();
    if(mUseBookmark && !initial) {
-      _pParent->execute(teNppWindows::scnActiveHandle, SCI_MARKERDELETEALL, MARK_BOOKMARK);
+      _pParent->execute(teNppWindows::scnActiveHandle, SCI_MARKERDELETEALL, _pParent->getBookmarkId());
    }
    clear_view();
    _lineCounter = 0;
@@ -412,64 +435,41 @@ void tclFindResultDlg::setPatternStyles(const tclPatternList& list)
    SCI_GETMAXLINESTATE
    */
     
-   std::string rtfColTbl;
-   char styleNum[4];
-
-   unsigned iPat = FNDRESDLG_DEFAULT_STYLE;
-   tclPattern defPat;
-   _scintView.execute(SCI_STYLESETVISIBLE, iPat, !defPat.getIsHideText());
-   _scintView.execute(SCI_STYLESETBOLD, iPat, defPat.getIsBold());
-   _scintView.execute(SCI_STYLESETITALIC, iPat, defPat.getIsItalic());
-   _scintView.execute(SCI_STYLESETUNDERLINE, iPat, defPat.getIsUnderlined());
-   _scintView.execute(SCI_STYLESETFORE, iPat, defPat.getColorNum());
-   _scintView.execute(SCI_STYLESETBACK, iPat, defPat.getBgColorNum());
-   _scintView.execute(SCI_STYLESETEOLFILLED, iPat, (defPat.getSelectionType()==tclPattern::line));
-   // prepare rtfColTbl as color table for richtext support
-   rtfColTbl += RTF_COLTAG_RED;
-   rtfColTbl += _itoa(RTF_COL_R(defPat.getColorNum()),styleNum, 10);
-   rtfColTbl += RTF_COLTAG_GREEN;
-   rtfColTbl += _itoa(RTF_COL_G(defPat.getColorNum()),styleNum, 10);
-   rtfColTbl += RTF_COLTAG_BLUE;
-   rtfColTbl += _itoa(RTF_COL_B(defPat.getColorNum()),styleNum, 10);
-   rtfColTbl += RTF_COLTAG_END;
-   rtfColTbl += RTF_COLTAG_RED;
-   rtfColTbl += _itoa(RTF_COL_R(defPat.getBgColorNum()), styleNum, 10);
-   rtfColTbl += RTF_COLTAG_GREEN;
-   rtfColTbl += _itoa(RTF_COL_G(defPat.getBgColorNum()), styleNum, 10);
-   rtfColTbl += RTF_COLTAG_BLUE;
-   rtfColTbl += _itoa(RTF_COL_B(defPat.getBgColorNum()), styleNum, 10);
-   rtfColTbl += RTF_COLTAG_END;
+   unsigned iDefPat = FNDRESDLG_DEFAULT_STYLE;
+   tclPattern defPat = mFindResultSearchDlg.getdefaultPattern();
+   _scintView.execute(SCI_STYLESETVISIBLE, iDefPat, !defPat.getIsHideText());
+   _scintView.execute(SCI_STYLESETBOLD, iDefPat, defPat.getIsBold());
+   _scintView.execute(SCI_STYLESETITALIC, iDefPat, defPat.getIsItalic());
+   _scintView.execute(SCI_STYLESETUNDERLINE, iDefPat, defPat.getIsUnderlined());
+   _scintView.execute(SCI_STYLESETFORE, iDefPat, defPat.getColorNum());
+   _scintView.execute(SCI_STYLESETBACK, iDefPat, defPat.getBgColorNum());
+   _scintView.execute(SCI_STYLESETEOLFILLED, iDefPat, (defPat.getSelectionType()==tclPattern::line));
+   // prepare rtfColTbl as color table for richtext support color 0 = default color
+   _scintView.startRtfColorTable(defPat.getColorNum());
    // copy styles into result window cache because while painting
    // user may have removed a pattern already
-   for(unsigned iPat = 0; iPat < mPatStyleList.size(); ++iPat) 
+   // we can maximally style MY_STYLE_COUNT patterns
+   for(unsigned iPat = 0; (iPat < mPatStyleList.size()); ++iPat)
    {  
-      int i = iPat < MY_STYLE_COUNT ? iPat : FNDRESDLG_DEFAULT_STYLE;
-      const tclPattern& rPat = mPatStyleList.getPattern(mPatStyleList.getPatternId(iPat));
-      _scintView.execute(SCI_STYLESETVISIBLE, transStyleId[i], !rPat.getIsHideText());
-      _scintView.execute(SCI_STYLESETBOLD, transStyleId[i], rPat.getIsBold());
-      _scintView.execute(SCI_STYLESETITALIC, transStyleId[i], rPat.getIsItalic());
-      _scintView.execute(SCI_STYLESETUNDERLINE, transStyleId[i], rPat.getIsUnderlined());
-      _scintView.execute(SCI_STYLESETFORE, transStyleId[i], rPat.getColorNum());
-      _scintView.execute(SCI_STYLESETBACK, transStyleId[i], rPat.getBgColorNum());
-      _scintView.execute(SCI_STYLESETEOLFILLED, transStyleId[i], (rPat.getSelectionType()==tclPattern::line));
-      rtfColTbl += RTF_COLTAG_RED;
-      rtfColTbl += _itoa(RTF_COL_R(rPat.getColorNum()), styleNum, 10);
-      rtfColTbl += RTF_COLTAG_GREEN;
-      rtfColTbl += _itoa(RTF_COL_G(rPat.getColorNum()), styleNum, 10);
-      rtfColTbl += RTF_COLTAG_BLUE;
-      rtfColTbl += _itoa(RTF_COL_B(rPat.getColorNum()), styleNum, 10);
-      rtfColTbl += RTF_COLTAG_END;
-      rtfColTbl += RTF_COLTAG_RED;
-      rtfColTbl += _itoa(RTF_COL_R(rPat.getBgColorNum()), styleNum, 10);
-      rtfColTbl += RTF_COLTAG_GREEN;
-      rtfColTbl += _itoa(RTF_COL_G(rPat.getBgColorNum()), styleNum, 10);
-      rtfColTbl += RTF_COLTAG_BLUE;
-      rtfColTbl += _itoa(RTF_COL_B(rPat.getBgColorNum()), styleNum, 10);
-      rtfColTbl += RTF_COLTAG_END;
+      if (iPat >= MY_STYLE_COUNT) {
+         // no additional colors possible
+         int e = 1;
+      }
+      else {
+         const tclPattern& rPat = mPatStyleList.getPattern(mPatStyleList.getPatternId(iPat));
+         _scintView.execute(SCI_STYLESETVISIBLE, transStyleId(iPat), !rPat.getIsHideText());
+         _scintView.execute(SCI_STYLESETBOLD, transStyleId(iPat), rPat.getIsBold());
+         _scintView.execute(SCI_STYLESETITALIC, transStyleId(iPat), rPat.getIsItalic());
+         _scintView.execute(SCI_STYLESETUNDERLINE, transStyleId(iPat), rPat.getIsUnderlined());
+         _scintView.execute(SCI_STYLESETFORE, transStyleId(iPat), rPat.getColorNum());
+         _scintView.execute(SCI_STYLESETBACK, transStyleId(iPat), rPat.getBgColorNum());
+         _scintView.execute(SCI_STYLESETEOLFILLED, transStyleId(iPat), (rPat.getSelectionType() == tclPattern::line));
+         // colors 1 based
+         _scintView.addRtfColor2Table(rPat.getColorNum());
+      }
    } // for
    
-   // set the actual color table to the rtf clipboard func
-   _scintView.setRtfColorTable(rtfColTbl.c_str());
+   _scintView.finalizeRtfColorTable();
    setPatternFonts();
 
    if(bReStyle) {
@@ -591,14 +591,18 @@ INT_PTR CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPAR
    {
    case IDC_DO_CHECK_CONF: 
       {
+         if (mUseBookmark != _pParent->getUseBookmark()) {
+            _pParent->execute(teNppWindows::scnActiveHandle, SCI_MARKERDELETEALL, _pParent->getBookmarkId());
+         }
          mUseBookmark = _pParent->getUseBookmark();
-         // TODO in case Bookmark changed make clean state
          if(_scintView.getLineNumbersInResult() != (_pParent->getDisplayLineNo() != 0)) {
             _scintView.setLineNumbersInResult((_pParent->getDisplayLineNo() != 0));
             clear();
             _pParent->runSearch();
          }
          updateWindowData(_pParent->getResultFontName(), _pParent->getResultFontSize());
+         const tclPattern* p = (const tclPattern*)lParam;
+         mFindResultSearchDlg.setdefaultPattern(*p);
          break;
       }
    case WM_COMMAND : 
@@ -668,7 +672,7 @@ INT_PTR CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPAR
                const tlmIdxPosInfo& p = mFindResults.getLineAtRes(line).second.posInfos();
                tlmIdxPosInfo::const_iterator it = p.begin();
                for (; it != p.end(); ++it) {
-                  int idx = _pParent->getPatternIndex(it->first) + 1; // because list is zero based
+                  int idx = _pParent->getPatternIndex(it->first); // list is zero based
                   generic_string s = _pParent->getPatternIdentification(it->first);
                   s += TEXT(":");
                   s += _pParent->getPatternSearchText(it->first);
@@ -744,7 +748,7 @@ scintilla win with the corresponding style id converted from the mPatStyleList
 void tclFindResultDlg::setStyle(tPatId iPatternId, tiLine iBeginPos, tiLine iLength)
 {
    unsigned u = mPatStyleList.getPatternIndex(iPatternId);
-   u = transStyleId[u]; // shift by table lookup to avoid predefined default styles
+   u = transStyleId(u); // shift by table lookup to avoid predefined default styles
    DBG4("setStyle() pattern %f style %d begin %d length %d", iPatternId, u, (int)iBeginPos, (int)iLength);
    _scintView.execute(SCI_STARTSTYLING, iBeginPos, MY_STYLE_MASK);
    _scintView.execute(SCI_SETSTYLING, iLength, u);

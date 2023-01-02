@@ -39,24 +39,40 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #define RTF_COLNUM "\\cf" // fg color
 #define RTF_BGCOLNUM "\\highlight" // bg color
 
-// available style id -> sub sequent 0-based index
-// counter definition is tclFindResultDlg::transStyleId
-const int ScintillaSearchView::transStylePos[MY_STYLE_MASK+1] = {
-    0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 
-   10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-   20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
-   30, 31,  0,  0,  0,  0,  0,  0,  0,  0,
-           32, 33, 34, 35, 36, 37, 38, 39,
-   40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
-   50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
-   60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
-   70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
-   80, 81, 82, 83, 84, 85, 86, 87, 88, 89,
-   90, 91, 92, 93, 94, 95, 96, 97, 98, 99,
-  100,101,102,103,104,105,106,107,108,109,
-  110,111,112,113,114,115,116,117,118,119
+// available style id -> sub sequent 0-based index in color table
+// as defined in counter definition is tclFindResultDlg::transStyleId
+const int ScintillaSearchView::transStylePosTab[MY_STYLE_MASK+1] = {
+     0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 
+    10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+    20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+    30, 31,  0,  0,  0,  0,  0,  0,  0,  0,
+            32, 33, 34, 35, 36, 37, 38, 39,
+    40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+    50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
+    60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+    70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
+    80, 81, 82, 83, 84, 85, 86, 87, 88, 89,
+    90, 91, 92, 93, 94, 95, 96, 97, 98, 99,
+   100,101,102,103,104,105,106,107,108,109,
+   110,111,112,113,114,115,116,117,118,119,
+   120,121,122,123,124,125,126,127,128,129,
+   130,131,132,133,134,135,136,137,138,139,
+   140,141,142,143,144,145,146,147,148,149,
+   150,151,152,153,154,155,156,157,158,159,
+   160,161,162,163,164,165,166,167,168,169,
+   170,171,172,173,174,175,176,177,178,179,
+   180,181,182,183,184,185,186,187,188,189,
+   190,191,192,193,194,195,196,197,198,199,
+   200,201,202,203,204,205,206,207,208,209,
+   210,211,212,213,214,215,216,217,218,219,
+   220,221,222,223,224,225,226,227,228,229,
+   230,231,232,233,234,235,236,237,238,239,
+   240,241,242,243,244,245,246,247
 };
-
+int ScintillaSearchView::transStylePos(unsigned char stid) const {
+   int i = transStylePosTab[stid];
+   return i;
+}
 void ScintillaSearchView::init(HINSTANCE hInst, HWND hPere)
 {
 #pragma warning(disable:4312 4311)
@@ -95,7 +111,7 @@ void ScintillaSearchView::init(HINSTANCE hInst, HWND hPere)
 	execute(SCI_SETMARGINMASKN, _SC_MARGE_FOLDER, SC_MASK_FOLDERS);
 	showMargin(_SC_MARGE_FOLDER, true);
 
-	execute(SCI_SETMARGINMASKN, _SC_MARGE_SYBOLE, (1<<MARK_BOOKMARK) | (1<<MARK_HIDELINESBEGIN) | (1<<MARK_HIDELINESEND) | (1<<MARK_HIDELINESUNDERLINE));
+	execute(SCI_SETMARGINMASKN, _SC_MARGE_SYMBOL, (1<<MARK_BOOKMARK) | (1<<MARK_HIDELINESBEGIN) | (1<<MARK_HIDELINESEND) | (1<<MARK_HIDELINESUNDERLINE));
 
 	execute(SCI_MARKERSETALPHA, MARK_BOOKMARK, 70);
 
@@ -120,7 +136,7 @@ void ScintillaSearchView::init(HINSTANCE hInst, HWND hPere)
 	}
 
     execute(SCI_SETMARGINSENSITIVEN, _SC_MARGE_FOLDER, true);
-    execute(SCI_SETMARGINSENSITIVEN, _SC_MARGE_SYBOLE, true);
+    execute(SCI_SETMARGINSENSITIVEN, _SC_MARGE_SYMBOL, true);
 
     execute(SCI_SETFOLDFLAGS, 16);
 	execute(SCI_SETSCROLLWIDTHTRACKING, true);
@@ -187,11 +203,33 @@ void ScintillaSearchView::init(HINSTANCE hInst, HWND hPere)
 #pragma warning(default:4312 4311)
 }
 
+void ScintillaSearchView::startRtfColorTable(unsigned defColor) {
+   _RtfColTbl = "";
+   addRtfColor2Table(defColor);
+}
 
-void ScintillaSearchView::setRtfColorTable(const char* pColortbl) {
+void ScintillaSearchView::addRtfColor2Table(unsigned color) {
+   char styleNum[4];
+   _RtfColTbl += RTF_COLTAG_RED;
+   _RtfColTbl += _itoa(RTF_COL_R(color), styleNum, 10);
+   _RtfColTbl += RTF_COLTAG_GREEN;
+   _RtfColTbl += _itoa(RTF_COL_G(color), styleNum, 10);
+   _RtfColTbl += RTF_COLTAG_BLUE;
+   _RtfColTbl += _itoa(RTF_COL_B(color), styleNum, 10);
+   _RtfColTbl += RTF_COLTAG_END;
+   _RtfColTbl += RTF_COLTAG_RED;
+   _RtfColTbl += _itoa(RTF_COL_R(color), styleNum, 10);
+   _RtfColTbl += RTF_COLTAG_GREEN;
+   _RtfColTbl += _itoa(RTF_COL_G(color), styleNum, 10);
+   _RtfColTbl += RTF_COLTAG_BLUE;
+   _RtfColTbl += _itoa(RTF_COL_B(color), styleNum, 10);
+   _RtfColTbl += RTF_COLTAG_END;
+}
+
+void ScintillaSearchView::finalizeRtfColorTable() {
    _RtfFooter = RTF_FOOTER;
    _RtfHeader = RTF_HEADER_BEGIN;
-   _RtfHeader += pColortbl;
+   _RtfHeader += _RtfColTbl;
    _RtfHeader += RTF_HEADER_END;
 }
 
@@ -377,7 +415,7 @@ bool ScintillaSearchView::prepareRtfClip(char *pGlobalText, int& iClipLength, ch
          if(iClipLength <= 0) { assert(iClipLength > 0); return false; }
          strcpy(pDest, RTF_COLNUM);
          pDest += strlen(RTF_COLNUM);
-         _i64toa((transStylePos[style] * 2), styleNum, 10); // every first of two is fgColor
+         _i64toa((transStylePos(style) * 2), styleNum, 10); // every first of two is fgColor
          iClipLength -= (int)strlen(styleNum);
          if (iClipLength <= 0) { assert(iClipLength > 0); return false; }
          strcpy(pDest, styleNum);
@@ -386,7 +424,7 @@ bool ScintillaSearchView::prepareRtfClip(char *pGlobalText, int& iClipLength, ch
          if (iClipLength <= 0) { assert(iClipLength > 0); return false; }
          strcpy(pDest, RTF_BGCOLNUM);
          pDest += strlen(RTF_BGCOLNUM);
-         _i64toa((transStylePos[style] * 2) + 1, styleNum, 10); // every second color is bgColor
+         _i64toa((transStylePos(style) * 2) + 1, styleNum, 10); // every second color is bgColor
          iClipLength -= (int)strlen(styleNum);
          if(iClipLength <= 0) { assert(iClipLength > 0); return false; }
          strcpy(pDest, styleNum);

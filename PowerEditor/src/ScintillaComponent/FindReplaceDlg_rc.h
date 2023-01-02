@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2021 Don HO <don.h@free.fr>
+// Copyright (C) 2022 Don HO <don.h@free.fr>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -70,7 +70,7 @@
 //#define	IDC_FINDINFILES  1637
 #define	IDC_FINDINFILES_LAUNCH			1638
 #define	IDC_GETCURRENTDOCTYPE			1639
-//#define	IDSWITCH					1640
+#define	IDD_RESIZE_TOGGLE_BUTTON		1640
 #define	IDC_FINDALL_CURRENTFILE			1641
 
 #define	IDD_FINDINFILES_DLG				1650

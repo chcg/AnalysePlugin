@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2021 Don HO <don.h@free.fr>
+// Copyright (C) 2022 Don HO <don.h@free.fr>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -13,18 +13,17 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #pragma once
+
 #include <mutex>
-
 #include "Utf8_16.h"
-
 
 
 class Notepad_plus;
 class Buffer;
 typedef Buffer* BufferID;	//each buffer has unique ID by which it can be retrieved
 #define BUFFER_INVALID	reinterpret_cast<BufferID>(0)
-#define NPP_STYLING_FILESIZE_LIMIT (200 * 1024 * 1024) // 200MB+ file won't be styled
 
 typedef sptr_t Document;
 
@@ -78,7 +77,7 @@ public:
 
 	void addBufferReference(BufferID id, ScintillaEditView * identifer);	//called by Scintilla etc indirectly
 
-	BufferID loadFile(const TCHAR * filename, Document doc = NULL, int encoding = -1, const TCHAR *backupFileName = NULL, FILETIME fileNameTimestamp = {});	//ID == BUFFER_INVALID on failure. If Doc == NULL, a new file is created, otherwise data is loaded in given document
+	BufferID loadFile(const TCHAR * filename, Document doc = static_cast<Document>(NULL), int encoding = -1, const TCHAR *backupFileName = nullptr, FILETIME fileNameTimestamp = {});	//ID == BUFFER_INVALID on failure. If Doc == NULL, a new file is created, otherwise data is loaded in given document
 	BufferID newEmptyDocument();
 	//create Buffer from existing Scintilla, used from new Scintillas. If dontIncrease = true, then the new document number isnt increased afterwards.
 	//usefull for temporary but neccesary docs
@@ -128,8 +127,6 @@ private:
 	bool loadFileData(Document doc, int64_t fileSize, const TCHAR* filename, char* buffer, Utf8_16_Read* UnicodeConvertor, LoadedFileFormat& fileFormat);
 	LangType detectLanguageFromTextBegining(const unsigned char *data, size_t dataLen);
 
-
-private:
 	Notepad_plus* _pNotepadPlus = nullptr;
 	ScintillaEditView* _pscratchTilla = nullptr;
 	Document _scratchDocDefault = 0;
@@ -155,7 +152,7 @@ public:
 	// this method 1. copies the file name
 	//             2. determinates the language from the ext of file name
 	//             3. gets the last modified time
-	void setFileName(const TCHAR *fn, LangType defaultLang = L_TEXT);
+	void setFileName(const TCHAR *fn);
 
 	const TCHAR * getFullPathName() const { return _fullPathName.c_str(); }
 
@@ -174,9 +171,9 @@ public:
 
 	bool isDirty() const { return _isDirty; }
 
-	bool isReadOnly() const { return (_isUserReadOnly || _isFileReadOnly); };
+	bool isReadOnly() const { return (_isUserReadOnly || _isFileReadOnly); }
 
-	bool isUntitled() const { return (_currentStatus == DOC_UNNAMED); }
+	bool isUntitled() const { return ((_currentStatus & DOC_UNNAMED) == DOC_UNNAMED); }
 
 	bool getFileReadOnly() const { return _isFileReadOnly; }
 
@@ -297,14 +294,14 @@ public:
 
 	bool isLargeFile() const { return _isLargeFile; }
 
-	void startMonitoring() { 
-		_isMonitoringOn = true; 
+	void startMonitoring() {
+		_isMonitoringOn = true;
 		_eventHandle = ::CreateEvent(nullptr, TRUE, FALSE, nullptr);
 	};
 
 	HANDLE getMonitoringEvent() const { return _eventHandle; };
 
-	void stopMonitoring() { 
+	void stopMonitoring() {
 		_isMonitoringOn = false;
 		::SetEvent(_eventHandle);
 		::CloseHandle(_eventHandle);
@@ -317,6 +314,11 @@ public:
 	MapPosition getMapPosition() const { return _mapPosition; };
 
 	void langHasBeenSetFromMenu() { _hasLangBeenSetFromMenu = true; };
+
+	bool allowBraceMach() const;
+	bool allowAutoCompletion() const;
+	bool allowSmartHilite() const;
+	bool allowClickableLink() const;
 
 private:
 	int indexOfReference(const ScintillaEditView * identifier) const;

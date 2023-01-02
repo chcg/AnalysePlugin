@@ -157,6 +157,8 @@ public:
    virtual generic_string getPatternIdentification(tPatId id) const = 0;
    virtual generic_string getPatternSearchText(tPatId id) const = 0;
    virtual void setSelectedPattern(int index) = 0;
+   virtual LRESULT getBookmarkId() const = 0;
+
 };
 #endif //MYPLUGIN_H
 

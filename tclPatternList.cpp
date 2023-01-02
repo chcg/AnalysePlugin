@@ -28,8 +28,7 @@ class tclPatternList contains a vector of tclPatterns
 // this value is used for the initial, first entry
 // it is intentionally high as inserting in front cause ID/2 values before
 #define PAT_INIT_ID 1000 
-#define PAT_LINE_TXT TEXT("Line ")
-#define PAT_ONUM_TXT TEXT("Ord# ")
+#define PAT_LINE_TXT TEXT("Pat. ")
 
 tclPattern tclPatternList::mDefault = tclPattern();
 
@@ -60,19 +59,11 @@ tPatId tclPatternList::getPatternId(unsigned index) const {
 generic_string tclPatternList::getPatternIdentification(tPatId id) const {
    const tclPattern& p = getPattern(id);
    generic_string s;
-   if (p.getOrderNumStr().empty()) {
-      // can't use the order number so put line # in, as before
-      TCHAR index[5];
-      unsigned idx = getPatternIndex(id);
-      generic_itoa(idx, index, 10);
-      s = PAT_LINE_TXT;
-      s += index;
-   }
-   else {
-      // use the order number information
-      s = PAT_ONUM_TXT;
-      s += p.getOrderNumStr();
-   }
+   TCHAR index[5];
+   unsigned idx = getPatternIndex(id);
+   generic_itoa(idx + 1, index, 10);  // show line 1 based
+   s = PAT_LINE_TXT;
+   s += index;
    return s;
 }
 

@@ -64,11 +64,11 @@ public:
    tiLine insertPosInfo(tPatId patternId, tiLine iResultLine, tclPosInfo pos);
 
    bool getLineAvail(tiLine foundLine) const ;
-   tiLine getNextFoundLine(tiLine iEdittorsLine) const;
+   tiLine getNextFoundLine(intptr_t iEdittorsLine) const;
 
-   const std::string& getLineText(tiLine iResultLine);
+   const std::string& getLineText(intptr_t iResultLine);
 
-   void setLineText(tiLine iFoundLine, const std::string& text, const std::string& comment, unsigned commentWidth);
+   void setLineText(intptr_t iFoundLine, const std::string& text, const std::string& comment, unsigned commentWidth);
    
    void moveResult(tPatId oldPattId, tPatId newPattId);
 
@@ -77,12 +77,12 @@ public:
    void clear_view();
    void clear(bool initial = false);
 
-   tiLine getCurrentMarkedLine() const ;
+   intptr_t getCurrentMarkedLine() const ;
    
    /**
    * set the marked line with
    */ 
-   void setCurrentMarkedLine(tiLine line);
+   void setCurrentMarkedLine(intptr_t line); 
    
    /**
    function is called whenever the styles in the result window have to be changed
@@ -131,7 +131,9 @@ public:
    void updateViewScrollState(tiLine iLineInMain, bool bInMain, bool bAnyway=false);
 
 protected :
-   static const int transStyleId[MY_STYLE_COUNT];
+   static const int transStyleIdTab[MY_STYLE_COUNT];
+   int transStyleId(unsigned int id) const;
+
    // public version calls internal with correct start and end values
    void doStyle(tiLine iFoundLine);
 

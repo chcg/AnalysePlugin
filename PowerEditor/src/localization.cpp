@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2021 Don HO <don.h@free.fr>
+// Copyright (C) 2022 Don HO <don.h@free.fr>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -377,43 +377,25 @@ void NativeLangSpeaker::changeMenuLang(HMENU menuHandle)
 }
 
 
-static const int tabContextMenuItemPos[] =
+static const int tabCmSubMenuEntryPos[] =
 {
-//  +-------------- The order in tab menu (NppNotification.cpp : if (!_tabPopupMenu.isCreated())
-//  |
-//  |        +------ Number in english.xml (<language>.xml) : <TabBar>
-//  |        |
-    0,   //  0: Close
-    1,   //  1: Close ALL BUT This
-    5,   //  2: Save
-    6,   //  3: Save As
-   10,   //  4: Print
-   25,   //  5: Move to Other View
-   26,   //  6: Clone to Other View
-   21,   //  7: Full File Path to Clipboard
-   22,   //  8: Filename to Clipboard
-   23,   //  9: Current Dir. Path to Clipboard
-    7,   // 10: Rename
-    8,   // 11: Move to Recycle Bin
-   18,   // 12: Read-Only
-   19,   // 13: Clear Read-Only Flag
-   27,   // 14: Move to New Instance
-   28,   // 15: Open to New Instance
-    9,   // 16: Reload
-    2,   // 17: Close ALL to the Left
-    3,   // 18: Close ALL to the Right
-   12,   // 19: Open Containing Folder in Explorer
-   13,   // 20: Open Containing Folder in cmd
-   16,   // 21: Open in Default Viewer
-    4,   // 22: Close ALL Unchanged
-   14,   // 23: Open Containing Folder as Workspace
-   -1    //-------End
+//   +-------------- The submenu entry item position on the top level of tab context menu
+//   |
+//   |       +------- Index order (CMDID: Context Menu submenu entry ID): in <TabBar> of english.xml - the number and the order of this array should be synchronized with <TabBar>
+//   |       |
+//   |       |
+//   |       |
+     1,   // 0  Close Multiple Tabs
+     4,   // 1  Open into
+    13,   // 2  Copy to Clipboard
+    14,   // 3  Move Document
+    15,   // 4  Apply Color to Tab
 };
 
 
 void NativeLangSpeaker::changeLangTabContextMenu(HMENU hCM)
 {
-	if (nullptr != _nativeLangA)
+	if (_nativeLangA != nullptr)
 	{
 		TiXmlNodeA *tabBarMenu = _nativeLangA->FirstChild("Menu");
 		if (tabBarMenu)
@@ -422,25 +404,38 @@ void NativeLangSpeaker::changeLangTabContextMenu(HMENU hCM)
 			if (tabBarMenu)
 			{
 				WcharMbcsConvertor& wmc = WcharMbcsConvertor::getInstance();
-				int nbCMItems = sizeof(tabContextMenuItemPos)/sizeof(int);
+				int nbSubEntry = sizeof(tabCmSubMenuEntryPos)/sizeof(int);
 
 				for (TiXmlNodeA *childNode = tabBarMenu->FirstChildElement("Item");
 					childNode ;
 					childNode = childNode->NextSibling("Item") )
 				{
 					TiXmlElementA *element = childNode->ToElement();
-					int index;
-					const char *indexStr = element->Attribute("CMID", &index);
-					if (!indexStr || (index < 0 || index >= nbCMItems-1))
+					int cmd;
+					const char *cmdStr = element->Attribute("CMDID", &cmd);
+					if (!cmdStr || (cmd < 0))
 						continue;
 
-					int pos = tabContextMenuItemPos[index];
-					const char *pName = element->Attribute("name");
-					if (pName)
+					const char* pName = element->Attribute("name");
+					const wchar_t* pNameW = wmc.char2wchar(pName, _nativeLangEncoding);
+
+					if (cmd > nbSubEntry) // menu item CMD
 					{
-						const wchar_t *pNameW = wmc.char2wchar(pName, _nativeLangEncoding);
-						int cmdID = ::GetMenuItemID(hCM, pos);
-						::ModifyMenu(hCM, pos, MF_BYPOSITION, cmdID, pNameW);
+						::ModifyMenu(hCM, cmd, MF_BYCOMMAND, cmd, pNameW);
+
+						// Here CMDID are default Tab Context Menu commands.
+						// User can always add any command beyond the default commands in tabContextMenu.xml file.
+						// But such command won't be translated.
+					}
+					else // sub-menu entry id.
+					{
+						if (!NppParameters::getInstance().hasCustomTabContextMenu()) // The customized sub-menu entry cannot be translated.
+                                                                                     // User can use his/her native language as value of attribute "FolderName" in tabContextMenu.xml file.
+						{
+							int subEntryIndex = cmd;
+							int subEntrypos = tabCmSubMenuEntryPos[subEntryIndex];
+							::ModifyMenu(hCM, subEntrypos, MF_BYPOSITION, cmd, pNameW);
+						}
 					}
 				}
 			}
@@ -642,11 +637,6 @@ void NativeLangSpeaker::changeUserDefineLang(UserDefineDialog *userDefineDlg)
 		const wchar_t *nameW = wmc.char2wchar(titre, _nativeLangEncoding);
 		::SetWindowText(hDlg, nameW);
 	}
-	// for each control
-	const int nbControl = 9;
-	const char *translatedText[nbControl];
-	for (int i = 0 ; i < nbControl ; ++i)
-		translatedText[i] = NULL;
 
 	for (TiXmlNodeA *childNode = userDefineDlgNode->FirstChildElement("Item");
 		childNode ;
@@ -668,19 +658,10 @@ void NativeLangSpeaker::changeUserDefineLang(UserDefineDialog *userDefineDlg)
 					::SetWindowText(hItem, nameW);
 				}
 			}
-			else
-			{
-				switch(id)
-				{
-					case 0: case 1: case 2: case 3: case 4:
-					case 5: case 6: case 7: case 8: 
- 						translatedText[id] = name; break;
-				}
-			}
 		}
 	}
 	const int nbDlg = 4;
-	HWND hDlgArrary[nbDlg];
+	HWND hDlgArrary[nbDlg]{};
 	hDlgArrary[0] = userDefineDlg->getFolderHandle();
 	hDlgArrary[1] = userDefineDlg->getKeywordsHandle();
 	hDlgArrary[2] = userDefineDlg->getCommentHandle();
@@ -815,6 +796,7 @@ void NativeLangSpeaker::changePluginsAdminDlgLang(PluginsAdminDlg & pluginsAdmin
 				const char *titre1 = (dlgNode->ToElement())->Attribute("titleAvailable");
 				const char *titre2 = (dlgNode->ToElement())->Attribute("titleUpdates");
 				const char *titre3 = (dlgNode->ToElement())->Attribute("titleInstalled");
+				const char *titre4 = (dlgNode->ToElement())->Attribute("titleIncompatible");
 
 				if (titre1 && titre1[0])
 				{
@@ -830,6 +812,11 @@ void NativeLangSpeaker::changePluginsAdminDlgLang(PluginsAdminDlg & pluginsAdmin
 				{
 					basic_string<wchar_t> nameW = wmc.char2wchar(titre3, _nativeLangEncoding);
 					pluginsAdminDlg.changeTabName(INSTALLED_LIST, nameW.c_str());
+				}
+				if (titre4 && titre4[0])
+				{
+					basic_string<wchar_t> nameW = wmc.char2wchar(titre4, _nativeLangEncoding);
+					pluginsAdminDlg.changeTabName(INCOMPATIBLE_LIST, nameW.c_str());
 				}
 			}
 
@@ -962,6 +949,13 @@ void NativeLangSpeaker::changePrefereceDlgLang(PreferenceDlg & preference)
 	{
 		const wchar_t *nameW = wmc.char2wchar(titre, _nativeLangEncoding);
 		preference.renameDialogTitle(TEXT("Delimiter"), nameW);
+	}
+
+	changeDlgLang(preference._performanceSubDlg.getHSelf(), "Performance", titre, titreMaxSize);
+	if (titre[0] != '\0')
+	{
+		const wchar_t *nameW = wmc.char2wchar(titre, _nativeLangEncoding);
+		preference.renameDialogTitle(TEXT("Performance"), nameW);
 	}
 
 	changeDlgLang(preference._cloudAndLinkSubDlg.getHSelf(), "Cloud", titre, titreMaxSize);
@@ -1339,6 +1333,9 @@ generic_string NativeLangSpeaker::getAttrNameStr(const TCHAR *defaultStr, const 
 
 int NativeLangSpeaker::messageBox(const char *msgBoxTagName, HWND hWnd, const TCHAR *defaultMessage, const TCHAR *defaultTitle, int msgBoxType, int intInfo, const TCHAR *strInfo)
 {
+	if ((NppParameters::getInstance()).isEndSessionCritical())
+		return IDCANCEL; // simulate Esc-key or Cancel-button as there should not be any big delay / code-flow block
+
 	generic_string msg, title;
 	if (!getMsgBoxLang(msgBoxTagName, title, msg))
 	{

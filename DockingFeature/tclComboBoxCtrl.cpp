@@ -89,7 +89,7 @@ generic_string tclComboBoxCtrl::getComboTextList(bool /*isUTF8*/) const {
    TCHAR text[MAX_CHAR_CELL];
    generic_string s;
 
-   int count = (int)::SendMessage(mhMyCtrl, CB_GETCOUNT, 0, 0);
+   int count = size();
    int i = 0;
 
    // avoid adding the same string twice
@@ -145,7 +145,6 @@ void tclComboBoxCtrl::addInitialText2Combo(int argc, const TCHAR** argv, bool is
    if((argc == 0)||(argv ==0))
       return;
    ::SendMessage(mhMyCtrl, CB_RESETCONTENT, 0, 0);
-   //mattes int count = ::SendMessage(mhMyCtrl, CB_GETCOUNT, 0, 0);
 
    for(int ri = 0; ri < argc ; ++ri) {
       if((argv[ri]) && (*argv[ri])) {

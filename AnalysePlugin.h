@@ -85,6 +85,8 @@ public:
       ,_FindProcessCancelled(false)
       ,_bIgnoreBufferModify(false)
 //      , mResultFontSize(0)
+      , _nppBookmarkId(MARK_BOOKMARK_OLD)
+   
   {
       memset(&_nppData, 0, sizeof(_nppData));
       memset(_iniFilePath, 0, sizeof(_iniFilePath));
@@ -187,6 +189,10 @@ public:
    virtual bool getIsSyncScroll() const;
    virtual bool getDblClickJumps2EditView() const;
    virtual void showConfigDlg();
+   virtual LRESULT getBookmarkId() const {
+      return _nppBookmarkId;
+   }
+
    LRESULT messageProc(UINT Message, WPARAM wParam, LPARAM lParam);
 
    // scintilla notifications
@@ -362,6 +368,7 @@ protected:
    // LexAnalyseResult mLex;
    static COLORREF _acrCustClr[NUM_CUSTOM_COLORS];
 //   HWND mCurScnHandle = NULL;
+   LRESULT _nppBookmarkId;
 // TODO   NppDarkMode::Options _darkModeOptions;			// actual runtime options
 };
 

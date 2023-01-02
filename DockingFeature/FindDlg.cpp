@@ -1465,9 +1465,7 @@ void FindDlg::setDialogData(const tclPattern& p) {
    if (!mCmbSelType.size()) {
       mCmbSelType.addInitialText2Combo(p.getDefSelTypeListSize(), p.getDefSelTypeList(), false);
    }
-#ifdef RESULT_COLORING
-//   mCmbColor.addInitialText2Combo(p.getDefColorListSize(), p.getDefColorList(), false);
-#endif
+
    // set to default values
    mCmbSearchType.addText2Combo(p.getSearchTypeStr().c_str(), false, false, false);
    mCmbSelType.addText2Combo(p.getSelectionTypeStr().c_str(), false, false, false);
