@@ -82,6 +82,8 @@ public:
       return _bLineNumbersInResult;
    }
    void doSaveRichtext();
+   static long NppVersion; // required for incompatible pointer size change in v8.3++
+
 protected:
    static const int transStylePosTab[MY_STYLE_MASK+1];
    int transStylePos(unsigned char stid) const;

@@ -193,7 +193,7 @@ check for NPP API path
 if not take old method
 in case new path and old path are different and in new path ini is not there load once old path and save it in new path 
 */
-
+   ScintillaSearchView::NppVersion = (long)execute(teNppWindows::nppHandle, NPPM_GETNPPVERSION, TRUE, 0); // true for padding
    bool migration = false; // this feature will be removed after some versions
    TCHAR configBase[AP_MAX_PATH];
    configBase[0] = 0;

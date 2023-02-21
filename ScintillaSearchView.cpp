@@ -30,6 +30,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "myDebug.h"
 #include <Shlwapi.h>
 
+long ScintillaSearchView::NppVersion = 0;
 
 #define RTF_HEADER_BEGIN "{\\rtf1\\ansi\\ansicpg\\lang1024\\noproof1252\\uc1 \\deff0{\\fonttbl{\\f0\\fnil\\fcharset0\\fprq1 Courier New;}}\n{\\colortbl"
 // inbetween color table
@@ -256,6 +257,16 @@ bool ScintillaSearchView::doRichTextCopy(const TCHAR* filename) {
    else {
       iBegin = 0;
       iEnd = (int)execute(SCI_GETLENGTH);
+   }
+   long mv = HIWORD(NppVersion);
+   long lv = LOWORD(NppVersion);
+   int p = sizeof(Sci_PositionCR);
+   if (sizeof(Sci_PositionCR) == 8 && ( mv < 8 || (mv == 8 && lv < 300))) {
+      generic_string serr = TEXT("You are using a 64-Bit version smaller as v8.3, but newer AnalysePlugin as v1.13.\n") 
+                            TEXT("In this case Clipboard copy function cannot be used.\n") 
+                            TEXT("Please update NPP to a newer version!");
+      ::MessageBox(getHSelf(), serr.c_str(), TEXT("Incompatible NPP Version!"), MB_ICONERROR | MB_OK);
+      return false;
    }
    Sci_TextRange tr;
    tr.chrg.cpMin = (long)iBegin;
