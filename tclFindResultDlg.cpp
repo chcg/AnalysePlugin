@@ -445,7 +445,7 @@ void tclFindResultDlg::setPatternStyles(const tclPatternList& list)
    _scintView.execute(SCI_STYLESETBACK, iDefPat, defPat.getBgColorNum());
    _scintView.execute(SCI_STYLESETEOLFILLED, iDefPat, (defPat.getSelectionType()==tclPattern::line));
    // prepare rtfColTbl as color table for richtext support color 0 = default color
-   _scintView.startRtfColorTable(defPat.getColorNum());
+   _scintView.startRtfColorTable(defPat.getColorNum(), defPat.getBgColorNum());
    // copy styles into result window cache because while painting
    // user may have removed a pattern already
    // we can maximally style MY_STYLE_COUNT patterns
@@ -465,7 +465,7 @@ void tclFindResultDlg::setPatternStyles(const tclPatternList& list)
          _scintView.execute(SCI_STYLESETBACK, transStyleId(iPat), rPat.getBgColorNum());
          _scintView.execute(SCI_STYLESETEOLFILLED, transStyleId(iPat), (rPat.getSelectionType() == tclPattern::line));
          // colors 1 based
-         _scintView.addRtfColor2Table(rPat.getColorNum());
+         _scintView.addRtfColor2Table(rPat.getColorNum(), rPat.getBgColorNum());
       }
    } // for
    
@@ -698,6 +698,7 @@ INT_PTR CALLBACK tclFindResultDlg::run_dlgProc(UINT message, WPARAM wParam, LPAR
                int index = (int)(wParam - FNDRESDLG_ACTIVATE_PATTERN_BASE);
                DBG1("FNDRESDLG_ACTIVATE_PATTERN for index %d", index);
                _pParent->setSelectedPattern(index);
+               getFocus();
             } else {
                break;
             }

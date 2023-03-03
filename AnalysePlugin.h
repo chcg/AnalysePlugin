@@ -310,6 +310,7 @@ protected:
    static const TCHAR KEYCONFIGLISTCOLORDER[];
    static const TCHAR KEYCUSTOMCOLORS[];
    static const TCHAR KEYORDERNUMHIDECOLWIDTH[];
+   static const TCHAR KEYWARNFOROLDNPPVERDONE[];
    static const TCHAR SECTIONNAME[];
    static const TCHAR LOCALCONFFILE[];
    static const TCHAR ANALYSE_INIFILE[];

@@ -373,6 +373,7 @@
     <ClInclude Include="lexilla\lexlib\LexAccessor.h" />
     <ClInclude Include="PowerEditor\src\EncodingMapper.h" />
     <ClInclude Include="PowerEditor\src\ScintillaComponent\ScintillaEditView.h" />
+    <ClInclude Include="ScintillaSearchView32.h" />
     <ClInclude Include="scintilla\include\BoostRegexSearch.h" />
     <ClInclude Include="DockingFeature\ColourPicker2.h" />
     <ClInclude Include="ConfigDialog.h" />

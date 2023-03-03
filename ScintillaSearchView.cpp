@@ -22,6 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <ShellAPI.h>
 #include <string.h>
 #include "ScintillaSearchView.h"
+#include "ScintillaSearchView32.h"
 #include "chardefines.h"
 #include "Common.h"
 //#include "resource.h"
@@ -31,6 +32,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <Shlwapi.h>
 
 long ScintillaSearchView::NppVersion = 0;
+unsigned ScintillaSearchView::WarnForOldNppVersionDone = 0;
 
 #define RTF_HEADER_BEGIN "{\\rtf1\\ansi\\ansicpg\\lang1024\\noproof1252\\uc1 \\deff0{\\fonttbl{\\f0\\fnil\\fcharset0\\fprq1 Courier New;}}\n{\\colortbl"
 // inbetween color table
@@ -204,12 +206,12 @@ void ScintillaSearchView::init(HINSTANCE hInst, HWND hPere)
 #pragma warning(default:4312 4311)
 }
 
-void ScintillaSearchView::startRtfColorTable(unsigned defColor) {
+void ScintillaSearchView::startRtfColorTable(unsigned defColor, unsigned bgColor) {
    _RtfColTbl = "";
-   addRtfColor2Table(defColor);
+   addRtfColor2Table(defColor, bgColor);
 }
 
-void ScintillaSearchView::addRtfColor2Table(unsigned color) {
+void ScintillaSearchView::addRtfColor2Table(unsigned color, unsigned bgColor) {
    char styleNum[4];
    _RtfColTbl += RTF_COLTAG_RED;
    _RtfColTbl += _itoa(RTF_COL_R(color), styleNum, 10);
@@ -219,11 +221,11 @@ void ScintillaSearchView::addRtfColor2Table(unsigned color) {
    _RtfColTbl += _itoa(RTF_COL_B(color), styleNum, 10);
    _RtfColTbl += RTF_COLTAG_END;
    _RtfColTbl += RTF_COLTAG_RED;
-   _RtfColTbl += _itoa(RTF_COL_R(color), styleNum, 10);
+   _RtfColTbl += _itoa(RTF_COL_R(bgColor), styleNum, 10);
    _RtfColTbl += RTF_COLTAG_GREEN;
-   _RtfColTbl += _itoa(RTF_COL_G(color), styleNum, 10);
+   _RtfColTbl += _itoa(RTF_COL_G(bgColor), styleNum, 10);
    _RtfColTbl += RTF_COLTAG_BLUE;
-   _RtfColTbl += _itoa(RTF_COL_B(color), styleNum, 10);
+   _RtfColTbl += _itoa(RTF_COL_B(bgColor), styleNum, 10);
    _RtfColTbl += RTF_COLTAG_END;
 }
 
@@ -258,30 +260,53 @@ bool ScintillaSearchView::doRichTextCopy(const TCHAR* filename) {
       iBegin = 0;
       iEnd = (int)execute(SCI_GETLENGTH);
    }
-   long mv = HIWORD(NppVersion);
-   long lv = LOWORD(NppVersion);
-   int p = sizeof(Sci_PositionCR);
-   if (sizeof(Sci_PositionCR) == 8 && ( mv < 8 || (mv == 8 && lv < 300))) {
-      generic_string serr = TEXT("You are using a 64-Bit version smaller as v8.3, but newer AnalysePlugin as v1.13.\n") 
-                            TEXT("In this case Clipboard copy function cannot be used.\n") 
-                            TEXT("Please update NPP to a newer version!");
-      ::MessageBox(getHSelf(), serr.c_str(), TEXT("Incompatible NPP Version!"), MB_ICONERROR | MB_OK);
-      return false;
-   }
-   Sci_TextRange tr;
-   tr.chrg.cpMin = (long)iBegin;
-   tr.chrg.cpMax = (long)iEnd;
-   assert(iEnd>=iBegin);
+   assert(iEnd >= iBegin);
    int iSelTextLength = iEnd-iBegin;
    if (iSelTextLength <= 0) {
       DBG0("doRichTextCopy() ERROR no text selected!");
       return false; // no text selected
    }
-   tr.lpstrText = new char[(iSelTextLength+1)*2]; // // 1 for zero word at end and each char as short
-   (void)execute(SCI_GETSTYLEDTEXT, 0, (LPARAM)&tr);
-   int iColCount = countColorChanges(tr);
-   int iEscapeCount = countEscapeChars(tr);
-   int iParCount = countLinefeeds(tr);
+   int iColCount;
+   int iEscapeCount;
+   int iParCount;
+   char* lpText = new char[(iSelTextLength + 1) * 2]; // // 1 for zero word at end and each char as short;
+   long mv = HIWORD(NppVersion);
+   long lv = LOWORD(NppVersion);
+   TCHAR mvs[10];
+   TCHAR lvs[10];
+   generic_itoa(mv, mvs, 10);
+   generic_itoa(lv, lvs, 10);
+
+   int p = sizeof(Sci_PositionCR);
+   if (sizeof(Sci_PositionCR) == 8 && ( mv < 8 || (mv == 8 && lvs[0] < 0x33))) {
+      if (WarnForOldNppVersionDone == 0) {
+         ++WarnForOldNppVersionDone;
+         generic_string serr = TEXT("You are using a NPP 64-Bit version smaller than v8.3, but newer AnalysePlugin v1.13++.\n")
+                               TEXT("Your version is ") + generic_string(mvs) + TEXT(".") + generic_string(lvs) + TEXT("\n")
+                               TEXT("Please update NPP to a newer version!");
+         ::MessageBox(getHSelf(), serr.c_str(), TEXT("Incompatible NPP Version!"), MB_ICONWARNING | MB_OK);
+      }
+      Sci_TextRange32 tr32;
+      tr32.chrg.cpMin = iBegin;
+      tr32.chrg.cpMax = iEnd;
+      tr32.lpstrText = lpText;
+      (void)execute(SCI_GETSTYLEDTEXT, 0, (LPARAM)&tr32);
+      lpText = tr32.lpstrText;
+      iColCount = countColorChanges(tr32.lpstrText, tr32.chrg.cpMin, tr32.chrg.cpMax);
+      iEscapeCount = countEscapeChars(tr32.lpstrText, tr32.chrg.cpMin, tr32.chrg.cpMax);
+      iParCount = countLinefeeds(tr32.lpstrText, tr32.chrg.cpMin, tr32.chrg.cpMax);
+   }
+   else {
+      // normal way since version 8.3
+      Sci_TextRange tr;
+      tr.chrg.cpMin = (long)iBegin;
+      tr.chrg.cpMax = (long)iEnd;
+      tr.lpstrText = lpText;
+      (void)execute(SCI_GETSTYLEDTEXT, 0, (LPARAM)&tr);
+      iColCount = countColorChanges(tr.lpstrText, tr.chrg.cpMin, tr.chrg.cpMax);
+      iEscapeCount = countEscapeChars(tr.lpstrText, tr.chrg.cpMin, tr.chrg.cpMax);
+      iParCount = countLinefeeds(tr.lpstrText, tr.chrg.cpMin, tr.chrg.cpMax);
+   }
 
    //expand size of allocated text by iColCount*expected length per COL + header and footer
    int iClipLength = (iColCount*20)+2              // fg and bg color control words with three digets index + CRLF
@@ -294,8 +319,8 @@ bool ScintillaSearchView::doRichTextCopy(const TCHAR* filename) {
    // first create local mem to prepare the buffer
    char* pClip = new char[iClipLength];
    int iClipLengthRtfText = iClipLength;
-   bool bRtfBufferOk = prepareRtfClip(pClip, iClipLength, tr.lpstrText, iSelTextLength);
-   delete[] tr.lpstrText;
+   bool bRtfBufferOk = prepareRtfClip(pClip, iClipLength, lpText, iSelTextLength);
+   delete[] lpText;
    DBG1("doRichTextCopy() estimated size delta (must be positive) %d",(iClipLengthRtfText - iClipLength));
 
    if (filename) {
@@ -354,12 +379,12 @@ bool ScintillaSearchView::doRichTextCopy(const TCHAR* filename) {
    return true;
 }
 
-int ScintillaSearchView::countColorChanges(const Sci_TextRange& rtr){
+int ScintillaSearchView::countColorChanges(const char* lpstrText, intptr_t cpMin, intptr_t cpMax){
    int iCount=0;
-   short* pwChar= (short*)rtr.lpstrText;
+   const short* pwChar= (const short*)lpstrText;
    char prevStyle = -1;
    char style = -1;
-   short* pwEnd = (short*)rtr.lpstrText + rtr.chrg.cpMax - rtr.chrg.cpMin;
+   const short* pwEnd = (const short*)lpstrText + cpMax - cpMin;
    for(; pwChar < pwEnd; ++pwChar) {
       if(prevStyle !=(style = ((*pwChar)>>8))) {
          ++iCount;
@@ -370,10 +395,10 @@ int ScintillaSearchView::countColorChanges(const Sci_TextRange& rtr){
 }
 
 
-int ScintillaSearchView::countLinefeeds(const Sci_TextRange& rtr){
+int ScintillaSearchView::countLinefeeds(const char* lpstrText, intptr_t cpMin, intptr_t cpMax){
    int iCount=0;
-   short* pwChar= (short*)rtr.lpstrText;
-   short* pwEnd = (short*)rtr.lpstrText + rtr.chrg.cpMax - rtr.chrg.cpMin;
+   const short* pwChar= (const short*)lpstrText;
+   const short* pwEnd = (const short*)lpstrText + cpMax - cpMin;
    for(; pwChar< pwEnd; ++pwChar) {
       switch((*pwChar)&0xff) {
          case 0x0a:
@@ -386,10 +411,10 @@ int ScintillaSearchView::countLinefeeds(const Sci_TextRange& rtr){
    return iCount;
 }
 
-int ScintillaSearchView::countEscapeChars(const Sci_TextRange& rtr){
+int ScintillaSearchView::countEscapeChars(const char* lpstrText, intptr_t cpMin, intptr_t cpMax){
    int iCount=0;
-   short* pwChar= (short*)rtr.lpstrText;
-   short* pwEnd = (short*)rtr.lpstrText + rtr.chrg.cpMax - rtr.chrg.cpMin;
+   const short* pwChar= (const short*)lpstrText;
+   const short* pwEnd = (const short*)lpstrText + cpMax - cpMin;
    for(; pwChar< pwEnd; ++pwChar) {
       switch((*pwChar)&0xff) {
          case '\\':

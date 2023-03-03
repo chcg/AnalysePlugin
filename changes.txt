@@ -1,9 +1,9 @@
 Changes since 1.14
--  #95 fix crash in case of new AP with old NPP in clipboard copy function
--  #94 workaround for black combobox
--  sync with NPP 8.4.8 code
--  #81 Increase the number of supprted styles from ~130 to 247
--  #92 Fixing the bookmark id change in NPP 8.4.6 still maintinaing compatibility 
+ - #95 fix crash in case of new AP with old NPP in clipboard copy function
+ - #94 workaround for black combobox
+ - sync with NPP 8.4.8 code
+ - #81 Increase the number of supprted styles from ~130 to 247
+ - #92 Fixing the bookmark id change in NPP 8.4.6 still maintinaing compatibility 
    with previous versions
 Changes since 1.13
  - bugfix #86 regression in 64-bit version

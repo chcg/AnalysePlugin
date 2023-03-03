@@ -55,6 +55,7 @@ const TCHAR AnalysePlugin::KEYCONFIGLISTCOLUMNS[] = TEXT("configListColumnWidths
 const TCHAR AnalysePlugin::KEYCONFIGLISTCOLORDER[] = TEXT("configListColumnOrder");
 const TCHAR AnalysePlugin::KEYCUSTOMCOLORS[] = TEXT("customColors");
 const TCHAR AnalysePlugin::KEYORDERNUMHIDECOLWIDTH[] = TEXT("orderNumHideColWidth");
+const TCHAR AnalysePlugin::KEYWARNFOROLDNPPVERDONE[] = TEXT("warnForOldNppVersionDone");
 const TCHAR AnalysePlugin::SECTIONNAME[] = TEXT("Analyse Plugin");
 const TCHAR AnalysePlugin::LOCALCONFFILE[] = TEXT("doLocalConf.xml");
 const TCHAR AnalysePlugin::ANALYSE_INIFILE[] = TEXT("AnalysePlugin.ini");
@@ -193,7 +194,7 @@ check for NPP API path
 if not take old method
 in case new path and old path are different and in new path ini is not there load once old path and save it in new path 
 */
-   ScintillaSearchView::NppVersion = (long)execute(teNppWindows::nppHandle, NPPM_GETNPPVERSION, TRUE, 0); // true for padding
+   ScintillaSearchView::NppVersion = (long)execute(teNppWindows::nppHandle, NPPM_GETNPPVERSION, FALSE, 0); // true for padding
    bool migration = false; // this feature will be removed after some versions
    TCHAR configBase[AP_MAX_PATH];
    configBase[0] = 0;
@@ -323,6 +324,8 @@ in case new path and old path are different and in new path ini is not there loa
    _findDlg.setTableColumnOrder(tmp);
    ::GetPrivateProfileString(SECTIONNAME, KEYORDERNUMHIDECOLWIDTH, TEXT("0"), tmp, COUNTCHAR(tmp), _iniFilePath);
    _findDlg.setOrderNumHideColWidth(generic_atoi(tmp));
+   ::GetPrivateProfileString(SECTIONNAME, KEYWARNFOROLDNPPVERDONE, TEXT("0"), tmp, COUNTCHAR(tmp), _iniFilePath);
+   ScintillaSearchView::WarnForOldNppVersionDone = generic_atoi(tmp);
 
    generic_string man = TEXT("");
    HRSRC resourceHandle1 = ::FindResource(_hModule, MAKEINTRESOURCE(IDR_MANUAL), RT_HTML);
@@ -406,6 +409,8 @@ void AnalysePlugin::saveSettings() {
    }
    generic_itoa(_findDlg.getOrderNumHideColWidth(), tmp, 10);
    ::WritePrivateProfileString(SECTIONNAME, KEYORDERNUMHIDECOLWIDTH, tmp, _iniFilePath);
+   generic_itoa(ScintillaSearchView::WarnForOldNppVersionDone, tmp, 10);
+   ::WritePrivateProfileString(SECTIONNAME, KEYWARNFOROLDNPPVERDONE, tmp, _iniFilePath);
 }
 
 void AnalysePlugin::displaySectionCentered(int posStart, int posEnd, bool isDownwards)
@@ -1374,7 +1379,7 @@ void AnalysePlugin::addSelectionToPatterns() {
       ::MessageBox(getCurrentHScintilla(teNppWindows::scnActiveHandle), TEXT("Please select a text or text block to be taken as patterns."), TEXT("AnalysePlugin Selection to Patterns"), MB_OK);
       return;
    } 
-   char* pc = new char[textLength];
+   char* pc = new char[textLength+1];
    execute(teNppWindows::scnActiveHandle, SCI_GETSELTEXT, 0, (LPARAM)pc);
     
    WcharMbcsConvertor *wmc = &WcharMbcsConvertor::getInstance();

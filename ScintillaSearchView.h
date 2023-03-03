@@ -67,8 +67,8 @@ public:
    }
 
    virtual void init(HINSTANCE hInst, HWND hPere);
-   void startRtfColorTable(unsigned defColor);
-   void addRtfColor2Table(unsigned color);
+   void startRtfColorTable(unsigned defColor, unsigned bgColor);
+   void addRtfColor2Table(unsigned color, unsigned bgColor);
    void finalizeRtfColorTable();
    bool doRichTextCopy(const TCHAR* filename=NULL);
    void setWrapMode(bool bOn);
@@ -83,13 +83,14 @@ public:
    }
    void doSaveRichtext();
    static long NppVersion; // required for incompatible pointer size change in v8.3++
+   static unsigned WarnForOldNppVersionDone; // ensure warning comes only once
 
 protected:
    static const int transStylePosTab[MY_STYLE_MASK+1];
    int transStylePos(unsigned char stid) const;
-   int countColorChanges(const Sci_TextRange& rtr);
-   int countLinefeeds(const Sci_TextRange& rtr);
-   int countEscapeChars(const Sci_TextRange& rtr);
+   int countColorChanges(const char* lpstrText, intptr_t cpMin, intptr_t cpMax);
+   int countLinefeeds(const char* lpstrText, intptr_t cpMin, intptr_t cpMax);
+   int countEscapeChars(const char* lpstrText, intptr_t cpMin, intptr_t cpMax);
    bool prepareRtfClip(char *pGlobalText, int& iClipLength, char* lpSelText, int iSelTextLength);
 
    std::string _RtfHeader;
