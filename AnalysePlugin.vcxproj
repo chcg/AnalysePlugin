@@ -392,6 +392,7 @@
     <ClInclude Include="..\scintilla\include\SciLexer.h" />
     <ClInclude Include="..\scintilla\include\Scintilla.h" />
     <ClInclude Include="ScintillaSearchView.h" />
+    <ClInclude Include="ScintillaSearchView32.h" />
     <ClInclude Include="PowerEditor\src\WinControls\StaticDialog\StaticDialog.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="DockingFeature\tclComboBoxCtrl.h" />
